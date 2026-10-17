@@ -1,4 +1,4 @@
-<div class="bg-slate-50 rounded-2xl p-6 md:p-8">
+<div class="bg-slate-50 rounded-2xl p-6 md:p-8 w-full">
   <form class="space-y-6" method="POST" novalidate>
     {% csrf_token %}
     <div class="tabs tabs-box">
@@ -10,7 +10,7 @@
         {% if form.active_tab == "personal" %}checked="checked"{% endif %}
       />
       <div class="tab-content bg-base-100 border-base-300 p-6">
-        <div class="flex flex-col gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-3">
             {% include 'components/form/field.html' with field=form.name %} 
             {% include 'components/form/field.html' with field=form.sex %} 
             {% include 'components/form/field.html' with field=form.role %}
@@ -31,7 +31,7 @@
         {% if form.active_tab == "contact" %}checked="checked" {% endif %}
       />
       <div class="tab-content bg-base-100 border-base-300 p-6">
-        <div class="flex flex-col gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-3">
           {% include 'components/form/field.html' with field=form.phone %} 
           {% include 'components/form/field.html' with field=form.mobile %} 
           {% include 'components/form/field.html' with field=form.email %}
@@ -46,7 +46,7 @@
         {% if form.active_tab == "address" %}checked="checked"{% endif %}
       />
       <div class="tab-content bg-base-100 border-base-300 p-6">
-        <div class="flex flex-col gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-3">
             {% include 'components/form/field.html' with field=form.address %} 
             {% include 'components/form/field.html' with field=form.neighborhood %} 
             {% include 'components/form/field.html' with field=form.city %} 

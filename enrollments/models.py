@@ -224,17 +224,23 @@ class Enrollment(TimeStampedModel):
         )
 
     def clean(self):
-        if self.school_class_id is None or self.enrollment_type_id is None:
-            return
         errors = {}
-        if self.school_class.year_id != self.enrollment_type.school_year_id:
-            errors["school_class"] = "A turma pertence a outro ano letivo."
-        elif self.school_class.program_id != self.enrollment_type.program_id:
-            errors["school_class"] = "A turma pertence a outro curso."
-        elif self.enrollment_type.level and self.school_class.grade_level != int(
-            self.enrollment_type.level
+        if (
+            self.student_id
+            and not self.student.guardian_links.filter(is_financial=True).exists()
         ):
-            errors["school_class"] = "A turma pertence a outra série."
+            errors["student"] = (
+                "O aluno precisa ter ao menos um responsável financeiro cadastrado."
+            )
+        if self.school_class_id and self.enrollment_type_id:
+            if self.school_class.year_id != self.enrollment_type.school_year_id:
+                errors["school_class"] = "A turma pertence a outro ano letivo."
+            elif self.school_class.program_id != self.enrollment_type.program_id:
+                errors["school_class"] = "A turma pertence a outro curso."
+            elif self.enrollment_type.level and self.school_class.grade_level != int(
+                self.enrollment_type.level
+            ):
+                errors["school_class"] = "A turma pertence a outra série."
         if errors:
             raise ValidationError(errors)
 

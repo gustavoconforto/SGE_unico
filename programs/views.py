@@ -1,15 +1,19 @@
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
+from base.search import HtmxSearchMixin
 from programs.forms import ProgramForm
 from programs.models import Program
 
 
-class ProgramListView(ListView):
+class ProgramListView(HtmxSearchMixin, ListView):
     model = Program
     template_name = "programs/program_list.html"
     context_object_name = "programs"
+    partial_template_name = "programs/partials/program_table.html"
     paginate_by = 10
+    ordering = ("name",)
+    search_fields = ("name",)
 
 
 class ProgramCreateView(CreateView):

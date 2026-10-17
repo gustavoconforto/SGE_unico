@@ -121,7 +121,6 @@ def create_enrollment_account(enrollment, category=None):
 
 
 def cancel_future_installments(enrollment):
-    """When a contract ends early, installments not yet due are cancelled; overdue ones are still owed."""
     if not hasattr(enrollment, "account"):
         return 0
     return enrollment.account.installments.filter(

@@ -4,6 +4,7 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from accounts.models import Account
+from base.search import HtmxSearchMixin
 from enrollments.forms import (
     DiscountTypeForm,
     EnrollmentForm,
@@ -25,11 +26,14 @@ from enrollments.models import (
 # SCHOOL YEAR VIEWS
 
 
-class SchoolYearListView(ListView):
+class SchoolYearListView(HtmxSearchMixin, ListView):
     model = SchoolYear
     template_name = "school_years/school_year_list.html"
     context_object_name = "school_years"
+    partial_template_name = "school_years/partials/school_year_table.html"
     paginate_by = 10
+    ordering = ("-begins",)
+    search_fields = ("begins", "ends")
 
 
 class SchoolYearCreateView(CreateView):
@@ -55,11 +59,14 @@ class SchoolYearDeleteView(DeleteView):
 # NEEDED DOCUMENTS TYPE VIEWS
 
 
-class NeededDocumentTypeListView(ListView):
+class NeededDocumentTypeListView(HtmxSearchMixin, ListView):
     model = NeededDocumentType
     template_name = "needed_documents/needed_document_list.html"
     context_object_name = "needed_documents"
+    partial_template_name = "needed_documents/partials/needed_document_table.html"
     paginate_by = 10
+    ordering = ("description",)
+    search_fields = ("description",)
 
 
 class NeededDocumentTypeCreateView(CreateView):
@@ -85,11 +92,14 @@ class NeededDocumentTypeDeleteView(DeleteView):
 # ENROLLMENT TYPE VIEWS
 
 
-class EnrollmentTypeListView(ListView):
+class EnrollmentTypeListView(HtmxSearchMixin, ListView):
     model = EnrollmentType
     template_name = "enrollment_types/enrollment_type_list.html"
     context_object_name = "enrollment_types"
+    partial_template_name = "enrollment_types/partials/enrollment_type_table.html"
     paginate_by = 10
+    ordering = ("-school_year__begins", "program__name", "level")
+    search_fields = ("program__name", "description", "school_year__begins")
 
 
 class EnrollmentTypeCreateView(CreateView):
@@ -115,11 +125,14 @@ class EnrollmentTypeDeleteView(DeleteView):
 # DISCOUNT TYPE VIEWS
 
 
-class DiscountTypeListView(ListView):
+class DiscountTypeListView(HtmxSearchMixin, ListView):
     model = DiscountType
     template_name = "discount_types/discount_type_list.html"
     context_object_name = "discount_types"
+    partial_template_name = "discount_types/partials/discount_type_table.html"
     paginate_by = 10
+    ordering = ("description",)
+    search_fields = ("description",)
 
 
 class DiscountTypeCreateView(CreateView):
@@ -145,11 +158,26 @@ class DiscountTypeDeleteView(DeleteView):
 # ENROLLMENT VIEWS
 
 
-class EnrollmentListView(ListView):
+class EnrollmentListView(HtmxSearchMixin, ListView):
     model = Enrollment
+    queryset = Enrollment.objects.select_related(
+        "student",
+        "enrollment_type__program",
+        "enrollment_type__school_year",
+        "school_class__year",
+    )
     template_name = "enrollments/enrollment_list.html"
     context_object_name = "enrollments"
+    partial_template_name = "enrollments/partials/enrollment_table.html"
     paginate_by = 10
+    ordering = ("-enrolled_at", "student__name")
+    search_fields = (
+        "student__name",
+        "student__social_name",
+        "student__registration",
+        "school_class__name",
+        "enrollment_type__program__name",
+    )
 
 
 class EnrollmentCreateView(CreateView):
@@ -168,7 +196,6 @@ class EnrollmentUpdateView(UpdateView):
     success_url = reverse_lazy("enrollments:enrollment_list")
 
     def get(self, request, *args, **kwargs):
-        # Synced on GET only, so the POSTed formset matches the rows the user saw.
         self.object = self.get_object()
         self.object.sync_documents()
         return self.render_to_response(self.get_context_data())

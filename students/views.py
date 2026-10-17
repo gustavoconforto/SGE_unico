@@ -4,41 +4,48 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, ListView, UpdateView
 
+from base.search import HtmxSearchMixin
 from students.forms import GuardianForm, GuardianFormSet, StudentForm
 from students.models import Guardian, Student
 
 # GUARDIAN VIEWS
 
 
-class GuardianListView(ListView):
+class GuardianListView(HtmxSearchMixin, ListView):
     model = Guardian
     template_name = "guardians/guardian_list.html"
     context_object_name = "guardians"
+    partial_template_name = "guardians/partials/guardian_table.html"
     paginate_by = 10
+    ordering = ("name",)
+    search_fields = ("name", "cpf")
 
 
 class GuardianCreateView(CreateView):
     model = Guardian
     template_name = "guardians/guardian_add.html"
     form_class = GuardianForm
-    success_url = reverse_lazy("guardians:guardian_list")
+    success_url = reverse_lazy("students:guardian_list")
 
 
 class GuardianUpdateView(UpdateView):
     model = Guardian
     template_name = "guardians/guardian_edit.html"
     form_class = GuardianForm
-    success_url = reverse_lazy("guardians:guardian_list")
+    success_url = reverse_lazy("students:guardian_list")
 
 
 # STUDENT VIEWS
 
 
-class StudentListView(ListView):
+class StudentListView(HtmxSearchMixin, ListView):
     model = Student
     template_name = "students/student_list.html"
     context_object_name = "students"
+    partial_template_name = "students/partials/student_table.html"
     paginate_by = 10
+    ordering = ("name",)
+    search_fields = ("name", "social_name", "registration", "cpf")
 
 
 def _student_active_tab(form, formset):

@@ -3,6 +3,7 @@ from django.contrib.auth.models import Group, Permission, User
 from django.shortcuts import get_object_or_404, redirect, render
 
 from base.forms import GroupForm, PermissionForm, UserForm
+from base.search import apply_search, is_htmx_partial
 
 
 def main_view(request):
@@ -13,9 +14,16 @@ def main_view(request):
 
 
 def user_list_view(request):
-    users = User.objects.all()
+    q = request.GET.get("q", "").strip()
+    users = apply_search(
+        User.objects.order_by("username"),
+        q,
+        ("username", "first_name", "last_name", "email"),
+    )
 
-    context = {"users": users}
+    context = {"users": users, "q": q}
+    if is_htmx_partial(request):
+        return render(request, "users/partials/user_table.html", context)
     return render(request, "users/user_list.html", context)
 
 
@@ -72,9 +80,16 @@ def user_delete_view(request, pk):
 
 
 def group_list_view(request):
-    groups = Group.objects.all()
+    q = request.GET.get("q", "").strip()
+    groups = apply_search(
+        Group.objects.order_by("name"),
+        q,
+        ("name",),
+    )
 
-    context = {"groups": groups}
+    context = {"groups": groups, "q": q}
+    if is_htmx_partial(request):
+        return render(request, "users/partials/group_table.html", context)
     return render(request, "users/group_list.html", context)
 
 
@@ -131,9 +146,18 @@ def group_delete_view(request, pk):
 
 
 def permission_list_view(request):
-    permissions = Permission.objects.all()
+    q = request.GET.get("q", "").strip()
+    permissions = apply_search(
+        Permission.objects.select_related("content_type").order_by(
+            "content_type__app_label", "codename"
+        ),
+        q,
+        ("name", "codename", "content_type__app_label", "content_type__model"),
+    )
 
-    context = {"permissions": permissions}
+    context = {"permissions": permissions, "q": q}
+    if is_htmx_partial(request):
+        return render(request, "users/partials/permission_table.html", context)
     return render(request, "users/permission_list.html", context)
 
 
