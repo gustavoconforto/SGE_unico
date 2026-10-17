@@ -1,33 +1,33 @@
 from django.urls import path
 
 from employees.views import (
-    employee_add_view,
-    employee_delete_view,
-    employee_edit_view,
-    employee_list_view,
-    employee_role_add_view,
-    employee_role_delete_view,
-    employee_role_edit_view,
-    employee_role_list_view,
+    EmployeeCreateView,
+    EmployeeDeleteView,
+    EmployeeListView,
+    EmployeeRoleCreateView,
+    EmployeeRoleDeleteView,
+    EmployeeRoleListView,
+    EmployeeRoleUpdateView,
+    EmployeeUpdateView,
 )
 
 app_name = "employees"
 
 urlpatterns = [
-    path("list/", employee_list_view, name="employee_list"),
-    path("add/", employee_add_view, name="employee_add"),
-    path("edit/<int:pk>/", employee_edit_view, name="employee_edit"),
-    path("delete/<int:pk>/", employee_delete_view, name="employee_delete"),
-    path("roles/list/", employee_role_list_view, name="employee_role_list"),
-    path("roles/add/", employee_role_add_view, name="employee_role_add"),
+    path("list/", EmployeeListView.as_view(), name="employee_list"),
+    path("add/", EmployeeCreateView.as_view(), name="employee_add"),
+    path("edit/<int:pk>/", EmployeeUpdateView.as_view(), name="employee_edit"),
+    path("delete/<int:pk>/", EmployeeDeleteView.as_view(), name="employee_delete"),
+    path("roles/list/", EmployeeRoleListView.as_view(), name="employee_role_list"),
+    path("roles/add/", EmployeeRoleCreateView.as_view(), name="employee_role_add"),
     path(
         "roles/edit/<int:pk>/",
-        employee_role_edit_view,
+        EmployeeRoleUpdateView.as_view(),
         name="employee_role_edit",
     ),
     path(
         "roles/delete/<int:pk>/",
-        employee_role_delete_view,
+        EmployeeRoleDeleteView.as_view(),
         name="employee_role_delete",
     ),
 ]

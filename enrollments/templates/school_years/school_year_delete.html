@@ -14,7 +14,24 @@
       </p>
     </div>
 
-    {% include 'school_years/school_year_form.html' with submit_label='Deletar' %}
+    <div class="bg-slate-50 rounded-2xl p-6 md:p-8">
+      <form class="space-y-6" method="POST">
+        {% csrf_token %}
+        <p>
+        Início: {{ object.begins }}
+        </p>
+        <p>
+        Fim: {{ object.ends }}
+        </p>
+        
+        <div class="flex flex-row gap-4 pt-4">
+          {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Deletar' %}
+          <a href={% url 'classes:class_list' %}>
+            {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+          </a>
+        </div>
+      </form>
+    </div>
 
   </div>
 </div>
