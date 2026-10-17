@@ -9,7 +9,7 @@
     <p class="label">{{ field.help_text }}</p>
     {% endif %}
     {% if field.errors %}
-    <div class="mt-1 text-sm text-red-600 space-y-1 mt-2">
+    <div class="text-sm text-red-600 space-y-1 mt-2">
         {% for error in field.errors %}
         <p>{{ error }}</p>
         {% endfor %}
