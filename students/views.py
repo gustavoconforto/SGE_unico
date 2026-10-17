@@ -1,6 +1,8 @@
 from django.contrib import messages
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse_lazy
+from django.views.generic import CreateView, ListView, UpdateView
 
 from students.forms import GuardianForm, GuardianFormSet, StudentForm
 from students.models import Guardian, Student
@@ -8,70 +10,35 @@ from students.models import Guardian, Student
 # GUARDIAN VIEWS
 
 
-def guardian_list_view(request):
-    guardians = Guardian.objects.all()
-
-    context = {"guardians": guardians}
-    return render(request, "guardians/guardian_list.html", context)
-
-
-def guardian_add_view(request):
-    if request.method == "POST":
-        form = GuardianForm(request.POST)
-
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Registro cadastrado com sucesso")
-            return redirect("students:guardian_list")
-
-    else:
-        form = GuardianForm()
-
-    context = {"form": form}
-    return render(request, "guardians/guardian_add.html", context)
+class GuardianListView(ListView):
+    model = Guardian
+    template_name = "guardians/guardian_list.html"
+    context_object_name = "guardians"
+    paginate_by = 10
 
 
-def guardian_edit_view(request, pk):
-    guardian = get_object_or_404(Guardian, pk=pk)
-
-    if request.method == "POST":
-        form = GuardianForm(request.POST, instance=guardian)
-
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Registro cadastrado com sucesso")
-            return redirect("students:guardian_list")
-
-    form = GuardianForm(instance=guardian)
-
-    context = {"form": form}
-    return render(request, "guardians/guardian_edit.html", context)
+class GuardianCreateView(CreateView):
+    model = Guardian
+    template_name = "guardians/guardian_add.html"
+    form_class = GuardianForm
+    success_url = reverse_lazy("guardians:guardian_list")
 
 
-def guardian_delete_view(request, pk):
-    guardian = get_object_or_404(Guardian, pk=pk)
-
-    if request.method == "POST":
-        guardian.delete()
-        messages.warning(request, "Registro deletado com sucesso")
-        return redirect("students:guardian_list")
-
-    form = GuardianForm(instance=guardian)
-    for field in form.fields.values():
-        field.disabled = True
-
-    context = {"form": form}
-    return render(request, "guardians/guardian_delete.html", context)
+class GuardianUpdateView(UpdateView):
+    model = Guardian
+    template_name = "guardians/guardian_edit.html"
+    form_class = GuardianForm
+    success_url = reverse_lazy("guardians:guardian_list")
 
 
 # STUDENT VIEWS
 
 
-def student_list_view(request):
-    students = Student.objects.all()
-
-    context = {"students": students}
-    return render(request, "students/student_list.html", context)
+class StudentListView(ListView):
+    model = Student
+    template_name = "students/student_list.html"
+    context_object_name = "students"
+    paginate_by = 10
 
 
 def _student_active_tab(form, formset):
@@ -129,19 +96,3 @@ def student_edit_view(request, pk):
         "active_tab": _student_active_tab(form, formset),
     }
     return render(request, "students/student_edit.html", context)
-
-
-def student_delete_view(request, pk):
-    student = get_object_or_404(Student, pk=pk)
-
-    if request.method == "POST":
-        student.delete()
-        messages.warning(request, "Registro deletado com sucesso")
-        return redirect("students:student_list")
-
-    form = StudentForm(instance=student)
-    for field in form.fields.values():
-        field.disabled = True
-
-    context = {"form": form}
-    return render(request, "students/guardian_delete.html", context)

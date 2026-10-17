@@ -252,8 +252,6 @@ EnrollmentNeededDocumentFormSet = inlineformset_factory(
 class InstallmentForm(forms.ModelForm):
     class Meta:
         model = Installment
-        # status is derived from payments (Installment.refresh_status), so it's
-        # displayed in the template rather than edited here.
         fields = ["due_date", "amount"]
         widgets = {
             "due_date": forms.DateInput(

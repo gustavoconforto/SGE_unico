@@ -1,13 +1,7 @@
-from django.contrib import messages
 from django.db import transaction
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
-from django.views.generic import (
-    CreateView,
-    DeleteView,
-    ListView,
-    UpdateView,
-)
+from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from accounts.models import Account
 from enrollments.forms import (
@@ -31,241 +25,121 @@ from enrollments.models import (
 # SCHOOL YEAR VIEWS
 
 
-def school_year_list_view(request):
-    school_years = SchoolYear.objects.all()
-
-    context = {"school_years": school_years}
-    return render(request, "school_years/school_year_list.html", context)
-
-
-def school_year_add_view(request):
-    if request.method == "POST":
-        form = SchoolYearForm(request.POST)
-
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Registro cadastrado com sucesso")
-            return redirect("enrollments:school_year_list")
-
-    else:
-        form = SchoolYearForm()
-
-    context = {"form": form}
-    return render(request, "school_years/school_year_add.html", context)
+class SchoolYearListView(ListView):
+    model = SchoolYear
+    template_name = "school_years/school_year_list.html"
+    context_object_name = "school_years"
+    paginate_by = 10
 
 
-def school_year_edit_view(request, pk):
-    school_year = get_object_or_404(SchoolYear, pk=pk)
-
-    if request.method == "POST":
-        form = SchoolYearForm(request.POST, instance=school_year)
-
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Registro cadastrado com sucesso")
-            return redirect("enrollments:school_year_list")
-
-    form = SchoolYearForm(instance=school_year)
-
-    context = {"form": form}
-    return render(request, "school_years/school_year_edit.html", context)
+class SchoolYearCreateView(CreateView):
+    model = SchoolYear
+    template_name = "school_years/school_year_add.html"
+    form_class = SchoolYearForm
+    success_url = reverse_lazy("school_years:school_year_list")
 
 
-def school_year_delete_view(request, pk):
-    school_year = get_object_or_404(SchoolYear, pk=pk)
+class SchoolYearUpdateView(UpdateView):
+    model = SchoolYear
+    template_name = "school_years/school_year_edit.html"
+    form_class = SchoolYearForm
+    success_url = reverse_lazy("school_years:school_year_list")
 
-    if request.method == "POST":
-        school_year.delete()
-        messages.warning(request, "Registro deletado com sucesso")
-        return redirect("enrollments:school_year_list")
 
-    form = SchoolYearForm(instance=school_year)
-    for field in form.fields.values():
-        field.disabled = True
-
-    context = {"form": form}
-    return render(request, "school_years/school_year_delete.html", context)
+class SchoolYearDeleteView(DeleteView):
+    model = SchoolYear
+    template_name = "school_years/school_year_delete.html"
+    success_url = reverse_lazy("school_years:school_year_list")
 
 
 # NEEDED DOCUMENTS TYPE VIEWS
 
 
-def needed_document_list_view(request):
-    needed_documents = NeededDocumentType.objects.all()
-
-    context = {"needed_documents": needed_documents}
-    return render(request, "needed_documents/needed_document_list.html", context)
-
-
-def needed_document_add_view(request):
-    if request.method == "POST":
-        form = NeededDocumentTypeForm(request.POST)
-
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Registro cadastrado com sucesso")
-            return redirect("enrollments:needed_document_list")
-
-    else:
-        form = NeededDocumentTypeForm()
-
-    context = {"form": form}
-    return render(request, "needed_documents/needed_document_add.html", context)
+class NeededDocumentTypeListView(ListView):
+    model = NeededDocumentType
+    template_name = "needed_documents/needed_document_list.html"
+    context_object_name = "needed_documents"
+    paginate_by = 10
 
 
-def needed_document_edit_view(request, pk):
-    needed_document = get_object_or_404(NeededDocumentType, pk=pk)
-
-    if request.method == "POST":
-        form = NeededDocumentTypeForm(request.POST, instance=needed_document)
-
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Registro cadastrado com sucesso")
-            return redirect("enrollments:needed_document_list")
-
-    form = NeededDocumentTypeForm(instance=needed_document)
-
-    context = {"form": form}
-    return render(request, "needed_documents/needed_document_edit.html", context)
+class NeededDocumentTypeCreateView(CreateView):
+    model = NeededDocumentType
+    template_name = "needed_documents/needed_document_add.html"
+    form_class = NeededDocumentTypeForm
+    success_url = reverse_lazy("needed_documents:needed_document_list")
 
 
-def needed_document_delete_view(request, pk):
-    needed_document = get_object_or_404(NeededDocumentType, pk=pk)
+class NeededDocumentTypeUpdateView(UpdateView):
+    model = NeededDocumentType
+    template_name = "needed_documents/needed_document_edit.html"
+    form_class = NeededDocumentTypeForm
+    success_url = reverse_lazy("needed_documents:needed_document_list")
 
-    if request.method == "POST":
-        needed_document.delete()
-        messages.warning(request, "Registro deletado com sucesso")
-        return redirect("enrollments:needed_document_list")
 
-    form = NeededDocumentTypeForm(instance=needed_document)
-    for field in form.fields.values():
-        field.disabled = True
-
-    context = {"form": form}
-    return render(request, "needed_documents/needed_document_delete.html", context)
+class NeededDocumentTypeDeleteView(DeleteView):
+    model = NeededDocumentType
+    template_name = "needed_documents/needed_document_delete.html"
+    success_url = reverse_lazy("needed_documents:needed_document_list")
 
 
 # ENROLLMENT TYPE VIEWS
 
 
-def enrollment_type_list_view(request):
-    enrollment_types = EnrollmentType.objects.all()
-
-    context = {"enrollment_types": enrollment_types}
-    return render(request, "enrollment_types/enrollment_type_list.html", context)
-
-
-def enrollment_type_add_view(request):
-    if request.method == "POST":
-        form = EnrollmentTypeForm(request.POST)
-
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Registro cadastrado com sucesso")
-            return redirect("enrollments:enrollment_type_list")
-
-    else:
-        form = EnrollmentTypeForm()
-        form.fields["start_date"].disabled = True
-        form.fields["end_date"].disabled = True
-
-    context = {"form": form}
-    return render(request, "enrollment_types/enrollment_type_add.html", context)
+class EnrollmentTypeListView(ListView):
+    model = EnrollmentType
+    template_name = "enrollment_types/enrollment_type_list.html"
+    context_object_name = "enrollment_types"
+    paginate_by = 10
 
 
-def enrollment_type_edit_view(request, pk):
-    enrollment_type = get_object_or_404(EnrollmentType, pk=pk)
-
-    if request.method == "POST":
-        form = EnrollmentTypeForm(request.POST, instance=enrollment_type)
-
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Registro cadastrado com sucesso")
-            return redirect("enrollments:enrollment_type_list")
-
-    form = EnrollmentTypeForm(instance=enrollment_type)
-    form.fields["start_date"].disabled = True
-    form.fields["end_date"].disabled = True
-
-    context = {"form": form}
-    return render(request, "enrollment_types/enrollment_type_edit.html", context)
+class EnrollmentTypeCreateView(CreateView):
+    model = EnrollmentType
+    template_name = "enrollment_types/enrollment_type_add.html"
+    form_class = EnrollmentTypeForm
+    success_url = reverse_lazy("enrollment_types:enrollment_type_list")
 
 
-def enrollment_type_delete_view(request, pk):
-    enrollment_type = get_object_or_404(EnrollmentType, pk=pk)
+class EnrollmentTypeUpdateView(UpdateView):
+    model = EnrollmentType
+    template_name = "enrollment_types/enrollment_type_edit.html"
+    form_class = EnrollmentTypeForm
+    success_url = reverse_lazy("enrollment_types:enrollment_type_list")
 
-    if request.method == "POST":
-        enrollment_type.delete()
-        messages.warning(request, "Registro deletado com sucesso")
-        return redirect("enrollments:enrollment_type_list")
 
-    form = EnrollmentTypeForm(instance=enrollment_type)
-    for field in form.fields.values():
-        field.disabled = True
-
-    context = {"form": form}
-    return render(request, "enrollment_types/enrollment_type_delete.html", context)
+class EnrollmentTypeDeleteView(DeleteView):
+    model = EnrollmentType
+    template_name = "enrollment_types/enrollment_type_delete.html"
+    success_url = reverse_lazy("enrollment_types:enrollment_type_list")
 
 
 # DISCOUNT TYPE VIEWS
 
 
-def discount_type_list_view(request):
-    discount_types = DiscountType.objects.all()
-
-    context = {"discount_types": discount_types}
-    return render(request, "discount_types/discount_type_list.html", context)
-
-
-def discount_type_add_view(request):
-    if request.method == "POST":
-        form = DiscountTypeForm(request.POST)
-
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Registro cadastrado com sucesso")
-            return redirect("enrollments:discount_type_list")
-
-    else:
-        form = DiscountTypeForm()
-
-    context = {"form": form}
-    return render(request, "discount_types/discount_type_add.html", context)
+class DiscountTypeListView(ListView):
+    model = DiscountType
+    template_name = "discount_types/discount_type_list.html"
+    context_object_name = "discount_types"
+    paginate_by = 10
 
 
-def discount_type_edit_view(request, pk):
-    discount_type = get_object_or_404(DiscountType, pk=pk)
-
-    if request.method == "POST":
-        form = DiscountTypeForm(request.POST, instance=discount_type)
-
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Registro cadastrado com sucesso")
-            return redirect("enrollments:discount_type_list")
-
-    form = DiscountTypeForm(instance=discount_type)
-
-    context = {"form": form}
-    return render(request, "discount_types/discount_type_edit.html", context)
+class DiscountTypeCreateView(CreateView):
+    model = DiscountType
+    template_name = "discount_types/discount_type_add.html"
+    form_class = DiscountTypeForm
+    success_url = reverse_lazy("discount_types:discount_type_list")
 
 
-def discount_type_delete_view(request, pk):
-    discount_type = get_object_or_404(DiscountType, pk=pk)
+class DiscountTypeUpdateView(UpdateView):
+    model = DiscountType
+    template_name = "discount_types/discount_type_edit.html"
+    form_class = DiscountTypeForm
+    success_url = reverse_lazy("discount_types:discount_type_list")
 
-    if request.method == "POST":
-        discount_type.delete()
-        messages.warning(request, "Registro deletado com sucesso")
-        return redirect("enrollments:discount_type_list")
 
-    form = DiscountTypeForm(instance=discount_type)
-    for field in form.fields.values():
-        field.disabled = True
-
-    context = {"form": form}
-    return render(request, "discount_types/discount_type_delete.html", context)
+class DiscountTypeDeleteView(DeleteView):
+    model = DiscountType
+    template_name = "discount_types/discount_type_delete.html"
+    success_url = reverse_lazy("discount_types:discount_type_list")
 
 
 # ENROLLMENT VIEWS
@@ -338,9 +212,3 @@ class EnrollmentUpdateView(UpdateView):
                     fs.save()
             return redirect(self.get_success_url())
         return self.render_to_response(self.get_context_data(form=form, **formsets))
-
-
-class EnrollmentDeleteView(DeleteView):
-    model = Enrollment
-    template_name = "enrollments/enrollment_delete.html"
-    success_url = reverse_lazy("enrollments:enrollment_list")
