@@ -1,0 +1,43 @@
+<div class="guardian-row rounded-xl border border-base-300 p-4{% if guardian_form.DELETE.value %} hidden{% endif %}">
+    {{ guardian_form.id }}
+    {% if guardian_form.DELETE %}
+    <div class="flex justify-end">
+        <div class="hidden">{{ guardian_form.DELETE }}</div>
+        <button type="button" class="remove-guardian btn btn-sm btn-ghost text-red-600">
+            Remover
+        </button>
+    </div>
+    {% endif %}
+    {% if guardian_form.non_field_errors %}
+    <div class="text-sm text-red-600 space-y-1">
+        {% for error in guardian_form.non_field_errors %}
+        <p>{{ error }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+    <div class="flex w-full gap-4 justify-around">
+        <div class="flex flex-col gap-4 w-full">
+            {% include 'components/form/field.html' with field=guardian_form.guardian %}
+        </div>
+        <div class="flex flex-col gap-4 w-full">
+            {% include 'components/form/field.html' with field=guardian_form.relationship %}
+        </div>
+    </div>
+    <div class="flex w-full gap-4 justify-around">
+        <div class="flex flex-col gap-4 w-full">
+            {% include 'components/form/checkbox.html' with field=guardian_form.is_financial %}
+        </div>
+        <div class="flex flex-col gap-4 w-full">
+            {% include 'components/form/checkbox.html' with field=guardian_form.is_primary_contact %}
+        </div>
+
+    </div>
+    <div class="flex w-full gap-4 justify-around">
+        <div class="flex flex-col gap-4 w-full">
+            {% include 'components/form/checkbox.html' with field=guardian_form.living_with %}
+        </div>
+        <div class="flex flex-col gap-4 w-full">
+            {% include 'components/form/checkbox.html' with field=guardian_form.pick_up %}
+        </div>
+    </div>
+</div>

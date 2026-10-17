@@ -1,0 +1,25 @@
+<script>
+    (function () {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const desktop = window.matchMedia('(min-width: 1024px)');
+
+        function setMobileOpen(open) {
+            sidebar.classList.toggle('-translate-x-full', !open);
+            overlay.classList.toggle('hidden', !open);
+        }
+
+        document.getElementById('sidebar-toggle').addEventListener('click', function () {
+            if (desktop.matches) {
+                sidebar.classList.toggle('lg:hidden');
+            } else {
+                setMobileOpen(sidebar.classList.contains('-translate-x-full'));
+            }
+        });
+
+        overlay.addEventListener('click', () => setMobileOpen(false));
+        document.querySelectorAll('[data-sidebar-close]').forEach(el => el.addEventListener('click', () => setMobileOpen(false)));
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') setMobileOpen(false); });
+        desktop.addEventListener('change', () => setMobileOpen(false));
+    })();
+</script>

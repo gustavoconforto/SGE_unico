@@ -1,0 +1,22 @@
+[project]
+name = "gestao"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Gustavo Conforto", email = "gustavoconforto@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "django>=6.1.2",
+    "pandas>=3.0.6",
+    "pillow>=12.3.0",
+    "python-dotenv>=1.2.4",
+]
+
+[project.scripts]
+gestao = "gestao:main"
+
+[build-system]
+requires = ["uv_build>=0.12.23,<0.13.0"]
+build-backend = "uv_build"

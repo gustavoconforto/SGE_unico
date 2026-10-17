@@ -1,0 +1,75 @@
+<div class="bg-slate-50 rounded-2xl p-6 md:p-8">
+  <form class="space-y-6" method="POST" novalidate>
+    {% csrf_token %}
+    <div class="tabs tabs-box">
+      <input
+        type="radio"
+        name="employee_tabs"
+        class="tab"
+        aria-label="Dados pessoais"
+        {% if form.active_tab == "personal" %}checked="checked"{% endif %}
+      />
+      <div class="tab-content bg-base-100 border-base-300 p-6">
+        <div class="flex flex-col gap-3">
+            {% include 'components/form/field.html' with field=form.name %} 
+            {% include 'components/form/field.html' with field=form.sex %} 
+            {% include 'components/form/field.html' with field=form.role %}
+            {% include 'components/form/field.html' with field=form.cpf %} 
+            {% include 'components/form/field.html' with field=form.rg %} 
+            {% include 'components/form/field.html' with field=form.issuing_authority %}
+            {% include 'components/form/field.html' with field=form.birth_date %} 
+            {% include 'components/form/field.html' with field=form.nationality %} 
+            {% include 'components/form/field.html' with field=form.place_of_birth %}
+        </div>
+      </div>
+
+      <input
+        type="radio"
+        name="employee_tabs"
+        class="tab"
+        aria-label="Contato"
+        {% if form.active_tab == "contact" %}checked="checked" {% endif %}
+      />
+      <div class="tab-content bg-base-100 border-base-300 p-6">
+        <div class="flex flex-col gap-3">
+          {% include 'components/form/field.html' with field=form.phone %} 
+          {% include 'components/form/field.html' with field=form.mobile %} 
+          {% include 'components/form/field.html' with field=form.email %}
+        </div>
+      </div>
+
+      <input
+        type="radio"
+        name="employee_tabs"
+        class="tab"
+        aria-label="Endereço"
+        {% if form.active_tab == "address" %}checked="checked"{% endif %}
+      />
+      <div class="tab-content bg-base-100 border-base-300 p-6">
+        <div class="flex flex-col gap-3">
+            {% include 'components/form/field.html' with field=form.address %} 
+            {% include 'components/form/field.html' with field=form.neighborhood %} 
+            {% include 'components/form/field.html' with field=form.city %} 
+            {% include 'components/form/field.html' with field=form.state %} 
+            {% include 'components/form/field.html' with field=form.zip_code %}
+        </div>
+      </div>
+    </div>
+
+
+    <div class="flex flex-row gap-4 pt-4">
+      {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar' %}
+      <a href="{% url 'employees:employee_list' %}"> 
+      {% include 'components/button/button_cancel.html' with label='Cancelar' %} 
+      </a>
+    </div>
+    
+    {% if form.non_field_errors %}
+    <div class="text-sm text-red-600 space-y-1">
+      {% for error in form.non_field_errors %}
+      <p>{{ error }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </form>
+</div>

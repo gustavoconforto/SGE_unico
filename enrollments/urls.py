@@ -1,0 +1,121 @@
+from django.urls import path
+
+from enrollments.views import (
+    EnrollmentCreateView,
+    EnrollmentDeleteView,
+    EnrollmentListView,
+    EnrollmentUpdateView,
+    discount_type_add_view,
+    discount_type_delete_view,
+    discount_type_edit_view,
+    discount_type_list_view,
+    enrollment_type_add_view,
+    enrollment_type_delete_view,
+    enrollment_type_edit_view,
+    enrollment_type_list_view,
+    needed_document_add_view,
+    needed_document_delete_view,
+    needed_document_edit_view,
+    needed_document_list_view,
+    school_year_add_view,
+    school_year_delete_view,
+    school_year_edit_view,
+    school_year_list_view,
+)
+
+app_name = "enrollments"
+
+urlpatterns = [
+    path("school-years/list/", school_year_list_view, name="school_year_list"),
+    path("school-years/add/", school_year_add_view, name="school_year_add"),
+    path(
+        "school-years/edit/<int:pk>/",
+        school_year_edit_view,
+        name="school_year_edit",
+    ),
+    path(
+        "school-years/delete/<int:pk>/",
+        school_year_delete_view,
+        name="school_year_delete",
+    ),
+    path(
+        "needed-documents/list/",
+        needed_document_list_view,
+        name="needed_document_list",
+    ),
+    path(
+        "needed-documents/add/",
+        needed_document_add_view,
+        name="needed_document_add",
+    ),
+    path(
+        "needed-documents/edit/<int:pk>/",
+        needed_document_edit_view,
+        name="needed_document_edit",
+    ),
+    path(
+        "needed-documents/delete/<int:pk>/",
+        needed_document_delete_view,
+        name="needed_document_delete",
+    ),
+    path(
+        "enrollment-types/list/",
+        enrollment_type_list_view,
+        name="enrollment_type_list",
+    ),
+    path(
+        "enrollment-types/add/",
+        enrollment_type_add_view,
+        name="enrollment_type_add",
+    ),
+    path(
+        "enrollment-types/edit/<int:pk>/",
+        enrollment_type_edit_view,
+        name="enrollment_type_edit",
+    ),
+    path(
+        "enrollment-types/delete/<int:pk>/",
+        enrollment_type_delete_view,
+        name="enrollment_type_delete",
+    ),
+    path(
+        "discount-types/list/",
+        discount_type_list_view,
+        name="discount_type_list",
+    ),
+    path(
+        "discount-types/add/",
+        discount_type_add_view,
+        name="discount_type_add",
+    ),
+    path(
+        "discount-types/edit/<int:pk>/",
+        discount_type_edit_view,
+        name="discount_type_edit",
+    ),
+    path(
+        "discount-types/delete/<int:pk>/",
+        discount_type_delete_view,
+        name="discount_type_delete",
+    ),
+    path(
+        "list/",
+        EnrollmentListView.as_view(),
+        name="enrollment_list",
+    ),
+    path(
+        "add/",
+        EnrollmentCreateView.as_view(),
+        name="enrollment_add",
+    ),
+    path(
+        "edit/<int:pk>/",
+        EnrollmentUpdateView.as_view(),
+        name="enrollment_edit",
+    ),
+    path(
+        "delete/<int:pk>/",
+        EnrollmentDeleteView.as_view(),
+        name="enrollment_delete",
+    ),
+]

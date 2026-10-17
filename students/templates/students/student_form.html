@@ -1,0 +1,221 @@
+{% load static %}
+<div class="bg-slate-50 rounded-2xl p-6 md:p-8">
+    <form class="space-y-6" method="POST" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        <div class="tabs tabs-box">
+            <input
+                type="radio"
+                name="employee_tabs"
+                class="tab"
+                aria-label="Dados pessoais"
+                {% if active_tab == "personal" %}checked="checked"{% endif %}
+            />
+            <div class="tab-content bg-base-100 border-base-300 p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <aside class="card bg-base-200/60 border border-base-300 h-fit">
+                        <div class="card-body items-center text-center gap-4">
+                            <div class="avatar">
+                                <div class="w-36 rounded-full ring-4 ring-base-100 shadow-md">
+                                    <img
+                                        id="student-photo-preview"
+                                        src="{% if form.instance.pk %}{{ form.instance.photo_url }}{% else %}{% static 'img/student-placeholder.svg' %}{% endif %}"
+                                        onerror="this.onerror=null;this.src='{% static 'img/student-placeholder.svg' %}'"
+                                        alt="Foto do aluno"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-semibold text-gray-900">
+                                    {{ form.instance|default:"Novo aluno" }}
+                                </h3>
+                                {% if form.instance.registration %}
+                                <span class="badge badge-neutral badge-outline mt-2">
+                                    Matrícula {{ form.instance.registration }}
+                                </span>
+                                {% else %}
+                                <p class="text-sm text-gray-500 mt-1">Matrícula gerada ao salvar</p>
+                                {% endif %}
+                            </div>
+                            <fieldset class="fieldset w-full">
+                                <label for="{{ form.photo.id_for_label }}" class="label text-sm">
+                                    {% if form.instance.photo %}Alterar foto{% else %}Enviar foto{% endif %}
+                                </label>
+                                {{ form.photo }}
+                                {% for error in form.photo.errors %}
+                                <p class="text-sm text-red-600">{{ error }}</p>
+                                {% endfor %}
+                            </fieldset>
+                        </div>
+                    </aside>
+
+                    <div class="lg:col-span-2 flex flex-col gap-6">
+                        <section class="card border border-base-300">
+                            <div class="card-body gap-2">
+                                <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-500">Identificação</h4>
+                                {% include 'components/form/field.html' with field=form.name %}
+                                <div class="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-x-6 items-end">
+                                    {% include 'components/form/checkbox.html' with field=form.use_social_name %}
+                                    {% include 'components/form/field.html' with field=form.social_name %}
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                                    {% include 'components/form/field.html' with field=form.sex %}
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="card border border-base-300">
+                            <div class="card-body gap-2">
+                                <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-500">Documentos</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 [&>*]:min-w-0">
+                                    {% include 'components/form/field.html' with field=form.cpf %}
+                                    {% include 'components/form/field.html' with field=form.rg %}
+                                    <div class="md:col-span-2">
+                                        {% include 'components/form/field.html' with field=form.issuing_authority %}
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="card border border-base-300">
+                            <div class="card-body gap-2">
+                                <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-500">Nascimento</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 [&>*]:min-w-0">
+                                    {% include 'components/form/field.html' with field=form.birth_date %}
+                                    {% include 'components/form/field.html' with field=form.nationality %}
+                                    <div class="md:col-span-2">
+                                        {% include 'components/form/field.html' with field=form.place_of_birth %}
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+
+            <input
+                type="radio"
+                name="employee_tabs"
+                class="tab"
+                aria-label="Responsáveis"
+                {% if active_tab == "guardians" %}checked="checked" {% endif %}
+            />
+            <div class="tab-content bg-base-100 border-base-300 p-6">
+                {{ formset.management_form }}
+                {% if formset.non_form_errors %}
+                <div class="text-sm text-red-600 space-y-1 mb-4">
+                    {% for error in formset.non_form_errors %}
+                    <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div id="guardian-forms" class="flex flex-col gap-6">
+                    {% for guardian_form in formset %}
+                    {% include 'students/student_guardian_form.html' with guardian_form=guardian_form %}
+                    {% endfor %}
+                </div>
+                <template id="guardian-empty-form">
+                    {% include 'students/student_guardian_form.html' with guardian_form=formset.empty_form %}
+                </template>
+                <button type="button" id="add-guardian" class="btn btn-neutral mt-4">
+                    Adicionar responsável
+                </button>
+            </div>
+
+            <input
+                type="radio"
+                name="employee_tabs"
+                class="tab"
+                aria-label="Contato"
+                {% if active_tab == "contact" %}checked="checked" {% endif %}
+            />
+            <div class="tab-content bg-base-100 border-base-300 p-6">
+                <div class="flex flex-col w-full justify-around">
+                    <div class="flex w-full  gap-4 justify-around">
+                        <div class="flex flex-col gap-4 w-full">
+                            {% include 'components/form/field.html' with field=form.phone %}
+                        </div> 
+                        <div class="flex flex-col gap-4 w-full">
+                            {% include 'components/form/field.html' with field=form.mobile %}
+                        </div> 
+                        </div>
+                    </div>
+                <div class="flex flex-col w-full justify-around">
+                {% include 'components/form/field.html' with field=form.email %}
+                </div>
+            </div>
+
+            <input
+                type="radio"
+                name="employee_tabs"
+                class="tab"
+                aria-label="Endereço"
+                {% if active_tab == "address" %}checked="checked"{% endif %}
+            />
+            <div class="tab-content bg-base-100 border-base-300 p-6">
+                <div class="flex flex-col w-full justify-around">
+                    {% include 'components/form/field.html' with field=form.address %}
+                </div> 
+                <div class="flex flex-col w-full justify-around">
+                    <div class="flex w-full  gap-4 justify-around">
+                        <div class="flex flex-col gap-4 w-full">
+                            {% include 'components/form/field.html' with field=form.neighborhood %}
+                        </div>
+                        <div class="flex flex-col gap-4 w-full">
+                            {% include 'components/form/field.html' with field=form.city %}
+                        </div>
+                    </div>
+                    <div class="flex w-full  gap-4 justify-around">
+                        <div class="flex flex-col gap-4 w-full"> 
+                            {% include 'components/form/field.html' with field=form.state %}
+                        </div>
+                        <div class="flex flex-col gap-4 w-full"> 
+                            {% include 'components/form/field.html' with field=form.zip_code %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="flex gap-4 pt-4">
+        {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar' %}
+        <a href="{% url 'students:student_list' %}"> 
+        {% include 'components/button/button_cancel.html' with label='Cancelar' %} 
+        </a>
+        </div>
+        
+        {% if form.non_field_errors %}
+        <div class="text-sm text-red-600 space-y-1">
+        {% for error in form.non_field_errors %}
+        <p>{{ error }}</p>
+        {% endfor %}
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<script>
+    document.getElementById("{{ form.photo.id_for_label }}").addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        document.getElementById("student-photo-preview").src = URL.createObjectURL(file);
+    });
+
+    document.getElementById("add-guardian").addEventListener("click", () => {
+        const total = document.getElementById("id_guardians-TOTAL_FORMS");
+        const index = total.value;
+        const html = document
+            .getElementById("guardian-empty-form")
+            .innerHTML.replace(/__prefix__/g, index);
+        document.getElementById("guardian-forms").insertAdjacentHTML("beforeend", html);
+        total.value = Number(index) + 1;
+    });
+
+    document.getElementById("guardian-forms").addEventListener("click", (event) => {
+        const button = event.target.closest(".remove-guardian");
+        if (!button) return;
+        const row = button.closest(".guardian-row");
+        row.querySelector('input[name$="-DELETE"]').checked = true;
+        row.classList.add("hidden");
+    });
+</script>

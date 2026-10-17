@@ -1,0 +1,154 @@
+<div class="bg-slate-50 rounded-2xl p-6 md:p-8">
+    <form class="space-y-6" method="POST">
+    {% csrf_token %}
+    <div>
+        <div class="flex flex-col w-full justify-around">
+            <div class="flex w-full gap-4">
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.student %}
+                </div>
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.enrollment_type %}
+                </div>
+            </div>
+            <div class="flex w-full gap-4">
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.school_class %}
+                </div>
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.status %}
+                </div>
+            </div>
+            <div class="flex w-full gap-4">
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.discount %}
+                </div>
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.gross_value %}
+                </div>
+            </div>
+            <div class="flex w-full gap-4">
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.discount_percent %}
+                </div>
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.installments_count %}
+                </div>
+            </div>
+            <div class="flex w-full gap-4">
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.due_day %}
+                </div>
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.enrolled_at %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="space-y-3">
+        <h3 class="text-lg font-semibold text-slate-800">Documentos</h3>
+        {{ documents_formset.management_form }}
+        {{ documents_formset.non_form_errors }}
+        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+        <table class="min-w-full text-sm">
+            <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                <tr>
+                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-left">Documento</th>
+                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-center w-32">Entregue</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for f in documents_formset %}
+                <tr class="hover:bg-slate-50">
+                    <td class="px-3 py-2 md:px-4 md:py-2.5 font-medium text-slate-700">
+                        {{ f.id }}
+                        {{ f.instance.type }}
+                        {% for error in f.non_field_errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
+                    </td>
+                    <td class="px-3 py-2 md:px-4 md:py-2.5 text-center">
+                        {{ f.is_delivered }}
+                        {% for error in f.is_delivered.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="2" class="px-3 py-2 md:px-4 md:py-2.5 text-center text-slate-500">Nenhum documento vinculado a esta matrícula.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </section>
+
+    <section class="space-y-3">
+        <h3 class="text-lg font-semibold text-slate-800">Parcelas</h3>
+        {% if installment_formset %}
+        {{ installment_formset.management_form }}
+        {{ installment_formset.non_form_errors }}
+        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+        <table class="min-w-full text-sm">
+            <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                <tr>
+                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-left w-20">Parcela</th>
+                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-left">Vencimento</th>
+                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-left">Valor (R$)</th>
+                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-left">Situação</th>
+                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-right">Faltante</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for f in installment_formset %}
+                <tr class="hover:bg-slate-50{% if f.instance.is_overdue %} bg-red-50{% endif %}">
+                    <td class="px-3 py-2 md:px-4 md:py-2.5 font-medium text-slate-700">
+                        {{ f.id }}
+                        {{ f.instance.number }}ª
+                    </td>
+                    <td class="px-3 py-2 md:px-4 md:py-2.5 text-slate-700 whitespace-nowrap">
+                        {{ f.instance.due_date|date:"d/m/Y" }}
+                        {% if f.instance.is_overdue %}<span class="ml-1 text-xs font-medium text-red-600">Vencida</span>{% endif %}
+                    </td>
+                    <td class="px-3 py-2 md:px-4 md:py-2.5">
+                        {{ f.amount }}
+                        {% for error in f.amount.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
+                    </td>
+                    <td class="px-3 py-2 md:px-4 md:py-2.5">
+                        <span class="badge badge-sm whitespace-nowrap
+                            {% if f.instance.status == 'Q' %}badge-success
+                            {% elif f.instance.status == 'P' %}badge-warning
+                            {% elif f.instance.status == 'C' %}badge-ghost
+                            {% else %}badge-neutral badge-outline{% endif %}">
+                            {{ f.instance.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-3 py-2 md:px-4 md:py-2.5 text-right font-medium text-slate-700 whitespace-nowrap">
+                        R$ {{ f.instance.balance|floatformat:2 }}
+                    </td>
+                </tr>
+                {% for error in f.non_field_errors %}
+                <tr><td colspan="5" class="px-3 py-2 md:px-4 md:py-2.5 text-xs text-red-600">{{ error }}</td></tr>
+                {% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <p class="text-sm text-slate-500">Nenhuma conta gerada para esta matrícula.</p>
+        {% endif %}
+    </section>
+
+    <div class="flex flex-row gap-4 pt-4">
+        {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar' %}
+        <a href={% url 'enrollments:enrollment_list' %}>
+        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+        </a>
+    </div>
+    {% if form.non_field_errors %}
+        <div class="text-sm text-red-600 space-y-1">
+        {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+        {% endfor %}
+        </div>
+    {% endif %}
+    </form>
+</div>

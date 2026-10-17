@@ -1,0 +1,52 @@
+{% extends 'base/base.html' %}
+
+{% block header %}
+  <div class="flex justify-between px-2 pb-4">
+    <h1></h1>
+    <a href={% url 'enrollments:enrollment_add' %}>
+    {% include 'components/button/button_select.html' with label='Adicionar registro'%}
+    </a>
+  </div>
+{% endblock header %}
+  
+{% block content %}
+  <table class=" overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
+    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+      <tr>
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Aluno</th>        
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Tipo</th>        
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Turma</th>        
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">status</th>        
+        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Opções</th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-slate-100">
+    {% for enrollment in enrollments %}
+      <tr class="hover:bg-slate-50">
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+            {{ enrollment.student }}
+        </td>
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+            {{ enrollment.enrollment_type }}
+        </td>
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+            {{ enrollment.school_class }}
+        </td>
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+            {{ enrollment.get_status_display }}
+        </td>
+        <td class="px-2 py-2 text-right sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5">
+          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
+          <a href={% url 'enrollments:enrollment_edit' enrollment.pk %}>
+            {% include 'components/button/button_select.html' with label="Editar"%}
+          </a>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      {% include 'components/table/empty_table.html' with collspan=2%}
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock content %}
+    

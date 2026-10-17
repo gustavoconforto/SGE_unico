@@ -1,0 +1,22 @@
+{% extends 'base/base.html' %}
+
+{% block header %}
+
+{% endblock header %}
+
+{% block content %}
+<div class="bg-white py-12 px-4">
+  <div class="max-w-4xl mx-auto">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de cargos</h2>
+      <p class="mt-4 text-lg text-gray-600 ">
+        Edite um cargo
+      </p>
+    </div>
+
+    {% include 'employees/employee_role_form.html' %}
+
+  </div>
+</div>
+{% endblock content %}
+    

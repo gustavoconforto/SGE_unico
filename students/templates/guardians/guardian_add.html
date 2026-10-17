@@ -1,0 +1,19 @@
+{% extends 'base/base.html' %}
+
+{% block header %}
+
+{% endblock header %}
+  
+{% block content %}
+<div class="bg-white py-12 px-4">
+  <div class="max-w-4xl mx-auto">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de Responsáveis</h2>
+      <p class="mt-4 text-lg text-gray-600 ">
+        Adicione um tipo de responsável
+    </div>
+  {% include 'guardians/guardian_form.html' %}
+  </div>
+</div>
+{% endblock content %}
+    

@@ -1,0 +1,43 @@
+<div class="bg-slate-50 rounded-2xl p-6 md:p-8">
+    <form class="space-y-6" method="POST">
+    {% csrf_token %}
+    <div class="w-full">
+    <div class="flex gap-4 w-full justify-around">
+        <div class="flex flex-col gap-4 w-full">
+            {% include 'components/form/field.html' with field=form.begins %}
+        </div>
+        <div class="flex flex-col gap-4 w-full">
+            {% include 'components/form/field.html' with field=form.ends %}
+        </div>
+    </div>
+    <div class="flex gap-4 w-full justify-around">
+        <div class="flex flex-col gap-4 w-full">
+            {% include 'components/form/field.html' with field=form.bi_1_begins %}
+            {% include 'components/form/field.html' with field=form.bi_2_begins %}
+            {% include 'components/form/field.html' with field=form.bi_3_begins %}
+            {% include 'components/form/field.html' with field=form.bi_4_begins %}
+        </div>
+        <div class="flex flex-col gap-4 w-full">
+            {% include 'components/form/field.html' with field=form.bi_1_ends %}
+            {% include 'components/form/field.html' with field=form.bi_2_ends %}
+            {% include 'components/form/field.html' with field=form.bi_3_ends %}
+            {% include 'components/form/field.html' with field=form.bi_4_ends %}
+        </div>
+    </div>
+    </div>
+
+    <div class="flex flex-row gap-4 pt-4">
+        {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar' %}
+        <a href={% url 'enrollments:school_year_list' %}>
+        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+        </a>
+    </div>
+    {% if form.non_field_errors %}
+        <div class="text-sm text-red-600 space-y-1">
+        {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+        {% endfor %}
+        </div>
+    {% endif %}
+    </form>
+</div>
