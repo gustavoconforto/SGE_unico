@@ -353,10 +353,10 @@ class GuardianAssociationForm(forms.ModelForm):
                     "class": "select select-neutral w-full",
                 }
             ),
-            "is_financial": forms.CheckboxInput(attrs={"class": "checkbox"}),
-            "is_primary_contact": forms.CheckboxInput(attrs={"class": "checkbox"}),
-            "living_with": forms.CheckboxInput(attrs={"class": "checkbox"}),
-            "pick_up": forms.CheckboxInput(attrs={"class": "checkbox"}),
+            "is_financial": forms.CheckboxInput(attrs={"class": "toggle"}),
+            "is_primary_contact": forms.CheckboxInput(attrs={"class": "toggle"}),
+            "living_with": forms.CheckboxInput(attrs={"class": "toggle"}),
+            "pick_up": forms.CheckboxInput(attrs={"class": "toggle"}),
         }
 
 

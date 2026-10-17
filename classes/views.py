@@ -6,15 +6,19 @@ from django.views.generic import (
     UpdateView,
 )
 
+from base.search import HtmxSearchMixin
 from classes.forms import ClassForm
 from classes.models import Class
 
 
-class ClassListView(ListView):
+class ClassListView(HtmxSearchMixin, ListView):
     model = Class
     template_name = "classes/class_list.html"
     context_object_name = "classes"
+    partial_template_name = "classes/partials/class_table.html"
     paginate_by = 10
+    ordering = ("-year__begins", "program__name", "grade_level", "name")
+    search_fields = ("name", "program__name", "year__begins")
 
 
 class ClassCreateView(CreateView):

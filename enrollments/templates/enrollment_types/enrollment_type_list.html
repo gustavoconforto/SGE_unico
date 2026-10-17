@@ -7,45 +7,12 @@
     {% include 'components/button/button_select.html' with label='Adicionar registro'%}
     </a>
   </div>
+  {% include 'components/search/search_input.html' with placeholder='Pesquisar por curso, descrição ou ano...' %}
 {% endblock header %}
   
 {% block content %}
-  <table class=" overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
-    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
-      <tr>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Curso</th>        
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Série</th>        
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Ano</th>
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Opções</th>
-      </tr>
-    </thead>
-    <tbody class="bg-white divide-y divide-slate-100">
-    {% for enrollment_type in enrollment_types %}
-      <tr class="hover:bg-slate-50">
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
-            {{ enrollment_type.program }}
-        </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
-            {{ enrollment_type.level }}
-        </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
-            {{ enrollment_type.school_year }}
-        </td>
-        <td class="px-2 py-2 text-right sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
-          <a href={% url 'enrollments:enrollment_type_edit' enrollment_type.pk %}>
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          <a href={% url 'enrollments:enrollment_type_delete' enrollment_type.pk %}>
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
-          </div>
-        </td>
-      </tr>
-      {% empty %}
-      {% include 'components/table/empty_table.html' with collspan=2%}
-      {% endfor %}
-    </tbody>
-  </table>
+  <div id="search-results">
+    {% include 'enrollment_types/partials/enrollment_type_table.html' %}
+  </div>
 {% endblock content %}
     
