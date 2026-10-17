@@ -102,7 +102,7 @@
             <div class="tab-content bg-base-100 border-base-300 p-6">
                 {{ formset.management_form }}
                 {% if formset.non_form_errors %}
-                <div class="text-sm text-red-600 space-y-1 mb-4">
+                <div class="text-sm text-red-600 space-y-1 mt-2 mb-4">
                     {% for error in formset.non_form_errors %}
                     <p>{{ error }}</p>
                     {% endfor %}
@@ -185,7 +185,7 @@
         </div>
         
         {% if form.non_field_errors %}
-        <div class="text-sm text-red-600 space-y-1">
+        <div class="text-sm text-red-600 space-y-1 mt-2">
         {% for error in form.non_field_errors %}
         <p>{{ error }}</p>
         {% endfor %}

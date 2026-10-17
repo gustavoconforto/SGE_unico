@@ -240,6 +240,7 @@ class Enrollment(TimeStampedModel):
 
     class Meta:
         ordering = ["-enrollment_type__school_year__begins", "student__name"]
+        unique_together = ["student", "enrollment_type"]
         verbose_name = "Matrícula"
         verbose_name_plural = "Matrículas"
 

@@ -9,7 +9,7 @@
     </div>
     {% endif %}
     {% if guardian_form.non_field_errors %}
-    <div class="text-sm text-red-600 space-y-1">
+    <div class="text-sm text-red-600 space-y-1 mt-2">
         {% for error in guardian_form.non_field_errors %}
         <p>{{ error }}</p>
         {% endfor %}
