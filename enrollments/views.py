@@ -40,20 +40,20 @@ class SchoolYearCreateView(CreateView):
     model = SchoolYear
     template_name = "school_years/school_year_add.html"
     form_class = SchoolYearForm
-    success_url = reverse_lazy("school_years:school_year_list")
+    success_url = reverse_lazy("enrollments:school_year_list")
 
 
 class SchoolYearUpdateView(UpdateView):
     model = SchoolYear
     template_name = "school_years/school_year_edit.html"
     form_class = SchoolYearForm
-    success_url = reverse_lazy("school_years:school_year_list")
+    success_url = reverse_lazy("enrollments:school_year_list")
 
 
 class SchoolYearDeleteView(DeleteView):
     model = SchoolYear
     template_name = "school_years/school_year_delete.html"
-    success_url = reverse_lazy("school_years:school_year_list")
+    success_url = reverse_lazy("enrollments:school_year_list")
 
 
 # NEEDED DOCUMENTS TYPE VIEWS
@@ -73,20 +73,20 @@ class NeededDocumentTypeCreateView(CreateView):
     model = NeededDocumentType
     template_name = "needed_documents/needed_document_add.html"
     form_class = NeededDocumentTypeForm
-    success_url = reverse_lazy("needed_documents:needed_document_list")
+    success_url = reverse_lazy("enrollments:needed_document_list")
 
 
 class NeededDocumentTypeUpdateView(UpdateView):
     model = NeededDocumentType
     template_name = "needed_documents/needed_document_edit.html"
     form_class = NeededDocumentTypeForm
-    success_url = reverse_lazy("needed_documents:needed_document_list")
+    success_url = reverse_lazy("enrollments:needed_document_list")
 
 
 class NeededDocumentTypeDeleteView(DeleteView):
     model = NeededDocumentType
     template_name = "needed_documents/needed_document_delete.html"
-    success_url = reverse_lazy("needed_documents:needed_document_list")
+    success_url = reverse_lazy("enrollments:needed_document_list")
 
 
 # ENROLLMENT TYPE VIEWS
@@ -106,20 +106,20 @@ class EnrollmentTypeCreateView(CreateView):
     model = EnrollmentType
     template_name = "enrollment_types/enrollment_type_add.html"
     form_class = EnrollmentTypeForm
-    success_url = reverse_lazy("enrollment_types:enrollment_type_list")
+    success_url = reverse_lazy("enrollments:enrollment_type_list")
 
 
 class EnrollmentTypeUpdateView(UpdateView):
     model = EnrollmentType
     template_name = "enrollment_types/enrollment_type_edit.html"
     form_class = EnrollmentTypeForm
-    success_url = reverse_lazy("enrollment_types:enrollment_type_list")
+    success_url = reverse_lazy("enrollments:enrollment_type_list")
 
 
 class EnrollmentTypeDeleteView(DeleteView):
     model = EnrollmentType
     template_name = "enrollment_types/enrollment_type_delete.html"
-    success_url = reverse_lazy("enrollment_types:enrollment_type_list")
+    success_url = reverse_lazy("enrollments:enrollment_type_list")
 
 
 # DISCOUNT TYPE VIEWS
@@ -139,20 +139,20 @@ class DiscountTypeCreateView(CreateView):
     model = DiscountType
     template_name = "discount_types/discount_type_add.html"
     form_class = DiscountTypeForm
-    success_url = reverse_lazy("discount_types:discount_type_list")
+    success_url = reverse_lazy("enrollments:discount_type_list")
 
 
 class DiscountTypeUpdateView(UpdateView):
     model = DiscountType
     template_name = "discount_types/discount_type_edit.html"
     form_class = DiscountTypeForm
-    success_url = reverse_lazy("discount_types:discount_type_list")
+    success_url = reverse_lazy("enrollments:discount_type_list")
 
 
 class DiscountTypeDeleteView(DeleteView):
     model = DiscountType
     template_name = "discount_types/discount_type_delete.html"
-    success_url = reverse_lazy("discount_types:discount_type_list")
+    success_url = reverse_lazy("enrollments:discount_type_list")
 
 
 # ENROLLMENT VIEWS

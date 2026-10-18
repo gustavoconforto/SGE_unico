@@ -47,6 +47,25 @@ def tuition_category():
     )[0]
 
 
+def enrollment_due_dates(enrollment):
+    """First installment is due on enrollment; the others monthly on due_day.
+
+    Enrolling during the school year: one installment per remaining month,
+    through December. Enrolling ahead: 12 installments, February to December
+    of the school year.
+    """
+    enrolled_at = enrollment.enrolled_at
+    school_year = enrollment.enrollment_type.school_year.begins.year
+    if enrolled_at.year == school_year:
+        months = range(enrolled_at.month + 1, 13)
+    else:
+        months = range(2, 13)
+    return [enrolled_at] + [
+        adjust_weekend(date(school_year, month, enrollment.due_day))
+        for month in months
+    ]
+
+
 @transaction.atomic
 def create_enrollment_account(enrollment, category=None):
     enrollment.fill_contract_values()
@@ -64,59 +83,19 @@ def create_enrollment_account(enrollment, category=None):
         discount_value=enrollment.discount_value,
     )
 
-    if str(enrollment.enrolled_at.year) == str(enrollment.enrollment_type.school_year):
-        month_number = int(enrollment.enrolled_at.month)
-        installment_number = 12 - month_number + 1
-        installment_value = account.net_value / installment_number
-
-        Installment.objects.create(
+    due_dates = enrollment_due_dates(enrollment)
+    Installment.objects.bulk_create(
+        Installment(
             account=account,
-            number=1,
-            due_date=enrollment.enrolled_at,
-            amount=installment_value,
+            number=number,
+            due_date=due_date,
+            amount=amount,
             status=InstallmentStatus.OPEN,
         )
-
-        for i in range(installment_number - 1):
-            due_date = adjust_weekend(
-                date(
-                    int(enrollment.enrolled_at.year),
-                    int(enrollment.enrolled_at.month) + i + 1,
-                    enrollment.due_day,
-                )
-            )
-            Installment.objects.create(
-                account=account,
-                number=i + 2,
-                due_date=due_date,
-                amount=installment_value,
-                status=InstallmentStatus.OPEN,
-            )
-
-    else:
-        installment_number = 12
-        month_number = int(enrollment.enrolled_at.month)
-        installment_value = account.net_value / installment_number
-
-        Installment.objects.create(
-            account=account,
-            number=1,
-            due_date=enrollment.enrolled_at,
-            amount=installment_value,
-            status=InstallmentStatus.OPEN,
+        for number, (due_date, amount) in enumerate(
+            zip(due_dates, split_value(account.net_value, len(due_dates))), start=1
         )
-
-        for i in range(installment_number - 1):
-            due_date = adjust_weekend(
-                date(int(enrollment.enrolled_at.year), 2 + i, enrollment.due_day)
-            )
-            Installment.objects.create(
-                account=account,
-                number=i + 2,
-                due_date=due_date,
-                amount=installment_value,
-                status=InstallmentStatus.OPEN,
-            )
+    )
     return account
 
 
