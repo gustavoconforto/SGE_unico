@@ -1,0 +1,56 @@
+  <table class=" overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
+    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+      <tr>
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Data</th>
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Natureza</th>
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Conta</th>
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Parcela</th>
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Responsável / Fornecedor</th>
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Forma</th>
+        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Valor pago</th>
+        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Opções</th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-slate-100">
+    {% for payment in payments %}
+      <tr class="hover:bg-slate-50">
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 whitespace-nowrap" >
+            {{ payment.paid_at|date:"d/m/Y" }}
+        </td>
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+            <span class="badge badge-sm whitespace-nowrap {% if payment.installment.account.direction == 'R' %}badge-success badge-outline{% else %}badge-error badge-outline{% endif %}">
+                {{ payment.installment.account.get_direction_display }}
+            </span>
+        </td>
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+            {{ payment.installment.account }}
+        </td>
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+            {{ payment.installment.number }}ª
+        </td>
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+            {{ payment.installment.account.counterpart|default:"-" }}
+        </td>
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+            {{ payment.get_method_display }}
+        </td>
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 text-right whitespace-nowrap" >
+            R$ {{ payment.amount|floatformat:2 }}
+        </td>
+        <td class="px-2 py-2 text-right sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5">
+          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
+          <a href={% url 'accounts:payment_edit' payment.pk %}>
+            {% include 'components/button/button_select.html' with label="Editar"%}
+          </a>
+          <a href={% url 'accounts:payment_delete' payment.pk %}>
+            {% include 'components/button/button_select.html' with label="Deletar"%}
+          </a>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      {% include 'components/table/empty_table.html' with collspan=8%}
+      {% endfor %}
+    </tbody>
+  </table>
+{% include 'components/table/pagination.html' %}

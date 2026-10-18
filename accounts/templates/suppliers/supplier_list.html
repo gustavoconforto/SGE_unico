@@ -1,0 +1,19 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Fornecedores{% endblock page_title %}
+
+{% block header %}
+  <div class="flex justify-between px-2 pb-4">
+    <h1></h1>
+    <a href={% url 'accounts:supplier_add' %}>
+    {% include 'components/button/button_select.html' with label='Adicionar registro'%}
+    </a>
+  </div>
+  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por nome, CPF/CNPJ, telefone, email ou observações...' %}
+{% endblock header %}
+
+{% block content %}
+  <div id="search-results">
+    {% include 'suppliers/partials/supplier_table.html' %}
+  </div>
+{% endblock content %}

@@ -43,3 +43,42 @@ class HtmxSearchMixin:
         if self.partial_template_name and is_htmx_partial(self.request):
             return [self.partial_template_name]
         return super().get_template_names()
+
+
+class HtmxFilterMixin(HtmxSearchMixin):
+    """HtmxSearchMixin plus a filter form bound to request.GET.
+
+    Each non-empty cleaned value is applied as ``filter_lookups[name]=value``
+    (defaults to the field name). Define ``filter_<name>(queryset, value)`` on
+    the view for filters that are not a plain lookup.
+    """
+
+    filter_form_class = None
+    filter_lookups = {}
+
+    def get_filter_form(self):
+        if not hasattr(self, "_filter_form"):
+            self._filter_form = self.filter_form_class(self.request.GET or None)
+        return self._filter_form
+
+    def apply_filters(self, queryset):
+        form = self.get_filter_form()
+        if not form.is_bound or not form.is_valid():
+            return queryset
+        for name, value in form.cleaned_data.items():
+            if value in (None, "", [], ()):
+                continue
+            custom = getattr(self, f"filter_{name}", None)
+            if custom:
+                queryset = custom(queryset, value)
+            else:
+                queryset = queryset.filter(**{self.filter_lookups.get(name, name): value})
+        return queryset
+
+    def get_queryset(self):
+        return self.apply_filters(super().get_queryset())
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["filter_form"] = self.get_filter_form()
+        return context

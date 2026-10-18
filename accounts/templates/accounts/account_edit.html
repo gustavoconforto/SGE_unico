@@ -1,0 +1,81 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}{{ title }}{% endblock page_title %}
+
+{% block header %}
+
+{% endblock header %}
+
+{% block content %}
+<div class="bg-white py-12 px-4">
+  <div class="w-full">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de {{ title|lower }}</h2>
+      <p class="mt-4 text-lg text-gray-600 ">
+        {{ subtitle_edit }}
+      </p>
+    </div>
+
+    {% include 'accounts/account_form.html' %}
+
+    <section class="mt-8 space-y-3">
+        <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-slate-800">Parcelas</h3>
+            <a href="{% url 'accounts:installment_add' %}?account={{ object.pk }}">
+                {% include 'components/button/button_select.html' with label="Adicionar parcela" %}
+            </a>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+        <table class="min-w-full text-sm">
+            <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                <tr>
+                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-left w-20">Parcela</th>
+                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-left">Vencimento</th>
+                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-right">Valor</th>
+                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-left">Situação</th>
+                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-right">Faltante</th>
+                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-right">Opções</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for installment in installments %}
+                <tr class="hover:bg-slate-50{% if installment.is_overdue %} bg-red-50{% endif %}">
+                    <td class="px-3 py-2 md:px-4 md:py-2.5 font-medium text-slate-700">{{ installment.number }}ª</td>
+                    <td class="px-3 py-2 md:px-4 md:py-2.5 text-slate-700 whitespace-nowrap">
+                        {{ installment.due_date|date:"d/m/Y" }}
+                        {% if installment.is_overdue %}<span class="ml-1 text-xs font-medium text-red-600">Vencida</span>{% endif %}
+                    </td>
+                    <td class="px-3 py-2 md:px-4 md:py-2.5 text-right text-slate-700 whitespace-nowrap">R$ {{ installment.amount|floatformat:2 }}</td>
+                    <td class="px-3 py-2 md:px-4 md:py-2.5">
+                        <span class="badge badge-sm whitespace-nowrap
+                            {% if installment.status == 'Q' %}badge-success
+                            {% elif installment.status == 'P' %}badge-warning
+                            {% elif installment.status == 'C' %}badge-ghost
+                            {% else %}badge-neutral badge-outline{% endif %}">
+                            {{ installment.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-3 py-2 md:px-4 md:py-2.5 text-right font-medium text-slate-700 whitespace-nowrap">
+                        R$ {{ installment.balance|floatformat:2 }}
+                    </td>
+                    <td class="px-3 py-2 md:px-4 md:py-2.5 text-right">
+                        {% if installment.status == 'A' or installment.status == 'P' %}
+                        <a href="{% url 'accounts:payment_add' %}?installment={{ installment.pk }}" class="inline-block">
+                            {% include 'components/button/button_select.html' with label="Baixar" %}
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-3 py-2 md:px-4 md:py-2.5 text-center text-slate-500">Nenhuma parcela gerada para esta conta.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </section>
+
+  </div>
+</div>
+{% endblock content %}

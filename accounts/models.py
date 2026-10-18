@@ -1,7 +1,19 @@
 from decimal import Decimal
 
 from django.db import models
-from django.db.models import Q, Sum
+from django.db.models import (
+    Case,
+    Count,
+    DecimalField,
+    F,
+    OuterRef,
+    Q,
+    Subquery,
+    Sum,
+    Value,
+    When,
+)
+from django.db.models.functions import Coalesce, Greatest
 from django.utils import timezone
 
 from base.models import TimeStampedModel
@@ -55,6 +67,25 @@ class Supplier(TimeStampedModel):
         ]
 
 
+class AccountQuerySet(models.QuerySet):
+    def with_installment_summary(self):
+        """Annotate counts used to derive the account situation without N+1 queries."""
+        pending = Q(
+            installments__status__in=[InstallmentStatus.OPEN, InstallmentStatus.PARTIAL]
+        )
+        return self.annotate(
+            installments_total=Count("installments"),
+            installments_pending=Count("installments", filter=pending),
+            installments_overdue=Count(
+                "installments",
+                filter=pending & Q(installments__due_date__lt=timezone.localdate()),
+            ),
+            installments_paid=Count(
+                "installments", filter=Q(installments__status=InstallmentStatus.PAID)
+            ),
+        )
+
+
 class Account(TimeStampedModel):
     direction = models.CharField("Natureza", max_length=1, choices=Direction.choices)
     description = models.CharField("Descrição", max_length=200)
@@ -93,8 +124,23 @@ class Account(TimeStampedModel):
     discount_value = models.DecimalField("Desconto (R$)", default=ZERO, **MONEY)
     notes = models.TextField("Observações", blank=True)
 
+    objects = AccountQuerySet.as_manager()
+
     def __str__(self):
         return f"{self.description}"
+
+    @property
+    def situation(self):
+        """Needs with_installment_summary() annotations."""
+        if self.installments_overdue:
+            return "Vencida"
+        if self.installments_pending:
+            return "Em aberto"
+        if self.installments_paid:
+            return "Quitada"
+        if self.installments_total:
+            return "Cancelada"
+        return "Sem parcelas"
 
     @property
     def net_value(self):
@@ -139,12 +185,12 @@ class Account(TimeStampedModel):
         ]
 
 
-class ReceivableManager(models.Manager):
+class ReceivableManager(models.Manager.from_queryset(AccountQuerySet)):
     def get_queryset(self):
         return super().get_queryset().filter(direction=Direction.RECEIVABLE)
 
 
-class PayableManager(models.Manager):
+class PayableManager(models.Manager.from_queryset(AccountQuerySet)):
     def get_queryset(self):
         return super().get_queryset().filter(direction=Direction.PAYABLE)
 
@@ -182,6 +228,44 @@ class InstallmentStatus(models.TextChoices):
     CANCELLED = "C", "Cancelado"
 
 
+class InstallmentQuerySet(models.QuerySet):
+    def with_balance(self):
+        """Annotate `outstanding` (same rule as Installment.balance()) in SQL.
+
+        A subquery is used instead of a join so the annotation can be summed.
+        """
+        money = DecimalField(**MONEY)
+        paid_principal = (
+            Payment.objects.filter(installment=OuterRef("pk"))
+            .values("installment")
+            .annotate(
+                total=Sum(
+                    F("amount") - F("penalty") - F("interest") - F("monetary_adjust")
+                )
+            )
+            .values("total")
+        )
+        return self.annotate(
+            outstanding=Case(
+                When(status=InstallmentStatus.CANCELLED, then=Value(ZERO)),
+                default=Greatest(
+                    F("amount")
+                    - Coalesce(Subquery(paid_principal), Value(ZERO), output_field=money),
+                    Value(ZERO),
+                ),
+                output_field=money,
+            )
+        )
+
+    def pending(self):
+        return self.filter(
+            status__in=[InstallmentStatus.OPEN, InstallmentStatus.PARTIAL]
+        )
+
+    def overdue(self):
+        return self.pending().filter(due_date__lt=timezone.localdate())
+
+
 class Installment(models.Model):
     account = models.ForeignKey(
         Account,
@@ -198,6 +282,8 @@ class Installment(models.Model):
         choices=InstallmentStatus.choices,
         default=InstallmentStatus.OPEN,
     )
+
+    objects = InstallmentQuerySet.as_manager()
 
     def __str__(self):
         return f"{self.account} - {self.number}"
