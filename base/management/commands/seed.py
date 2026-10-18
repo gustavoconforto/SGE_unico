@@ -21,6 +21,7 @@ from accounts.models import (
 from classes.models import Class, Shift
 from employees.models import Employee, EmployeeRoleType
 from enrollments.models import (
+    DiscountType,
     Enrollment,
     EnrollmentStatus,
     EnrollmentType,
@@ -83,6 +84,11 @@ SUBJECTS = [
 EXTRA_CHANCE = 0.2
 BIMESTERS = range(1, 5)
 
+DISCOUNT_TYPES = [
+    ("ALUNO ANTIGO", 20),
+    ("ALUNO DESTAQUE", 25),
+]
+
 INCIDENT_TYPES = {
     "Atraso": 0.5,
     "Uso de celular em sala": 1.0,
@@ -138,7 +144,7 @@ class Command(BaseCommand):
         Faker.seed(options["random_seed"])
         self.fake = Faker("pt_BR")
         self.current_year = timezone.localdate().year
-        self.school_years = list(range(self.current_year, self.current_year + 2))
+        self.school_years = [2027]
 
         with transaction.atomic():
             self.seed_groups()
@@ -162,6 +168,7 @@ class Command(BaseCommand):
             self.seed_employees()
             students = self.seed_families(options["students"])
             self.seed_enrollments(students, programs, classes, enrollment_types)
+            self.seed_discount_types()
             # self.seed_grades(subjects)
             # self.seed_incidents(students, incident_types)
             # self.seed_enrollment_accounts()
@@ -278,6 +285,10 @@ class Command(BaseCommand):
             )[0]
             for year in self.school_years
         }
+
+    def seed_discount_types(self):
+        for discount in DISCOUNT_TYPES:
+            DiscountType.objects.create(description=discount[0], percentage=discount[1])
 
     def seed_enrollment_types(self, programs, school_years):
         """Keyed by (year, program pk, level); level is "" for prep programs."""
