@@ -316,8 +316,6 @@ tests in the same style.
 - `Enrollment.installments_count` exists (default 12) but isn't used:
   the number of installments comes from the enrollment date (see
   [workflow](#enrollment--finance-workflow)).
-- `reset_db.py` option 2 calls a missing `seed` command. The seed logic lives
-  in `base/management/commands/clean.py`, whose name suggests the opposite.
 - `enrollments/forms.py` and `accounts/forms.py` each define an
   `InstallmentForm` with different purposes.
 - `pandas` is an unused dependency. `tailwind.config.js` and `src/gestao/`
