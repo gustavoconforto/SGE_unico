@@ -563,8 +563,6 @@ class Command(BaseCommand):
                         status=status,
                         enrolled_at=date(year - 1, 12, 1)
                         + timedelta(days=random.randint(0, 60)),
-                        # bulk_create skips Enrollment.save(), so freeze the contract values here
-                        gross_value=enrollment_type.total_price,
                         discount_percent=random.choices(
                             [Decimal(0), Decimal(10), Decimal(20)],
                             weights=[75, 20, 5],
@@ -584,7 +582,17 @@ class Command(BaseCommand):
             sequence[start_year] = sequence.get(start_year, 0) + 1
             student.registration = f"{start_year}{sequence[start_year]:05d}"
         Student.objects.bulk_update(students, ["registration", "birth_date"])
-        Enrollment.objects.bulk_create(enrollments)
+        # Save one by one (not bulk_create) so the post_save signal builds the
+        # account, installments and documents. Each starts active and then moves
+        # to its final status, so the signal cancels future installments of
+        # dropped or transferred enrollments like the real workflow does.
+        for enrollment in enrollments:
+            final_status = enrollment.status
+            enrollment.status = EnrollmentStatus.ACTIVE
+            enrollment.save()
+            if final_status != EnrollmentStatus.ACTIVE:
+                enrollment.status = final_status
+                enrollment.save(update_fields=["status"])
 
         # def score(self, ability):
         #     value = min(10.0, max(0.0, random.gauss(ability, 1.3)))
