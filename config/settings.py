@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from urllib.parse import parse_qsl, urlparse
 
 from django.contrib.messages import constants
 from dotenv import load_dotenv
@@ -8,6 +9,7 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+tmpPostgres = urlparse(os.getenv("DATABASE_URL"))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
@@ -18,7 +20,14 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG") == "true"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "localhost",
+    "177.153.67.45",
+    "gestaounico.com.br",
+    "www.gestaounico.com.br",
+    "127.0.0.1",
+    "localhost",
+]
 
 
 # Application definition
@@ -81,7 +90,20 @@ if DEBUG:
         }
     }
 else:
-    pass
+    postgres_options = dict(parse_qsl(tmpPostgres.query))
+    postgres_options["options"] = "-c search_path=django_app,public"
+
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": tmpPostgres.path.replace("/", ""),
+            "USER": tmpPostgres.username,
+            "PASSWORD": tmpPostgres.password,
+            "HOST": tmpPostgres.hostname,
+            "PORT": 5432,
+            "OPTIONS": postgres_options,
+        }
+    }
 
 
 # Password validation
