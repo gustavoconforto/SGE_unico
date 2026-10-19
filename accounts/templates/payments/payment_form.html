@@ -37,7 +37,7 @@
 
     <div class="flex flex-row gap-4 pt-4">
         {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar' %}
-        <a href={% url 'accounts:payment_list' %}>
+        <a href="{{ view.success_url }}">
         {% include 'components/button/button_cancel.html' with label='Cancelar' %}
         </a>
     </div>

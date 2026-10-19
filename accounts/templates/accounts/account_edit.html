@@ -61,7 +61,7 @@
                     </td>
                     <td class="px-3 py-2 md:px-4 md:py-2.5 text-right">
                         {% if installment.status == 'A' or installment.status == 'P' or installment.status == 'E' %}
-                        <a href="{% url 'accounts:payment_add' %}?installment={{ installment.pk }}" class="inline-block">
+                        <a href="{% if object.direction == 'R' %}{% url 'accounts:payment_add' %}{% else %}{% url 'accounts:payable_payment_add' %}{% endif %}?installment={{ installment.pk }}" class="inline-block">
                             {% include 'components/button/button_select.html' with label="Baixar" %}
                         </a>
                         {% endif %}

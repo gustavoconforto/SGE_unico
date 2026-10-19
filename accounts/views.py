@@ -4,6 +4,7 @@ from django.db.models import Count, ProtectedError, Q, Sum
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.utils.text import format_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from accounts.forms import (
@@ -18,8 +19,10 @@ from accounts.forms import (
     InstallmentFilterStatus,
     InstallmentForm,
     PaymentFilterForm,
+    PayablePaymentForm,
     PaymentForm,
     SupplierForm,
+    installment_label,
 )
 from accounts.models import (
     Account,
@@ -418,11 +421,48 @@ class PaymentListView(HtmxFilterMixin, ListView):
     )
 
 
+class ReceivableInstallmentLookupView(HtmxSearchMixin, ListView):
+    """Options for the installment search box in the receivable payment form."""
+
+    direction = Direction.RECEIVABLE
+    queryset = (
+        Installment.objects.pending()
+        .with_balance()
+        .select_related("account__guardian", "account__supplier")
+    )
+    template_name = "payments/partials/installment_options.html"
+    context_object_name = "installments"
+    paginate_by = 10
+    ordering = ("due_date", "pk")
+    search_fields = ("account__description", "account__guardian__name")
+
+    def get_queryset(self):
+        return super().get_queryset().filter(account__direction=self.direction)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        for installment in context["installments"]:
+            installment.label = installment_label(installment)
+        return context
+
+
+class PayableInstallmentLookupView(ReceivableInstallmentLookupView):
+    """Options for the installment search box in the payable payment form."""
+
+    direction = Direction.PAYABLE
+    search_fields = (
+        "account__description",
+        "account__supplier__name",
+        "account__supplier__document",
+    )
+
+
 class PaymentCreateView(CreateView):
     model = Payment
     template_name = "payments/payment_add.html"
     form_class = PaymentForm
     success_url = reverse_lazy("accounts:payment_list")
+    success_message = "Baixa registrada com sucesso"
 
     def get_initial(self):
         # Allows "Baixar" links from the account page: ?installment=<pk>
@@ -430,6 +470,7 @@ class PaymentCreateView(CreateView):
         installment = Installment.objects.filter(
             pk=self.request.GET.get("installment") or None,
             status__in=PENDING_STATUSES,
+            account__direction=self.form_class.direction,
         ).first()
         if installment:
             initial.update(
@@ -440,7 +481,7 @@ class PaymentCreateView(CreateView):
         return initial
 
     def form_valid(self, form):
-        messages.success(self.request, "Baixa registrada com sucesso")
+        messages.success(self.request, self.success_message)
         return super().form_valid(form)
 
 
@@ -449,6 +490,15 @@ class PaymentUpdateView(UpdateView):
     template_name = "payments/payment_edit.html"
     form_class = PaymentForm
     success_url = reverse_lazy("accounts:payment_list")
+    success_message = "Baixa atualizada com sucesso"
+
+    def get_queryset(self):
+        # Each form only edits payments of its own direction.
+        return (
+            super()
+            .get_queryset()
+            .filter(installment__account__direction=self.form_class.direction)
+        )
 
     def form_valid(self, form):
         previous_installment = Payment.objects.get(pk=self.object.pk).installment
@@ -456,8 +506,22 @@ class PaymentUpdateView(UpdateView):
             response = super().form_valid(form)
             if previous_installment.pk != self.object.installment_id:
                 previous_installment.refresh_status()
-        messages.success(self.request, "Baixa atualizada com sucesso")
+        messages.success(self.request, self.success_message)
         return response
+
+
+class PayablePaymentCreateView(PaymentCreateView):
+    template_name = "payments/payable_payment_add.html"
+    form_class = PayablePaymentForm
+    success_url = format_lazy("{}?direction=P", reverse_lazy("accounts:payment_list"))
+    success_message = "Pagamento registrado com sucesso"
+
+
+class PayablePaymentUpdateView(PaymentUpdateView):
+    template_name = "payments/payable_payment_edit.html"
+    form_class = PayablePaymentForm
+    success_url = format_lazy("{}?direction=P", reverse_lazy("accounts:payment_list"))
+    success_message = "Pagamento atualizado com sucesso"
 
 
 class PaymentDeleteView(DeleteView):

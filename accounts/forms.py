@@ -1,5 +1,6 @@
 from django import forms
 from django.db.models import Max
+from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import (
@@ -311,19 +312,62 @@ class InstallmentFilterForm(forms.Form):
 # PAYMENT FORMS
 
 
+def installment_label(installment):
+    return (
+        f"{installment.account} - {installment.number}ª parcela - "
+        f"venc. {installment.due_date:%d/%m/%Y} - R$ {installment.amount}"
+    )
+
+
 class InstallmentChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
-        return (
-            f"{obj.account} - {obj.number}ª parcela - "
-            f"venc. {obj.due_date:%d/%m/%Y} - R$ {obj.amount}"
+        return installment_label(obj)
+
+
+class InstallmentLookupWidget(forms.HiddenInput):
+    """Search box that fills a hidden installment pk via the htmx lookup view."""
+
+    template_name = "payments/widgets/installment_lookup.html"
+    lookups = {
+        Direction.RECEIVABLE: (
+            "accounts:receivable_installment_lookup",
+            "Buscar por conta ou responsável...",
+        ),
+        Direction.PAYABLE: (
+            "accounts:payable_installment_lookup",
+            "Buscar por conta, fornecedor ou CPF/CNPJ...",
+        ),
+    }
+
+    def __init__(self, direction, attrs=None):
+        super().__init__(attrs)
+        self.direction = direction
+
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        installment = None
+        if value and str(value).isdigit():
+            installment = (
+                Installment.objects.select_related("account")
+                .filter(pk=value, account__direction=self.direction)
+                .first()
+            )
+        url_name, placeholder = self.lookups[self.direction]
+        context["widget"].update(
+            label=installment_label(installment) if installment else "",
+            lookup_url=reverse(url_name),
+            placeholder=placeholder,
         )
+        return context
 
 
 class PaymentForm(forms.ModelForm):
+    """Payment of a receivable installment (school fees)."""
+
+    direction = Direction.RECEIVABLE
+
     installment = InstallmentChoiceField(
-        label="Parcela",
-        queryset=Installment.objects.none(),
-        widget=forms.Select(attrs={"class": "select select-neutral w-full"}),
+        label="Parcela", queryset=Installment.objects.none()
     )
 
     class Meta:
@@ -362,13 +406,17 @@ class PaymentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Only installments that still accept payments, plus the current one on edit.
-        selectable = Installment.objects.filter(status__in=PENDING_STATUSES)
+        # Only installments of this direction that still accept payments, plus
+        # the current one on edit.
+        selectable = Installment.objects.filter(
+            status__in=PENDING_STATUSES, account__direction=self.direction
+        )
         if self.instance.pk:
             selectable = selectable | Installment.objects.filter(
                 pk=self.instance.installment_id
             )
         self.fields["installment"].queryset = selectable.select_related("account")
+        self.fields["installment"].widget = InstallmentLookupWidget(self.direction)
         self.fields["discount"].required = False
 
     def clean_discount(self):
@@ -408,6 +456,12 @@ class PaymentForm(forms.ModelForm):
                 f"(R$ {balance}).",
             )
         return cleaned_data
+
+
+class PayablePaymentForm(PaymentForm):
+    """Payment of a payable installment (supplier bills)."""
+
+    direction = Direction.PAYABLE
 
 
 class PaymentFilterForm(forms.Form):

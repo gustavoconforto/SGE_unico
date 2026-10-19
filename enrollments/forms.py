@@ -138,8 +138,6 @@ class EnrollmentTypeForm(forms.ModelForm):
         fields = [
             "program",
             "level",
-            "start_date",
-            "end_date",
             "total_price",
             "punctuality_discount",
             "description",
@@ -148,20 +146,6 @@ class EnrollmentTypeForm(forms.ModelForm):
         widgets = {
             "program": forms.Select(attrs={"class": "select select-neutral w-full"}),
             "level": forms.Select(attrs={"class": "select select-neutral w-full"}),
-            "start_date": forms.DateInput(
-                format="%Y-%m-%d",
-                attrs={
-                    "type": "date",
-                    "class": "input input-neutral w-full",
-                },
-            ),
-            "end_date": forms.DateInput(
-                format="%Y-%m-%d",
-                attrs={
-                    "type": "date",
-                    "class": "input input-neutral w-full",
-                },
-            ),
             "total_price": forms.NumberInput(
                 attrs={"class": "input input-neutral w-full"}
             ),
@@ -329,4 +313,5 @@ InstallmentFormSet = inlineformset_factory(
     form=InstallmentForm,
     extra=0,
     can_delete=False,
+    exclude=["amount"],
 )

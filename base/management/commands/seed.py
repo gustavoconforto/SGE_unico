@@ -41,7 +41,7 @@ from students.models import (
 DEV_PASSWORD = "73823789"
 
 HIGH_SCHOOL = "Ensino Médio"
-PREP_PROGRAMS = ["Pré UNB", "Pré ENEM"]
+PREP_PROGRAMS = []
 
 ENROLLMENT_PRICES = {
     HIGH_SCHOOL: Decimal("54000.00"),
@@ -152,7 +152,7 @@ class Command(BaseCommand):
             programs = self.seed_programs()
             school_years = self.seed_school_years()
             classes = self.seed_classes(programs, school_years)
-            enrollment_types = self.seed_enrollment_types(programs, school_years)
+            # enrollment_types = self.seed_enrollment_types(programs, school_years)
             # incident_types = self.seed_incident_types()
             # subjects = self.seed_subjects()
             self.seed_enrollment_needed_document_types()
@@ -167,7 +167,7 @@ class Command(BaseCommand):
 
             self.seed_employees()
             students = self.seed_families(options["students"])
-            self.seed_enrollments(students, programs, classes, enrollment_types)
+            # self.seed_enrollments(students, programs, classes, enrollment_types)
             self.seed_discount_types()
             # self.seed_grades(subjects)
             # self.seed_incidents(students, incident_types)

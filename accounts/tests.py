@@ -113,13 +113,30 @@ class PaymentViewsTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         category = AccountType.objects.create(
-            name="Aluguel", direction=Direction.PAYABLE
+            name="Mensalidade", direction=Direction.RECEIVABLE
         )
-        cls.account = AccountPayable.objects.create(
-            description="Aluguel outubro", category=category, gross_value=Decimal("100")
+        cls.account = AccountReceivable.objects.create(
+            description="Mensalidade outubro",
+            category=category,
+            gross_value=Decimal("100"),
         )
         cls.installment = cls.account.installments.create(
             number=1, due_date=timezone.localdate(), amount=Decimal("100")
+        )
+        expense = AccountType.objects.create(name="Aluguel", direction=Direction.PAYABLE)
+        supplier = Supplier.objects.create(
+            name="Imobiliária Centro", document="12345678000199"
+        )
+        cls.payable_installment = (
+            AccountPayable.objects.create(
+                description="Aluguel outubro",
+                category=expense,
+                supplier=supplier,
+                gross_value=Decimal("100"),
+            )
+            .installments.create(
+                number=1, due_date=timezone.localdate(), amount=Decimal("100")
+            )
         )
 
     def post_payment(self, amount, **extra):
@@ -173,16 +190,113 @@ class PaymentViewsTests(TestCase):
         )
         self.assertEqual(response.context["form"].initial["amount"], Decimal("100"))
 
+    def test_payable_installment_is_rejected(self):
+        response = self.post_payment("10", installment=self.payable_installment.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["form"].has_error("installment"))
+        self.assertFalse(Payment.objects.exists())
+
+    def test_add_ignores_payable_installment_param(self):
+        response = self.client.get(
+            reverse("accounts:payment_add"), {"installment": self.payable_installment.pk}
+        )
+        self.assertNotIn("installment", response.context["form"].initial)
+
+    def test_installment_lookup_searches_pending_installments(self):
+        paid = self.account.installments.create(
+            number=2,
+            due_date=timezone.localdate(),
+            amount=Decimal("50"),
+            status=InstallmentStatus.PAID,
+        )
+        self.post_payment("40")
+        url = reverse("accounts:receivable_installment_lookup")
+
+        response = self.client.get(url, {"q": "mensalidade"}, **HTMX)
+        self.assertTemplateUsed(response, "payments/partials/installment_options.html")
+        self.assertContains(response, f'data-pk="{self.installment.pk}"')
+        self.assertContains(response, 'data-balance="60.00"')
+        self.assertNotContains(response, f'data-pk="{paid.pk}"')
+
+        response = self.client.get(url, {"q": "outubro"}, **HTMX)
+        self.assertNotContains(response, f'data-pk="{self.payable_installment.pk}"')
+
+        response = self.client.get(url, {"q": "inexistente"}, **HTMX)
+        self.assertContains(response, "Nenhuma parcela pendente encontrada")
+
+    def test_edit_form_shows_installment_label(self):
+        self.post_payment("10")
+        payment = Payment.objects.get()
+        response = self.client.get(reverse("accounts:payment_edit", args=[payment.pk]))
+        self.assertContains(response, 'value="Mensalidade outubro - 1ª parcela')
+        self.assertContains(response, f'name="installment" id="id_installment_value" value="{self.installment.pk}"')
+
+    def post_payable_payment(self, amount, **extra):
+        data = {
+            "installment": self.payable_installment.pk,
+            "paid_at": timezone.localdate().isoformat(),
+            "amount": amount,
+            "penalty": "0",
+            "interest": "0",
+            "monetary_adjust": "0",
+            "method": "TED",
+            **extra,
+        }
+        return self.client.post(reverse("accounts:payable_payment_add"), data)
+
+    def test_payable_payment_updates_installment_status(self):
+        response = self.post_payable_payment("100")
+        self.assertRedirects(response, reverse("accounts:payment_list") + "?direction=P")
+        self.payable_installment.refresh_from_db()
+        self.assertEqual(self.payable_installment.status, InstallmentStatus.PAID)
+
+    def test_payable_form_rejects_receivable_installment(self):
+        response = self.post_payable_payment("10", installment=self.installment.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["form"].has_error("installment"))
+        self.assertFalse(Payment.objects.exists())
+
+    def test_payable_add_prefills_from_installment_param(self):
+        url = reverse("accounts:payable_payment_add")
+        response = self.client.get(url, {"installment": self.payable_installment.pk})
+        self.assertEqual(response.context["form"].initial["amount"], Decimal("100"))
+        response = self.client.get(url, {"installment": self.installment.pk})
+        self.assertNotIn("installment", response.context["form"].initial)
+
+    def test_edit_views_only_open_payments_of_their_direction(self):
+        self.post_payment("10")
+        self.post_payable_payment("10")
+        receivable = Payment.objects.get(installment=self.installment)
+        payable = Payment.objects.get(installment=self.payable_installment)
+        edit = "accounts:payment_edit"
+        payable_edit = "accounts:payable_payment_edit"
+        self.assertEqual(self.client.get(reverse(edit, args=[receivable.pk])).status_code, 200)
+        self.assertEqual(self.client.get(reverse(edit, args=[payable.pk])).status_code, 404)
+        response = self.client.get(reverse(payable_edit, args=[payable.pk]))
+        self.assertContains(response, 'value="Aluguel outubro - 1ª parcela')
+        self.assertEqual(
+            self.client.get(reverse(payable_edit, args=[receivable.pk])).status_code, 404
+        )
+
+    def test_payable_lookup_searches_supplier_installments(self):
+        url = reverse("accounts:payable_installment_lookup")
+        for q in ("imobiliária", "12345678"):
+            response = self.client.get(url, {"q": q}, **HTMX)
+            self.assertContains(response, f'data-pk="{self.payable_installment.pk}"')
+            self.assertContains(response, "Imobiliária Centro")
+        response = self.client.get(url, {"q": "outubro"}, **HTMX)
+        self.assertNotContains(response, f'data-pk="{self.installment.pk}"')
+
     def test_list_filters_by_direction_and_method(self):
         self.post_payment("10")
         url = reverse("accounts:payment_list")
-        response = self.client.get(url, {"direction": "P", "method": "PIX"}, **HTMX)
+        response = self.client.get(url, {"direction": "R", "method": "PIX"}, **HTMX)
         self.assertTemplateUsed(response, "payments/partials/payment_table.html")
-        self.assertContains(response, "Aluguel outubro")
-        response = self.client.get(url, {"direction": "R"}, **HTMX)
-        self.assertNotContains(response, "Aluguel outubro")
+        self.assertContains(response, "Mensalidade outubro")
+        response = self.client.get(url, {"direction": "P"}, **HTMX)
+        self.assertNotContains(response, "Mensalidade outubro")
         response = self.client.get(url, {"method": "DIN"}, **HTMX)
-        self.assertNotContains(response, "Aluguel outubro")
+        self.assertNotContains(response, "Mensalidade outubro")
 
 
 class InstallmentViewsTests(TestCase):
