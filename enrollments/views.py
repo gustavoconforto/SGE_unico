@@ -1,7 +1,13 @@
 from django.db import transaction
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
 
 from accounts.models import Account
 from base.search import HtmxSearchMixin
@@ -239,3 +245,15 @@ class EnrollmentUpdateView(UpdateView):
                     fs.save()
             return redirect(self.get_success_url())
         return self.render_to_response(self.get_context_data(form=form, **formsets))
+
+
+class SchoolClassOptionsView(TemplateView):
+    """htmx endpoint: the school class field filtered by ?enrollment_type=<pk>."""
+
+    template_name = "enrollments/partials/school_class_field.html"
+
+    def get_context_data(self, **kwargs):
+        form = EnrollmentForm(
+            initial={"enrollment_type": self.request.GET.get("enrollment_type")}
+        )
+        return super().get_context_data(form=form, **kwargs)

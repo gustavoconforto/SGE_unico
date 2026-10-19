@@ -255,6 +255,17 @@ class InstallmentViewsTests(TestCase):
         totals = response.context["totals"]
         self.assertEqual(totals["receivable_outstanding"], Decimal("200"))
         self.assertEqual(totals["payable_outstanding"], Decimal("300"))
+        self.assertIsNone(totals["payable_paid"])
+
+    def test_list_totals_paid_installments(self):
+        Payment.objects.create(
+            installment=self.overdue, amount=Decimal("100"), method="PIX"
+        )
+        response = self.client.get(reverse("accounts:installment_list"))
+        totals = response.context["totals"]
+        self.assertEqual(totals["receivable_paid"], Decimal("100"))
+        self.assertIsNone(totals["payable_paid"])
+        self.assertContains(response, "Recebido")
 
     def test_list_filters_and_search_return_partial(self):
         url = reverse("accounts:installment_list")

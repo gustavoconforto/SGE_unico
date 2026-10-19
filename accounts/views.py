@@ -357,11 +357,14 @@ class InstallmentListView(HtmxFilterMixin, ListView):
         # split by direction since receivables and payables don't add up.
         receivable = Q(account__direction=Direction.RECEIVABLE)
         payable = Q(account__direction=Direction.PAYABLE)
+        paid = Q(status=InstallmentStatus.PAID)
         context["totals"] = self.object_list.order_by().aggregate(
             receivable_amount=Sum("amount", filter=receivable),
             receivable_outstanding=Sum("outstanding", filter=receivable),
+            receivable_paid=Sum("amount", filter=receivable & paid),
             payable_amount=Sum("amount", filter=payable),
             payable_outstanding=Sum("outstanding", filter=payable),
+            payable_paid=Sum("amount", filter=payable & paid),
         )
         return context
 

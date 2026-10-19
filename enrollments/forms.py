@@ -1,11 +1,15 @@
 from django import forms
+from django.db.models import Count, Q
 from django.forms import inlineformset_factory
+from django.urls import reverse_lazy
 
 from accounts.models import Account, Installment
+from classes.models import Class
 from enrollments.models import (
     DiscountType,
     Enrollment,
     EnrollmentNeededDocument,
+    EnrollmentStatus,
     EnrollmentType,
     NeededDocumentType,
     SchoolYear,
@@ -200,7 +204,12 @@ class EnrollmentForm(forms.ModelForm):
                 attrs={"class": "select select-neutral w-full"}
             ),
             "enrollment_type": forms.Select(
-                attrs={"class": "select select-neutral w-full"}
+                attrs={
+                    "class": "select select-neutral w-full",
+                    "hx-get": reverse_lazy("enrollments:school_class_options"),
+                    "hx-trigger": "change",
+                    "hx-target": "#school-class-field",
+                }
             ),
             "discount": forms.Select(attrs={"class": "select select-neutral w-full"}),
             "status": forms.Select(attrs={"class": "select select-neutral w-full"}),
@@ -227,6 +236,48 @@ class EnrollmentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for name in self.readonly_fields:
             self.fields[name].disabled = True
+        self.fields["school_class"].queryset = self.school_classes_for(
+            self.selected_enrollment_type()
+        )
+        self.fields["school_class"].label_from_instance = self.school_class_label
+
+    def selected_enrollment_type(self):
+        if self.is_bound:
+            pk = self.data.get(self.add_prefix("enrollment_type"))
+        else:
+            pk = self.initial.get("enrollment_type") or self.instance.enrollment_type_id
+        pk = getattr(pk, "pk", pk)
+        if not pk or not str(pk).isdigit():
+            return None
+        return EnrollmentType.objects.filter(pk=pk).first()
+
+    @staticmethod
+    def school_classes_for(enrollment_type):
+        # Same rules as Enrollment.clean(): school year, program and grade.
+        if enrollment_type is None:
+            return Class.objects.none()
+        classes = (
+            Class.objects.select_related("year")
+            .annotate(
+                student_count=Count(
+                    "enrollments",
+                    filter=Q(enrollments__status=EnrollmentStatus.ACTIVE),
+                )
+            )
+            .filter(
+                year=enrollment_type.school_year_id,
+                program=enrollment_type.program_id,
+            )
+        )
+        if enrollment_type.level:
+            classes = classes.filter(grade_level=int(enrollment_type.level))
+        return classes
+
+    @staticmethod
+    def school_class_label(school_class):
+        # e.g. "2° Inspiração - 2027 (12/50)": active students / capacity.
+        capacity = school_class.capacity if school_class.capacity is not None else "—"
+        return f"{school_class} ({school_class.student_count}/{capacity})"
 
 
 class EnrollmentNeededDocumentForm(forms.ModelForm):

@@ -178,17 +178,17 @@ class Command(BaseCommand):
                         LevelTypes.GRADE_2,
                         LevelTypes.GRADE_3,
                     ]:
-                        enrollment_types[(school_year.begins.year, program.pk, level)] = (
-                            EnrollmentType.objects.update_or_create(
-                                program=program,
-                                school_year=school_year,
-                                level=level,
-                                defaults={
-                                    "total_price": ENROLLMENT_PRICES[program_name],
-                                    "description": f"Contrato anual do curso {program_name} para o ano letivo de {school_year.begins.year}.",
-                                },
-                            )[0]
-                        )
+                        enrollment_types[
+                            (school_year.begins.year, program.pk, level)
+                        ] = EnrollmentType.objects.update_or_create(
+                            program=program,
+                            school_year=school_year,
+                            level=level,
+                            defaults={
+                                "total_price": ENROLLMENT_PRICES[program_name],
+                                "description": f"Contrato anual do curso {program_name} para o ano letivo de {school_year.begins.year}.",
+                            },
+                        )[0]
         return enrollment_types
 
     def seed_discount_types(self):

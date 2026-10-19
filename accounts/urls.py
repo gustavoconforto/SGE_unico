@@ -1,10 +1,6 @@
 from django.urls import path
 
 from accounts.views import (
-    AccountTypeCreateView,
-    AccountTypeDeleteView,
-    AccountTypeListView,
-    AccountTypeUpdateView,
     AccountPayableCreateView,
     AccountPayableDeleteView,
     AccountPayableListView,
@@ -13,6 +9,10 @@ from accounts.views import (
     AccountReceivableDeleteView,
     AccountReceivableListView,
     AccountReceivableUpdateView,
+    AccountTypeCreateView,
+    AccountTypeDeleteView,
+    AccountTypeListView,
+    AccountTypeUpdateView,
     InstallmentCreateView,
     InstallmentListView,
     PaymentCreateView,
@@ -38,9 +38,7 @@ urlpatterns = [
         SupplierDeleteView.as_view(),
         name="supplier_delete",
     ),
-    path(
-        "categories/list/", AccountTypeListView.as_view(), name="account_type_list"
-    ),
+    path("categories/list/", AccountTypeListView.as_view(), name="account_type_list"),
     path("categories/add/", AccountTypeCreateView.as_view(), name="account_type_add"),
     path(
         "categories/edit/<int:pk>/",
@@ -84,12 +82,8 @@ urlpatterns = [
         AccountPayableDeleteView.as_view(),
         name="payable_delete",
     ),
-    path(
-        "installments/list/", InstallmentListView.as_view(), name="installment_list"
-    ),
-    path(
-        "installments/add/", InstallmentCreateView.as_view(), name="installment_add"
-    ),
+    path("installments/list/", InstallmentListView.as_view(), name="installment_list"),
+    path("installments/add/", InstallmentCreateView.as_view(), name="installment_add"),
     path("payments/list/", PaymentListView.as_view(), name="payment_list"),
     path("payments/add/", PaymentCreateView.as_view(), name="payment_add"),
     path(

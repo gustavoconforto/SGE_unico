@@ -16,6 +16,7 @@ from enrollments.views import (
     NeededDocumentTypeDeleteView,
     NeededDocumentTypeListView,
     NeededDocumentTypeUpdateView,
+    SchoolClassOptionsView,
     SchoolYearCreateView,
     SchoolYearDeleteView,
     SchoolYearListView,
@@ -111,5 +112,10 @@ urlpatterns = [
         "edit/<int:pk>/",
         EnrollmentUpdateView.as_view(),
         name="enrollment_edit",
+    ),
+    path(
+        "school-class-options/",
+        SchoolClassOptionsView.as_view(),
+        name="school_class_options",
     ),
 ]
