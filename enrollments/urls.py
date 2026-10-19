@@ -16,10 +16,13 @@ from enrollments.views import (
     NeededDocumentTypeDeleteView,
     NeededDocumentTypeListView,
     NeededDocumentTypeUpdateView,
+    SchoolClassOptionsView,
     SchoolYearCreateView,
     SchoolYearDeleteView,
     SchoolYearListView,
     SchoolYearUpdateView,
+    generate_report_pdf_view,
+    generate_report_view,
 )
 
 app_name = "enrollments"
@@ -111,5 +114,20 @@ urlpatterns = [
         "edit/<int:pk>/",
         EnrollmentUpdateView.as_view(),
         name="enrollment_edit",
+    ),
+    path(
+        "school-class-options/",
+        SchoolClassOptionsView.as_view(),
+        name="school_class_options",
+    ),
+    path(
+        "print/preview/<int:pk>/",
+        generate_report_view,
+        name="enrollment_preview",
+    ),
+    path(
+        "print/pdf/<int:pk>/",
+        generate_report_pdf_view,
+        name="enrollment_pdf",
     ),
 ]

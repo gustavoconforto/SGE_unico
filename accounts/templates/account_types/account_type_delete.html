@@ -1,0 +1,39 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Categorias financeiras{% endblock page_title %}
+
+{% block header %}
+
+{% endblock header %}
+
+{% block content %}
+<div class="bg-white py-12 px-4">
+  <div class="w-full">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de categorias financeiras</h2>
+      <p class="mt-4 text-lg text-gray-600 ">
+        Deseja, realmente, deletar este registro?
+      </p>
+    </div>
+
+    <div class="bg-slate-50 rounded-2xl p-6 md:p-8">
+      <form class="space-y-6" method="POST">
+        {% csrf_token %}
+        <p>
+        Nome: {{ object.name }}
+        </p>
+        <p>
+        Natureza: {{ object.get_direction_display }}
+        </p>
+
+        <div class="flex flex-row gap-4 pt-4">
+          {% include 'components/button/button_delete_form.html' with label=submit_label|default:'Deletar' %}
+          <a href={% url 'accounts:account_type_list' %}>
+            {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock content %}

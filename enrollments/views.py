@@ -1,7 +1,21 @@
+from pathlib import Path
+
+from django.contrib.staticfiles import finders
 from django.db import transaction
-from django.shortcuts import redirect
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect
+from django.template.loader import render_to_string
+from django.template.response import TemplateResponse
 from django.urls import reverse, reverse_lazy
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.utils.text import slugify
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
+from weasyprint import HTML
 
 from accounts.models import Account
 from base.search import HtmxSearchMixin
@@ -22,6 +36,8 @@ from enrollments.models import (
     NeededDocumentType,
     SchoolYear,
 )
+from students.models import Guardian
+from utils.format.number_values import format_cpf, format_zip_code
 
 # SCHOOL YEAR VIEWS
 
@@ -40,20 +56,20 @@ class SchoolYearCreateView(CreateView):
     model = SchoolYear
     template_name = "school_years/school_year_add.html"
     form_class = SchoolYearForm
-    success_url = reverse_lazy("school_years:school_year_list")
+    success_url = reverse_lazy("enrollments:school_year_list")
 
 
 class SchoolYearUpdateView(UpdateView):
     model = SchoolYear
     template_name = "school_years/school_year_edit.html"
     form_class = SchoolYearForm
-    success_url = reverse_lazy("school_years:school_year_list")
+    success_url = reverse_lazy("enrollments:school_year_list")
 
 
 class SchoolYearDeleteView(DeleteView):
     model = SchoolYear
     template_name = "school_years/school_year_delete.html"
-    success_url = reverse_lazy("school_years:school_year_list")
+    success_url = reverse_lazy("enrollments:school_year_list")
 
 
 # NEEDED DOCUMENTS TYPE VIEWS
@@ -73,20 +89,20 @@ class NeededDocumentTypeCreateView(CreateView):
     model = NeededDocumentType
     template_name = "needed_documents/needed_document_add.html"
     form_class = NeededDocumentTypeForm
-    success_url = reverse_lazy("needed_documents:needed_document_list")
+    success_url = reverse_lazy("enrollments:needed_document_list")
 
 
 class NeededDocumentTypeUpdateView(UpdateView):
     model = NeededDocumentType
     template_name = "needed_documents/needed_document_edit.html"
     form_class = NeededDocumentTypeForm
-    success_url = reverse_lazy("needed_documents:needed_document_list")
+    success_url = reverse_lazy("enrollments:needed_document_list")
 
 
 class NeededDocumentTypeDeleteView(DeleteView):
     model = NeededDocumentType
     template_name = "needed_documents/needed_document_delete.html"
-    success_url = reverse_lazy("needed_documents:needed_document_list")
+    success_url = reverse_lazy("enrollments:needed_document_list")
 
 
 # ENROLLMENT TYPE VIEWS
@@ -106,20 +122,20 @@ class EnrollmentTypeCreateView(CreateView):
     model = EnrollmentType
     template_name = "enrollment_types/enrollment_type_add.html"
     form_class = EnrollmentTypeForm
-    success_url = reverse_lazy("enrollment_types:enrollment_type_list")
+    success_url = reverse_lazy("enrollments:enrollment_type_list")
 
 
 class EnrollmentTypeUpdateView(UpdateView):
     model = EnrollmentType
     template_name = "enrollment_types/enrollment_type_edit.html"
     form_class = EnrollmentTypeForm
-    success_url = reverse_lazy("enrollment_types:enrollment_type_list")
+    success_url = reverse_lazy("enrollments:enrollment_type_list")
 
 
 class EnrollmentTypeDeleteView(DeleteView):
     model = EnrollmentType
     template_name = "enrollment_types/enrollment_type_delete.html"
-    success_url = reverse_lazy("enrollment_types:enrollment_type_list")
+    success_url = reverse_lazy("enrollments:enrollment_type_list")
 
 
 # DISCOUNT TYPE VIEWS
@@ -139,20 +155,20 @@ class DiscountTypeCreateView(CreateView):
     model = DiscountType
     template_name = "discount_types/discount_type_add.html"
     form_class = DiscountTypeForm
-    success_url = reverse_lazy("discount_types:discount_type_list")
+    success_url = reverse_lazy("enrollments:discount_type_list")
 
 
 class DiscountTypeUpdateView(UpdateView):
     model = DiscountType
     template_name = "discount_types/discount_type_edit.html"
     form_class = DiscountTypeForm
-    success_url = reverse_lazy("discount_types:discount_type_list")
+    success_url = reverse_lazy("enrollments:discount_type_list")
 
 
 class DiscountTypeDeleteView(DeleteView):
     model = DiscountType
     template_name = "discount_types/discount_type_delete.html"
-    success_url = reverse_lazy("discount_types:discount_type_list")
+    success_url = reverse_lazy("enrollments:discount_type_list")
 
 
 # ENROLLMENT VIEWS
@@ -239,3 +255,93 @@ class EnrollmentUpdateView(UpdateView):
                     fs.save()
             return redirect(self.get_success_url())
         return self.render_to_response(self.get_context_data(form=form, **formsets))
+
+
+class SchoolClassOptionsView(TemplateView):
+    """htmx endpoint: the school class field filtered by ?enrollment_type=<pk>."""
+
+    template_name = "enrollments/partials/school_class_field.html"
+
+    def get_context_data(self, **kwargs):
+        form = EnrollmentForm(
+            initial={"enrollment_type": self.request.GET.get("enrollment_type")}
+        )
+        return super().get_context_data(form=form, **kwargs)
+
+
+# PRINT REPORT
+
+
+def build_report_context(pk):
+
+    enrollment = get_object_or_404(Enrollment, pk=pk)
+    student_name = enrollment.student.name
+    school_year = enrollment.enrollment_type.school_year.begins.year
+    grade = enrollment.school_class.grade_level
+    student_cpf = enrollment.student.cpf
+    student_zip_code = format_zip_code(enrollment.student.zip_code)
+    student_mobile = enrollment.student.mobile
+    student_address = f"{enrollment.student.address}, {enrollment.student.neighborhood}, {enrollment.student.city} - {enrollment.student.state}"
+    financial_guardian = Guardian.objects.filter(
+        student_links__student=enrollment.student,
+        student_links__is_financial=True,
+    ).first()
+    financial_guardian_name = financial_guardian.name
+    financial_guardian_cpf = financial_guardian.cpf
+    financial_guardian_address = f"{financial_guardian.address}, {financial_guardian.neighborhood}, {financial_guardian.city} - {financial_guardian.state}"
+    financial_guardian_mobile = financial_guardian.mobile
+    financial_guardian_email = financial_guardian.email
+    program = enrollment.enrollment_type
+    total_price = enrollment.gross_value
+    discount_percentage = enrollment.discount_percent
+    has_discount = bool(discount_percentage)
+    discount_amount = enrollment.discount_value
+
+    start_date_of_the_contract = enrollment.enrollment_type.start_date
+    end_date_of_the_contract = enrollment.enrollment_type.end_date
+    ultima_parcela = f"{enrollment.due_day}/12/{school_year}"
+    context = {
+        "student_name": student_name,
+        "school_year": school_year,
+        "grade": grade,
+        "student_cpf": format_cpf(student_cpf),
+        "student_zip_code": student_zip_code,
+        "student_mobile": student_mobile,
+        "student_address": student_address,
+        "financial_guardian_name": financial_guardian_name,
+        "financial_guardian_cpf": format_cpf(financial_guardian_cpf),
+        "financial_guardian_address": financial_guardian_address,
+        "financial_guardian_mobile": financial_guardian_mobile,
+        "financial_guardian_email": financial_guardian_email,
+        "program": program,
+        "total_price": total_price,
+        "has_discount": has_discount,
+        "discount_percentage": discount_percentage,
+        "discount_amount": discount_amount,
+        "start_date_of_the_contract": start_date_of_the_contract,
+        "end_date_of_the_contract": end_date_of_the_contract,
+        "numero_de_parcelas": 12,
+        "ultima_parcela": ultima_parcela,
+    }
+    return context
+
+
+def generate_report_view(request, pk):
+    context = build_report_context(pk)
+    context["object_id"] = pk
+    return TemplateResponse(request, "enrollments/preview_enrollment.html", context)
+
+
+def generate_report_pdf_view(request, pk):
+    context = build_report_context(pk)
+    context["pdf"] = True
+    context["logo_src"] = Path(finders.find("img/unico_logo_stamp.png")).as_uri()
+    html = render_to_string(
+        "enrollments/preview_enrollment.html", context, request=request
+    )
+    pdf = HTML(string=html, base_url=request.build_absolute_uri("/")).write_pdf()
+
+    filename = f"contrato-{slugify(context['student_name'])}.pdf"
+    response = HttpResponse(pdf, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response

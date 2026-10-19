@@ -14,14 +14,22 @@ from students.models import Student
 class SchoolYear(models.Model):
     begins = models.DateField("Data de início")
     ends = models.DateField("Data de fim")
-    bi_1_begins = models.DateField("Data de início do 1 Bimestre")
-    bi_1_ends = models.DateField("Data de fim do 1 Bimestre")
-    bi_2_begins = models.DateField("Data de início do 2 Bimestre")
-    bi_2_ends = models.DateField("Data de fim do 2 Bimestre")
-    bi_3_begins = models.DateField("Data de início do 3 Bimestre")
-    bi_3_ends = models.DateField("Data de fim do 3 Bimestre")
-    bi_4_begins = models.DateField("Data de início do 4 Bimestre")
-    bi_4_ends = models.DateField("Data de fim do 4 Bimestre")
+    bi_1_begins = models.DateField(
+        "Data de início do 1 Bimestre", blank=True, null=True
+    )
+    bi_1_ends = models.DateField("Data de fim do 1 Bimestre", blank=True, null=True)
+    bi_2_begins = models.DateField(
+        "Data de início do 2 Bimestre", blank=True, null=True
+    )
+    bi_2_ends = models.DateField("Data de fim do 2 Bimestre", blank=True, null=True)
+    bi_3_begins = models.DateField(
+        "Data de início do 3 Bimestre", blank=True, null=True
+    )
+    bi_3_ends = models.DateField("Data de fim do 3 Bimestre", blank=True, null=True)
+    bi_4_begins = models.DateField(
+        "Data de início do 4 Bimestre", blank=True, null=True
+    )
+    bi_4_ends = models.DateField("Data de fim do 4 Bimestre", blank=True, null=True)
 
     def __str__(self):
         return f"{self.begins.year}"
@@ -73,7 +81,14 @@ class EnrollmentType(models.Model):
         "Fim do contrato", blank=True, help_text="Preenchido automaticamente"
     )
     total_price = models.DecimalField("Valor total", max_digits=10, decimal_places=2)
-    description = models.TextField("Descrição")
+    punctuality_discount = models.DecimalField(
+        "Desconto de pontualidade",
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("90.00"),
+        help_text="Abatido de cada parcela paga por boleto até o vencimento",
+    )
+    description = models.TextField("Descrição", blank=True)
     school_year = models.ForeignKey(
         SchoolYear,
         on_delete=models.PROTECT,

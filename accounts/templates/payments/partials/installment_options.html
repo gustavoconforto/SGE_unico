@@ -1,0 +1,19 @@
+{% for installment in installments %}
+<li>
+  <button type="button"
+          class="flex w-full items-center justify-between gap-4 px-4 py-2 text-left text-sm hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+          data-pk="{{ installment.pk }}"
+          data-label="{{ installment.label }}"
+          data-balance="{{ installment.outstanding|floatformat:"2u" }}">
+    <span>
+      <span class="font-medium">{{ installment.account }}</span> - {{ installment.number }}ª parcela
+      <span class="block text-xs text-slate-500">
+        {% if installment.account.counterpart %}{{ installment.account.counterpart }} · {% endif %}venc. {{ installment.due_date|date:"d/m/Y" }}
+      </span>
+    </span>
+    <span class="whitespace-nowrap text-right">R$ {{ installment.outstanding|floatformat:2 }}</span>
+  </button>
+</li>
+{% empty %}
+<li class="px-4 py-2 text-sm text-slate-500">Nenhuma parcela pendente encontrada</li>
+{% endfor %}

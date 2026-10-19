@@ -1,0 +1,25 @@
+<div class="relative"
+     hx-on:focusout="if (!this.contains(event.relatedTarget)) this.querySelector('ul').innerHTML = ''">
+  <input type="hidden" name="{{ widget.name }}" id="{{ widget.attrs.id }}_value" value="{{ widget.value|default_if_none:'' }}">
+  <input type="search"
+         name="q"
+         id="{{ widget.attrs.id }}"
+         value="{{ widget.label }}"
+         placeholder="{{ widget.placeholder }}"
+         autocomplete="off"
+         class="input input-neutral w-full"
+         hx-get="{{ widget.lookup_url }}"
+         hx-trigger="input changed delay:300ms, focus"
+         hx-target="next ul"
+         hx-on:input="document.getElementById('{{ widget.attrs.id }}_value').value = ''">
+  <ul class="absolute z-10 mt-1 w-full max-h-72 overflow-y-auto rounded-box bg-base-100 shadow empty:hidden"
+      hx-on:click="
+        const option = event.target.closest('[data-pk]');
+        if (!option) return;
+        document.getElementById('{{ widget.attrs.id }}_value').value = option.dataset.pk;
+        document.getElementById('{{ widget.attrs.id }}').value = option.dataset.label;
+        const amount = document.getElementById('id_amount');
+        if (amount && !amount.value) amount.value = option.dataset.balance;
+        this.innerHTML = '';
+      "></ul>
+</div>

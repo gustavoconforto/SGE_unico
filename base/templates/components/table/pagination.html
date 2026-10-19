@@ -2,8 +2,8 @@
   <nav class="mt-4 flex items-center justify-between text-sm text-slate-600">
     <div>
       {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}"
-           hx-get="{{ request.path }}?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+        <a href="{% querystring page=page_obj.previous_page_number %}"
+           hx-get="{{ request.path }}{% querystring page=page_obj.previous_page_number %}"
            hx-target="#search-results"
            hx-push-url="true"
            class="rounded-lg border border-slate-200 px-3 py-1.5 hover:bg-slate-50">Anterior</a>
@@ -12,8 +12,8 @@
     <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
     <div>
       {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}"
-           hx-get="{{ request.path }}?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+        <a href="{% querystring page=page_obj.next_page_number %}"
+           hx-get="{{ request.path }}{% querystring page=page_obj.next_page_number %}"
            hx-target="#search-results"
            hx-push-url="true"
            class="rounded-lg border border-slate-200 px-3 py-1.5 hover:bg-slate-50">Próxima</a>
