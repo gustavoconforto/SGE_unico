@@ -73,6 +73,13 @@ class EnrollmentType(models.Model):
         "Fim do contrato", blank=True, help_text="Preenchido automaticamente"
     )
     total_price = models.DecimalField("Valor total", max_digits=10, decimal_places=2)
+    punctuality_discount = models.DecimalField(
+        "Desconto de pontualidade",
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("90.00"),
+        help_text="Abatido de cada parcela paga por boleto até o vencimento",
+    )
     description = models.TextField("Descrição")
     school_year = models.ForeignKey(
         SchoolYear,

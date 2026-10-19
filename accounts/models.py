@@ -70,9 +70,7 @@ class Supplier(TimeStampedModel):
 class AccountQuerySet(models.QuerySet):
     def with_installment_summary(self):
         """Annotate counts used to derive the account situation without N+1 queries."""
-        pending = Q(
-            installments__status__in=[InstallmentStatus.OPEN, InstallmentStatus.PARTIAL]
-        )
+        pending = Q(installments__status__in=PENDING_STATUSES)
         return self.annotate(
             installments_total=Count("installments"),
             installments_pending=Count("installments", filter=pending),
@@ -226,6 +224,16 @@ class InstallmentStatus(models.TextChoices):
     PARTIAL = "P", "Pago parcialmente"
     PAID = "Q", "Quitado"
     CANCELLED = "C", "Cancelado"
+    # Set when the bank writes off an unpaid slip (return code 09). The debt
+    # is still owed, so it counts as pending.
+    EXPIRED = "E", "Expirado"
+
+
+PENDING_STATUSES = [
+    InstallmentStatus.OPEN,
+    InstallmentStatus.PARTIAL,
+    InstallmentStatus.EXPIRED,
+]
 
 
 class InstallmentQuerySet(models.QuerySet):
@@ -240,7 +248,11 @@ class InstallmentQuerySet(models.QuerySet):
             .values("installment")
             .annotate(
                 total=Sum(
-                    F("amount") - F("penalty") - F("interest") - F("monetary_adjust")
+                    F("amount")
+                    - F("penalty")
+                    - F("interest")
+                    - F("monetary_adjust")
+                    + F("discount")
                 )
             )
             .values("total")
@@ -258,9 +270,7 @@ class InstallmentQuerySet(models.QuerySet):
         )
 
     def pending(self):
-        return self.filter(
-            status__in=[InstallmentStatus.OPEN, InstallmentStatus.PARTIAL]
-        )
+        return self.filter(status__in=PENDING_STATUSES)
 
     def overdue(self):
         return self.pending().filter(due_date__lt=timezone.localdate())
@@ -297,10 +307,15 @@ class Installment(models.Model):
             penalty=Sum("penalty"),
             interest=Sum("interest"),
             adjust=Sum("monetary_adjust"),
+            discount=Sum("discount"),
         )
         totals = {key: value or ZERO for key, value in totals.items()}
         return (
-            totals["amount"] - totals["penalty"] - totals["interest"] - totals["adjust"]
+            totals["amount"]
+            - totals["penalty"]
+            - totals["interest"]
+            - totals["adjust"]
+            + totals["discount"]
         )
 
     def balance(self):
@@ -311,8 +326,7 @@ class Installment(models.Model):
     @property
     def is_overdue(self):
         return (
-            self.status in (InstallmentStatus.OPEN, InstallmentStatus.PARTIAL)
-            and self.due_date < timezone.localdate()
+            self.status in PENDING_STATUSES and self.due_date < timezone.localdate()
         )
 
     def refresh_status(self):
@@ -325,6 +339,8 @@ class Installment(models.Model):
             status = InstallmentStatus.PARTIAL
         else:
             status = InstallmentStatus.PAID
+        if self.status == InstallmentStatus.EXPIRED and status != InstallmentStatus.PAID:
+            return
         if status != self.status:
             self.status = status
             self.save(update_fields=["status"])
@@ -370,6 +386,12 @@ class Payment(TimeStampedModel):
     penalty = models.DecimalField("Multa", default=ZERO, **MONEY)
     interest = models.DecimalField("Juros", default=ZERO, **MONEY)
     monetary_adjust = models.DecimalField("Correção", default=ZERO, **MONEY)
+    discount = models.DecimalField(
+        "Desconto",
+        default=ZERO,
+        help_text="Desconto concedido no pagamento (ex.: pontualidade); abate do saldo",
+        **MONEY,
+    )
     method = models.CharField(
         "Forma de pagamento", max_length=3, choices=PaymentMethod.choices
     )
@@ -377,6 +399,16 @@ class Payment(TimeStampedModel):
 
     def __str__(self):
         return f"{self.installment} - {self.paid_at:%d/%m/%Y}"
+
+    @property
+    def principal(self):
+        return (
+            self.amount
+            - self.penalty
+            - self.interest
+            - self.monetary_adjust
+            + self.discount
+        )
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -399,5 +431,8 @@ class Payment(TimeStampedModel):
             models.CheckConstraint(
                 condition=Q(penalty__gte=0, interest__gte=0, monetary_adjust__gte=0),
                 name="payment_charges_not_negative",
+            ),
+            models.CheckConstraint(
+                condition=Q(discount__gte=0), name="payment_discount_not_negative"
             ),
         ]

@@ -7,6 +7,7 @@ from accounts.models import (
     Account,
     AccountType,
     Direction,
+    PENDING_STATUSES,
     Installment,
     InstallmentStatus,
     Payment,
@@ -334,6 +335,7 @@ class PaymentForm(forms.ModelForm):
             "penalty",
             "interest",
             "monetary_adjust",
+            "discount",
             "method",
             "notes",
         ]
@@ -351,6 +353,9 @@ class PaymentForm(forms.ModelForm):
             "monetary_adjust": forms.NumberInput(
                 attrs={"class": "input input-neutral w-full", "step": "0.01"}
             ),
+            "discount": forms.NumberInput(
+                attrs={"class": "input input-neutral w-full", "step": "0.01"}
+            ),
             "method": forms.Select(attrs={"class": "select select-neutral w-full"}),
             "notes": forms.TextInput(attrs={"class": "input input-neutral w-full"}),
         }
@@ -358,14 +363,16 @@ class PaymentForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Only installments that still accept payments, plus the current one on edit.
-        selectable = Installment.objects.filter(
-            status__in=[InstallmentStatus.OPEN, InstallmentStatus.PARTIAL]
-        )
+        selectable = Installment.objects.filter(status__in=PENDING_STATUSES)
         if self.instance.pk:
             selectable = selectable | Installment.objects.filter(
                 pk=self.instance.installment_id
             )
         self.fields["installment"].queryset = selectable.select_related("account")
+        self.fields["discount"].required = False
+
+    def clean_discount(self):
+        return self.cleaned_data["discount"] or ZERO
 
     def clean(self):
         cleaned_data = super().clean()
@@ -381,22 +388,19 @@ class PaymentForm(forms.ModelForm):
             ),
             ZERO,
         )
-        principal = amount - charges
+        principal = amount - charges + (cleaned_data.get("discount") or ZERO)
         if principal <= 0:
             self.add_error(
                 "amount",
-                "O valor pago deve ser maior que a soma de multa, juros e correção.",
+                "O valor pago mais o desconto deve ser maior que a soma de multa, "
+                "juros e correção.",
             )
             return cleaned_data
 
         balance = installment.balance()
         if self.instance.pk and self.instance.installment_id == installment.pk:
             # The payment being edited is already deducted from the balance.
-            balance += self.instance.amount - (
-                self.instance.penalty
-                + self.instance.interest
-                + self.instance.monetary_adjust
-            )
+            balance += self.instance.principal
         if principal > balance:
             self.add_error(
                 "amount",

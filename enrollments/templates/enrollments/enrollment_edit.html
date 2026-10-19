@@ -12,6 +12,11 @@
       <p class="mt-4 text-lg text-gray-600 ">
         Edite uma matrícula
       </p>
+      <div class="flex w-full justify-end">
+        <a href="{% url "enrollments:enrollment_preview" object.pk %}" target="_blank" rel="noopener">
+          <button class="btn btn-warning">Imprimir</button>
+        </a>
+      </div>
     </div>
 
     {% include 'enrollments/enrollment_form.html' %}

@@ -1,0 +1,60 @@
+  <p class="mb-3 text-sm text-slate-600">
+    {{ ready_count }} de {{ rows|length }} parcela{{ rows|length|pluralize }} apta{{ ready_count|pluralize }} para envio.
+    Parcelas com pendências cadastrais não são enviadas.
+  </p>
+  <table class=" overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
+    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+      <tr>
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">
+          <input type="checkbox" class="checkbox checkbox-sm" checked aria-label="Selecionar todas"
+                 onclick="document.querySelectorAll('input[name=installments]:not(:disabled)').forEach(c => c.checked = this.checked)">
+        </th>
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Vencimento</th>
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Responsável</th>
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Conta</th>
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Parcela</th>
+        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Valor</th>
+        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Desc. pontualidade</th>
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Pendências</th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-slate-100">
+    {% for row in rows %}
+      {% with installment=row.installment %}
+      <tr class="hover:bg-slate-50{% if row.problems %} bg-red-50{% endif %}">
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+          <input type="checkbox" name="installments" value="{{ installment.pk }}" class="checkbox checkbox-sm"
+                 aria-label="Selecionar parcela" {% if row.problems %}disabled{% else %}checked{% endif %}>
+        </td>
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 whitespace-nowrap">
+            {{ installment.due_date|date:"d/m/Y" }}
+        </td>
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+            {{ installment.account.guardian|default:"-" }}
+        </td>
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+            {{ installment.account }}
+        </td>
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+            {{ installment.number }}ª
+        </td>
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 text-right whitespace-nowrap">
+            R$ {{ installment.outstanding|floatformat:2 }}
+        </td>
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 text-right whitespace-nowrap">
+            R$ {{ row.discount|floatformat:2 }}
+        </td>
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+            {% for problem in row.problems %}
+            <span class="block text-xs font-medium text-red-600">{{ problem }}</span>
+            {% empty %}
+            <span class="badge badge-sm badge-success badge-outline whitespace-nowrap">Apta</span>
+            {% endfor %}
+        </td>
+      </tr>
+      {% endwith %}
+      {% empty %}
+      {% include 'components/table/empty_table.html' with collspan=8%}
+      {% endfor %}
+    </tbody>
+  </table>

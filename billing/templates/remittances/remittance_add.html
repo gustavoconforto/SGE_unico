@@ -1,0 +1,65 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Remessas{% endblock page_title %}
+
+{% block header %}
+  {% if not settings %}
+  <div role="alert" class="alert alert-warning mb-4">
+    <span>Cadastre a <a class="underline" href="{% url 'billing:bank_settings_edit' %}">configuração bancária</a> antes de gerar remessas.</span>
+  </div>
+  {% endif %}
+  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por conta, responsável, aluno ou matrícula...' %}
+{% endblock header %}
+
+{% block content %}
+  <form method="POST" class="space-y-4">
+    {% csrf_token %}
+    {% if write_offs %}
+    <div class="space-y-3">
+      <h3 class="text-base font-semibold text-slate-700">Pedidos de baixa</h3>
+      <p class="text-sm text-slate-600">
+        Boletos registrados no banco cuja parcela foi cancelada ou paga por outro meio.
+        O banco confirma a baixa no retorno com a ocorrência 10.
+      </p>
+      <table class=" overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
+        <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+          <tr>
+            <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5"></th>
+            <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Nosso número</th>
+            <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Vencimento</th>
+            <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Responsável</th>
+            <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Conta</th>
+            <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Valor do boleto</th>
+            <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Situação da parcela</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-slate-100">
+        {% for slip in write_offs %}
+          <tr class="hover:bg-slate-50">
+            <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+              <input type="checkbox" name="write_offs" value="{{ slip.pk }}" class="checkbox checkbox-sm" aria-label="Solicitar baixa" checked>
+            </td>
+            <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 whitespace-nowrap">{{ slip }}</td>
+            <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 whitespace-nowrap">{{ slip.due_date|date:"d/m/Y" }}</td>
+            <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">{{ slip.installment.account.guardian|default:"-" }}</td>
+            <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">{{ slip.installment.account }} - {{ slip.installment.number }}ª</td>
+            <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 text-right whitespace-nowrap">R$ {{ slip.amount|floatformat:2 }}</td>
+            <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">{{ slip.installment.get_status_display }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+    <h3 class="text-base font-semibold text-slate-700">Novos boletos</h3>
+    <div id="search-results">
+      {% include 'remittances/partials/remittance_candidates.html' %}
+    </div>
+    <div class="flex flex-row gap-4 pt-2">
+      {% include 'components/button/button_submit_form.html' with label='Gerar remessa' %}
+      <a href={% url 'billing:remittance_list' %}>
+        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+      </a>
+    </div>
+  </form>
+{% endblock content %}

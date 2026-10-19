@@ -117,6 +117,7 @@
                             {% if f.instance.status == 'Q' %}badge-success
                             {% elif f.instance.status == 'P' %}badge-warning
                             {% elif f.instance.status == 'C' %}badge-ghost
+                            {% elif f.instance.status == 'E' %}badge-error
                             {% else %}badge-neutral badge-outline{% endif %}">
                             {{ f.instance.get_status_display }}
                         </span>

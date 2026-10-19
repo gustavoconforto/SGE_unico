@@ -141,6 +141,7 @@ class EnrollmentTypeForm(forms.ModelForm):
             "start_date",
             "end_date",
             "total_price",
+            "punctuality_discount",
             "description",
             "school_year",
         ]
@@ -163,6 +164,9 @@ class EnrollmentTypeForm(forms.ModelForm):
             ),
             "total_price": forms.NumberInput(
                 attrs={"class": "input input-neutral w-full"}
+            ),
+            "punctuality_discount": forms.NumberInput(
+                attrs={"class": "input input-neutral w-full", "step": "0.01"}
             ),
             "description": forms.TextInput(
                 attrs={"class": "input input-neutral w-full"}

@@ -94,9 +94,16 @@ all migration files.
 - Use `AccountReceivable` / `AccountPayable` proxies, not raw `Account`, in
   views and forms.
 - `Payment.save()`/`delete()` refresh the installment status; don't update
-  `Installment.status` by hand except to cancel.
+  `Installment.status` by hand except to cancel (or to expire, done by the
+  bank return import). Use `PENDING_STATUSES` for "still owed".
 - Payment `amount` includes penalty, interest and monetary adjustment;
-  principal = amount − charges, and it can't exceed the installment balance.
+  principal = amount − charges + discount, and it can't exceed the
+  installment balance.
+- Bank slips: go through `billing/services.py` (`create_remittance`,
+  `write_off_candidates`, `import_return`); never build CNAB lines outside
+  `billing/cnab400.py`. A slip the bank registered must be written off
+  (movement `02`, confirmed by return `10`) before its installment gets a new
+  slip; `LIVE_SLIP_STATUSES` enforces this.
 - Enrollment creation generates the account and installments through the
   `post_save` signal in `enrollments/signals.py`; don't duplicate that in views.
 

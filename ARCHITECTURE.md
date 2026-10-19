@@ -30,6 +30,7 @@ Browser ──HTTP──▶ config/urls.py ──▶ <app>/urls.py ──▶ cla
 | `students` | `/students/` | `Student`, `Guardian`, `GuardianAssociation` |
 | `enrollments` | `/enrollments/` | `SchoolYear`, `EnrollmentType`, `DiscountType`, `NeededDocumentType`, `Enrollment`, `EnrollmentNeededDocument` |
 | `accounts` | `/accounts/` | `AccountType`, `Supplier`, `Account` (+ receivable/payable proxies), `Installment`, `Payment` |
+| `billing` | `/billing/` | Bradesco CNAB 400 bank slips: `BankSettings`, `Remittance` (.REM), `BankSlip`, `ReturnFile` (.RET), `ReturnEvent` |
 
 Dependencies point one way, from the general to the specific:
 
@@ -38,7 +39,7 @@ base ◀── employees
 base ◀── students ◀── enrollments ──▶ classes ──▶ programs
                           │  ▲
                           ▼  │ (signals)
-                       accounts
+                       accounts ◀── billing
 ```
 
 `accounts` imports `Enrollment` and `Guardian`. `enrollments` reaches
@@ -110,19 +111,19 @@ constant). Never use floats.
 | `Supplier` | name, CPF/CNPJ (digits, unique when filled), contacts |
 | `Account` | `direction`, description, category, issue date, `gross_value`, `discount_value`, notes. Counterpart: `guardian` and/or `enrollment` for receivables, `supplier` for payables, enforced by a DB check constraint. `net_value = gross − discount` |
 | `AccountReceivable`, `AccountPayable` | **proxy models** of `Account`, each with a manager filtered by direction and a `save()` that sets it. Views and forms use these |
-| `Installment` | account, `number` (unique per account), `due_date`, `amount`, `status`: `A` open, `P` partially paid, `Q` paid, `C` cancelled |
-| `Payment` (baixa) | installment, `paid_at`, `amount` (total received, **including** penalty, interest and monetary adjustment), the three charges, method (PIX, boleto, cash, card, transfer, check) |
+| `Installment` | account, `number` (unique per account), `due_date`, `amount`, `status`: `A` open, `P` partially paid, `Q` paid, `C` cancelled, `E` expired (bank wrote off the unpaid slip; still owed). `PENDING_STATUSES` = open, partial, expired |
+| `Payment` (baixa) | installment, `paid_at`, `amount` (total received, **including** penalty, interest and monetary adjustment), the three charges, `discount` (e.g. punctuality; settles principal without being received), method (PIX, boleto, cash, card, transfer, check) |
 
 **Integrity rules**
 
 - Every financial FK is `on_delete=PROTECT`. Deleting something that's in use
   shows a message instead of an error (`ProtectedDeleteMixin`).
-- Principal paid = `amount − penalty − interest − monetary_adjust`.
+- Principal paid = `amount − penalty − interest − monetary_adjust + discount`.
   `PaymentForm` won't let the principal go over the installment's balance or
   drop to zero or below.
 - `Payment.save()` and `delete()` call `Installment.refresh_status()`, which
   sets the status from the principal paid (open → partial → paid). Cancelled
-  installments are never changed by it.
+  installments are never changed by it; expired ones only move to paid.
 - An account's `gross_value` and `discount_value` are locked after creation,
   because they were already split into installments.
 - A category's `direction` is locked once accounts use it.
@@ -170,6 +171,56 @@ Implemented in `enrollments/signals.py` and `accounts/services.py`.
 Accounts created by hand use `build_installments()` instead: the net value is
 split into N monthly installments starting on the chosen first due date, with
 the same `split_value()` rounding.
+
+## Bank slips (`billing`)
+
+Bradesco "Cobrança" in CNAB 400. `billing/cnab400.py` is pure Python (no
+Django): it writes remittance files and parses return files. Its fixed values
+match files the bank already accepted (`00000 000000000000 ` in positions
+2–20, `N` in 94, `2` in 106, CRLF line endings, no EOF byte).
+`billing/services.py` holds the workflow:
+
+1. **Settings** (`BankSettings`, single row edited at `settings/edit/`):
+   company code, wallet, agency/account, fine % (2), monthly interest % (1),
+   and the last remittance number.
+2. **Remittance** (`create_remittance`): one `.REM` carries new slips
+   (movement `01`) and write-off requests (movement `02`). Candidates for new
+   slips are receivable installments with status in `PENDING_STATUSES`, a
+   balance, and no *live* slip (generated, registered or write-off
+   requested). Installments whose financial guardian lacks a
+   valid CPF, address or CEP, or whose due date has passed, are listed but
+   skipped. Each slip gets nosso número `2000` + slip id (11 digits) plus its
+   check digit; participant control = slip id; document number =
+   installment id. The amount is the outstanding balance; daily interest =
+   amount × monthly % / 30; the punctuality discount comes from
+   `EnrollmentType.punctuality_discount` (only for enrollment accounts, valid
+   until the due date). The file is stored in `Remittance.content` and
+   downloaded as `<number:08>.REM`. A remittance the bank hasn't processed
+   (new slips still "generated", write-offs still "requested") can be
+   deleted: its write-offs go back to "registered", and the number is freed
+   if it was the last.
+3. **Write-off request** (pedido de baixa): `write_off_candidates()` lists
+   registered slips whose installment was cancelled or paid another way
+   (balance below the slip amount, e.g. paid in cash). Selected slips are
+   sent again with movement `02` and become "write-off requested", which is
+   still live: the installment gets a new slip only after the bank confirms
+   with `10`. A partially paid installment is then resent for its balance.
+4. **Return** (`import_return`): rejects other company codes and files already
+   imported (sha256); lines already seen (fingerprint) are skipped. Slips are
+   matched by nosso número; lines from the previous system (another prefix)
+   are stored as *ignored*. Per occurrence code:
+   - `02` slip registered; `03` slip rejected (installment can be resent);
+   - `06`/`15`/`17` creates a `Payment` (method boleto) with the bank's
+     interest and discount, so principal = paid − interest + discount. A
+     principal above the balance, a cancelled installment or a slip already
+     settled is flagged as an *error* for manual handling;
+   - `22`/`40` deletes that payment (installment reopens), slip reversed;
+   - `09` slip expired and the installment set to **expired**;
+   - `10` slip written off, confirming a write-off request (a message is left
+     if the installment still has a balance, so it can be resent);
+   - `27` write-off rejected: the slip goes back to registered;
+   - other codes are stored as *ignored*.
+   Each line runs in a savepoint, so one bad line doesn't stop the file.
 
 ## Request handling
 
@@ -274,7 +325,7 @@ pages; don't introduce new colors or components without a reason.
 - **Badges** (daisyUI `badge badge-sm`): receivable = `badge-success
   badge-outline`, payable = `badge-error badge-outline`; installment status
   paid = `badge-success`, partial = `badge-warning`, cancelled = `badge-ghost`,
-  open = `badge-neutral badge-outline`. Overdue rows get `bg-red-50` and a red
+  expired = `badge-error`, open = `badge-neutral badge-outline`. Overdue rows get `bg-red-50` and a red
   "Vencida" label.
 - **Form widgets** (set in the form's `widgets`): `input input-neutral w-full`,
   `select select-neutral w-full`, `textarea textarea-neutral w-full`; add

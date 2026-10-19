@@ -1,0 +1,56 @@
+<div class="bg-slate-50 rounded-2xl p-6 md:p-8">
+    <form class="space-y-6" method="POST">
+    {% csrf_token %}
+    <div>
+        <div class="flex flex-col w-full justify-around">
+            <div class="flex w-full gap-4">
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.company_name %}
+                </div>
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.company_code %}
+                </div>
+            </div>
+            <div class="flex w-full gap-4">
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.carteira %}
+                </div>
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.agency %}
+                </div>
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.account %}
+                </div>
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.account_digit %}
+                </div>
+            </div>
+            <div class="flex w-full gap-4">
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.fine_percent %}
+                </div>
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.monthly_interest_percent %}
+                </div>
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.last_remittance_number %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex flex-row gap-4 pt-4">
+        {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar' %}
+        <a href={% url 'billing:remittance_list' %}>
+        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+        </a>
+    </div>
+    {% if form.non_field_errors %}
+        <div class="text-sm text-red-600 space-y-1 mt-2">
+        {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+        {% endfor %}
+        </div>
+    {% endif %}
+    </form>
+</div>

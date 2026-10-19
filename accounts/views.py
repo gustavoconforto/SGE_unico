@@ -27,6 +27,7 @@ from accounts.models import (
     AccountReceivable,
     AccountType,
     Direction,
+    PENDING_STATUSES,
     Installment,
     InstallmentStatus,
     Payment,
@@ -428,7 +429,7 @@ class PaymentCreateView(CreateView):
         initial = super().get_initial()
         installment = Installment.objects.filter(
             pk=self.request.GET.get("installment") or None,
-            status__in=[InstallmentStatus.OPEN, InstallmentStatus.PARTIAL],
+            status__in=PENDING_STATUSES,
         ).first()
         if installment:
             initial.update(

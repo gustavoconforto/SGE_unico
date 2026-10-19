@@ -1,0 +1,18 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Retornos{% endblock page_title %}
+
+{% block header %}
+  <div class="flex justify-end px-2 pb-4">
+    <a href={% url 'billing:return_file_add' %}>
+    {% include 'components/button/button_select.html' with label='Importar retorno'%}
+    </a>
+  </div>
+  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por nome do arquivo...' %}
+{% endblock header %}
+
+{% block content %}
+  <div id="search-results">
+    {% include 'return_files/partials/return_file_table.html' %}
+  </div>
+{% endblock content %}

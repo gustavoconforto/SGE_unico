@@ -66,13 +66,14 @@
                 {% if installment.status == 'Q' %}badge-success
                 {% elif installment.status == 'P' %}badge-warning
                 {% elif installment.status == 'C' %}badge-ghost
+                {% elif installment.status == 'E' %}badge-error
                 {% else %}badge-neutral badge-outline{% endif %}">
                 {{ installment.get_status_display }}
             </span>
         </td>
         <td class="px-2 py-2 text-right sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5">
           <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
-          {% if installment.status == 'A' or installment.status == 'P' %}
+          {% if installment.status == 'A' or installment.status == 'P' or installment.status == 'E' %}
           <a href="{% url 'accounts:payment_add' %}?installment={{ installment.pk }}">
             {% include 'components/button/button_select.html' with label="Baixar"%}
           </a>
