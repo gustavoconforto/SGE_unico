@@ -4,11 +4,11 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import (
+    PENDING_STATUSES,
     ZERO,
     Account,
     AccountType,
     Direction,
-    PENDING_STATUSES,
     Installment,
     InstallmentStatus,
     Payment,
@@ -67,9 +67,9 @@ class AccountTypeForm(forms.ModelForm):
         # can't change once the category is in use.
         if self.instance.pk and self.instance.accounts.exists():
             self.fields["direction"].disabled = True
-            self.fields["direction"].help_text = (
-                "Não pode ser alterada: a categoria já possui contas."
-            )
+            self.fields[
+                "direction"
+            ].help_text = "Não pode ser alterada: a categoria já possui contas."
 
 
 class AccountTypeFilterForm(forms.Form):
@@ -149,7 +149,9 @@ class AccountForm(forms.ModelForm):
         gross = cleaned_data.get("gross_value")
         discount = cleaned_data.get("discount_value") or ZERO
         if gross is not None and discount > gross:
-            self.add_error("discount_value", "O desconto não pode exceder o valor bruto.")
+            self.add_error(
+                "discount_value", "O desconto não pode exceder o valor bruto."
+            )
         return cleaned_data
 
 

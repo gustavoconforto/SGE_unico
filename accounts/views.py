@@ -18,19 +18,19 @@ from accounts.forms import (
     InstallmentFilterForm,
     InstallmentFilterStatus,
     InstallmentForm,
-    PaymentFilterForm,
     PayablePaymentForm,
+    PaymentFilterForm,
     PaymentForm,
     SupplierForm,
     installment_label,
 )
 from accounts.models import (
+    PENDING_STATUSES,
     Account,
     AccountPayable,
     AccountReceivable,
     AccountType,
     Direction,
-    PENDING_STATUSES,
     Installment,
     InstallmentStatus,
     Payment,
@@ -38,6 +38,7 @@ from accounts.models import (
 )
 from accounts.services import build_installments
 from base.search import HtmxFilterMixin, HtmxSearchMixin
+
 
 class SuccessMessageMixin:
     success_message = None
