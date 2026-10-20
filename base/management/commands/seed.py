@@ -29,6 +29,7 @@ from enrollments.models import (
     NeededDocumentType,
     SchoolYear,
 )
+from grades.models import Subject
 from programs.models import Program
 from students.models import (
     Guardian,
@@ -154,7 +155,7 @@ class Command(BaseCommand):
             classes = self.seed_classes(programs, school_years)
             # enrollment_types = self.seed_enrollment_types(programs, school_years)
             # incident_types = self.seed_incident_types()
-            # subjects = self.seed_subjects()
+            subjects = self.seed_subjects()
             self.seed_enrollment_needed_document_types()
 
             if Student.objects.exists():
@@ -310,8 +311,8 @@ class Command(BaseCommand):
                     )
         return enrollment_types
 
-    # def seed_subjects(self):
-    #     return [Subject.objects.get_or_create(name=name)[0] for name in SUBJECTS]
+    def seed_subjects(self):
+        return [Subject.objects.get_or_create(name=name)[0] for name in SUBJECTS]
 
     # def seed_incident_types(self):
     #     return [

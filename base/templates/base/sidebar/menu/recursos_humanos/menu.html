@@ -1,0 +1,14 @@
+<ul class="menu bg-base-200 rounded-box w-56">
+    <li>
+        <details >
+            <summary class="font-semibold">Recursos Humanos</summary>
+            <ul>
+                {% include 'base/sidebar/items/menu_item.html' with path="base:user_list" label="Usuários" icon="Person" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="base:group_list" label="Grupos" icon="group_eye" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="base:permission_list" label="Permissões" icon="key" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="employees:employee_role_list" label="Cargos" icon="settings_account_box" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="employees:employee_list" label="Funcionários" icon="Group" %}
+            </ul>
+        </details>
+    </li>
+</ul>
