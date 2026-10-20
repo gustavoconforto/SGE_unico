@@ -1,0 +1,19 @@
+<fieldset class="fieldset" id="class-select">
+<legend class="fieldset-legend">Turmas:</legend>
+<select class="select select-neutral w-full"
+        name="school_class"
+        hx-get="{% url 'classes:class_detail' %}"
+        hx-trigger="change"
+        hx-include="[name='school_year']"
+        hx-target="#search-results"
+        hx-push-url="true"
+        {% if not selected_year_id %}disabled{% endif %}>
+    <option value="" disabled {% if not selected_class_id %}selected{% endif %}>Selecione uma turma:</option>
+    {% for class in classes %}
+        <option value="{{ class.pk }}" {% if class.pk == selected_class_id %}selected{% endif %}>{{ class }}</option>
+    {% endfor %}
+</select>
+</fieldset>
+{% if clear_results %}
+<div id="search-results" class="mt-6" hx-swap-oob="true"></div>
+{% endif %}

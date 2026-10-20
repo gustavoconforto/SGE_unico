@@ -1,0 +1,19 @@
+  <table class=" overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
+    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+      <tr>
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Nome</th>        
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-slate-100">
+    {% for student in students %}
+      <tr class="hover:bg-slate-50">
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+            {{ student.name }}
+        </td>
+      </tr>
+      {% empty %}
+      {% include 'components/table/empty_table.html' with collspan=2%}
+      {% endfor %}
+    </tbody>
+  </table>
+{% include 'components/table/pagination.html' %}

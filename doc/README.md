@@ -13,10 +13,20 @@ dividido assim:
 | [sidebar.md](sidebar.md) | Mapa do menu lateral: o que há em cada item e onde ler mais |
 | [recursos-humanos.md](recursos-humanos.md) | Usuários, grupos, permissões, cargos e funcionários |
 | [configuracao-matriculas.md](configuracao-matriculas.md) | Ano escolar, cursos, tipos de contrato, descontos e documentos exigidos |
-| [academico.md](academico.md) | Alunos, responsáveis, turmas e matrículas |
+| [academico.md](academico.md) | Alunos, responsáveis, turmas (e os alunos de cada turma), matérias e matrículas |
 | [financeiro.md](financeiro.md) | Categorias, fornecedores, contas a receber e a pagar, parcelas e baixas |
 | [cobranca-bancaria.md](cobranca-bancaria.md) | Boletos Bradesco: configuração, remessas, retornos e acompanhamento |
 | [fluxos.md](fluxos.md) | Passo a passo das rotinas mais comuns (início de ano, matrícula, recebimento, cobrança mensal) |
+
+## Entrar no sistema
+
+Abra a tela de login (`/login/`), digite seu **Usuário** e sua **Senha** e
+clique em **Entrar**. Se os dados estiverem errados, a mensagem aparece abaixo
+dos campos. Quem já está conectado e abre a tela de login vai direto para o
+sistema.
+
+As contas são criadas em **Recursos Humanos → Usuários** (veja
+[recursos-humanos.md](recursos-humanos.md)).
 
 ## Como as telas funcionam
 
@@ -72,13 +82,18 @@ Depois de salvar ou excluir, aparece uma mensagem no alto da tela:
 
 O menu fica à esquerda e é dividido em quatro seções que abrem e fecham com um
 clique: **Recursos Humanos**, **Configuração de Matrículas**, **Financeiro** e
-**Acadêmico**. No celular, o menu fica escondido e abre pelo botão de menu no
+**Acadêmico**. Dentro do Acadêmico, o submenu **Edição** também abre e fecha
+com um clique. No celular, o menu fica escondido e abre pelo botão de menu no
 topo da tela. No rodapé do menu aparece o usuário conectado.
 
 Veja o mapa completo em [sidebar.md](sidebar.md).
 
 ## Limitações atuais
 
+- O login ainda **não é obrigatório**: as telas abrem mesmo sem entrar no
+  sistema. Também ainda não há botão para sair.
 - As permissões e grupos podem ser cadastrados, mas **ainda não restringem o
-  acesso às telas**: qualquer pessoa conectada vê e altera tudo.
-- O item **Acadêmico → Notas** ainda não foi implementado.
+  acesso às telas**: qualquer pessoa vê e altera tudo.
+- O item **Acadêmico → Edição → Notas** ainda não foi implementado.
+- A tela **Gerenciamento de turmas** (alunos da turma) ainda não tem item no
+  menu.

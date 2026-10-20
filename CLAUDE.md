@@ -12,6 +12,7 @@ uv run python manage.py test               # run after every change
 uv run python manage.py test accounts      # single app
 uv run python manage.py check
 uv run python manage.py makemigrations --check --dry-run   # confirm no missing migration
+uv run ruff check <files> && uv run ruff format <files>    # only files you touched; the repo isn't ruff-clean yet
 uv run python manage.py runserver
 ```
 
@@ -65,6 +66,10 @@ all migration files.
 - Multi-model writes go in `transaction.atomic()`.
 - Prefill from a query param (`?installment=<pk>`, `?account=<pk>`) via
   `get_initial()`, for links from other pages.
+- "Pick A, then B filtered by A" screens: copy the class roster
+  (`ClassDetailView` + `ClassOptionsView` in `classes/views.py`). The options
+  endpoint swaps the second select, clears `#search-results` with
+  `hx-swap-oob`, and sets `HX-Push-Url`, so the selection survives a reload.
 
 ### Forms
 - `ModelForm` with explicit `fields` and widgets carrying the daisyUI classes:
@@ -87,8 +92,12 @@ all migration files.
   `components/button/*` buttons. Don't hand-roll buttons or fields.
 - Money `R$ {{ v|floatformat:2 }}` right-aligned with `whitespace-nowrap`;
   dates `|date:"d/m/Y"`; badge colors as in ARCHITECTURE.md.
-- New screens get a link in `base/templates/base/sidebar.html` under the
-  right section, with a Heroicons outline SVG.
+- New screens get a link in the sidebar under the right section. The sidebar
+  is `base/templates/base/sidebar/sidebar.html`. Sections already extracted to
+  `sidebar/menu/<section>/menu.html` (Recursos Humanos) use
+  `{% include 'base/sidebar/items/menu_item.html' with path=… label=… icon=… %}`
+  with a Material Symbols icon name. Inline sections use a Heroicons outline
+  SVG. Don't edit `base/templates/base/sidebar.html`: it's the old, unused copy.
 
 ### Finance rules (don't break)
 - Use `AccountReceivable` / `AccountPayable` proxies, not raw `Account`, in
@@ -114,5 +123,7 @@ all migration files.
 
 ## Known pitfalls
 
-- No authentication on any view yet.
+- `/login/` and `/logout/` exist (Django auth views, URL names `login` and
+  `logout` with no namespace), but no view requires login yet. Logout is
+  POST-only.
 - `manage.py clean` **seeds** reference data despite its name.

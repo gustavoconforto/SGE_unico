@@ -12,7 +12,9 @@ Faça antes de abrir as matrículas do ano.
    de início e fim e dos bimestres.
 2. **Configuração de Matrículas → Cursos oferecidos**: confira se todos os
    cursos existem.
-3. **Acadêmico → Turmas**: cadastre as turmas do novo ano, com série e vagas.
+3. **Acadêmico → Edição → Turmas**: cadastre as turmas do novo ano, com série
+   e vagas. Em **Acadêmico → Edição → Matérias**, confira se as matérias do
+   ano estão cadastradas.
 4. **Configuração de Matrículas → Tipos de contratos**: cadastre um contrato
    para cada curso e série do novo ano, com o valor anual e o desconto de
    pontualidade.

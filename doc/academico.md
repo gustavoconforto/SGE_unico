@@ -1,6 +1,7 @@
 # Acadêmico
 
-Alunos, responsáveis, turmas e matrículas: o dia a dia da secretaria.
+Alunos, responsáveis, turmas, matérias e matrículas: o dia a dia da
+secretaria. Turmas, Matérias e Notas ficam no submenu **Acadêmico → Edição**.
 
 [← Voltar ao menu](sidebar.md)
 
@@ -75,6 +76,32 @@ Turmas de cada curso em cada ano escolar.
 Na matrícula, cada turma aparece com a ocupação, por exemplo
 `2° Inspiração - 2027 (12/50)`: 12 alunos ativos de 50 vagas.
 
+### Alunos da turma
+
+A tela **Gerenciamento de turmas** mostra a lista de alunos de uma turma. Ela
+ainda não tem item no menu; abra pelo endereço `/classes/detail/`.
+
+1. Em **Ano letivo**, escolha o ano. A lista de **Turmas** passa a mostrar só
+   as turmas desse ano.
+2. Em **Turmas**, escolha a turma. Aparecem os alunos com matrícula **ativa**
+   nela, em ordem alfabética, em páginas de 10.
+
+Alunos com matrícula transferida, desistente, concluída ou cancelada não
+aparecem. Ao trocar o ano, a lista de alunos é limpa até você escolher uma nova
+turma. O ano e a turma ficam no endereço da página, então recarregar ou mandar
+o link abre a mesma turma.
+
+## Matérias
+
+As disciplinas ensinadas na escola (Português, Matemática, Física…). Hoje é
+só um cadastro; elas serão usadas no lançamento de notas.
+
+**Pesquisa:** nome da matéria.
+
+| Campo | Descrição |
+|---|---|
+| Nome | Nome da matéria. Não pode repetir. |
+
 ## Matrículas
 
 A matrícula liga um aluno a um tipo de contrato (curso, série e ano) e,
@@ -148,4 +175,5 @@ pedida na próxima remessa (veja
 
 ## Notas
 
-Item reservado no menu; o lançamento de notas ainda não foi implementado.
+Item reservado no menu (**Acadêmico → Edição → Notas**); o lançamento de notas
+ainda não foi implementado.

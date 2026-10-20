@@ -10,11 +10,11 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 from hashlib import sha256
-from typing import Iterable
 
 RECORD_LENGTH = 400
 BANK_CODE = "237"
@@ -74,7 +74,7 @@ class Record:
         self._chars = [" "] * RECORD_LENGTH
         self._used: set[int] = set()
 
-    def set(self, start: int, end: int, value: str) -> "Record":
+    def set(self, start: int, end: int, value: str) -> Record:
         if not (1 <= start <= end <= RECORD_LENGTH):
             raise ValueError(f"intervalo inválido: {start}-{end}")
         expected = end - start + 1
@@ -211,7 +211,7 @@ def _detail(config: RemittanceConfig, title: Title, sequence: int) -> str:
     b = config.beneficiary
     number = _digits(title.nosso_numero, 11, field="nosso_numero")
     fine = Decimal(str(title.fine_percent)).quantize(Decimal("0.01"))
-    if not Decimal("0") <= fine <= Decimal("99.99"):
+    if not Decimal(0) <= fine <= Decimal("99.99"):
         raise ValueError("fine_percent deve estar entre 0 e 99.99")
     zip_code = _digits(title.payer.zip_code, 8, field="zip_code")
     return (

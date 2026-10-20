@@ -20,13 +20,13 @@ Recursos Humanos              Configuração de Matrículas
 └── Funcionários              └── Documentos Necessários
 
 Financeiro                    Acadêmico
-├── Categorias financeiras    ├── Matrículas
-├── Fornecedores              ├── Alunos
-├── Contratos a receber       ├── Responsáveis
-├── Contratos a pagar         ├── Turmas
-├── Baixa de matrícula        └── Notas (em construção)
-├── Pagamento de contas
-├── Balanço
+├── Categorias financeiras    ├── Edição
+├── Fornecedores              │   ├── Turmas
+├── Contratos a receber       │   ├── Matérias
+├── Contratos a pagar         │   └── Notas (em construção)
+├── Baixa de matrícula        ├── Matrículas
+├── Pagamento de contas       ├── Alunos
+├── Balanço                   └── Responsáveis
 ├── Remessas
 ├── Retornos
 └── Boletos
@@ -86,19 +86,28 @@ Detalhes em [financeiro.md](financeiro.md) e
 
 O dia a dia da secretaria. Detalhes em [academico.md](academico.md).
 
+O submenu **Edição** reúne os cadastros da parte pedagógica. Clique nele para
+abrir ou fechar seus itens.
+
 | Item | Para que serve |
 |---|---|
+| **Edição → Turmas** | Turmas de cada curso e ano, com série, nome, turno e número de vagas. |
+| **Edição → Matérias** | Matérias (disciplinas) ensinadas na escola, como Português e Matemática. |
+| **Edição → Notas** | Ainda não implementado. |
 | **Matrículas** | Matricular um aluno em um tipo de contrato e turma. Ao salvar, o sistema cria sozinho a conta a receber, as mensalidades e a lista de documentos. Também imprime o contrato em PDF. |
 | **Alunos** | Cadastro do aluno (dados pessoais, foto, contato, endereço) e seus responsáveis. O número de matrícula é gerado automaticamente. |
 | **Responsáveis** | Cadastro de pais e responsáveis. Um responsável pode estar ligado a vários alunos (irmãos). |
-| **Turmas** | Turmas de cada curso e ano, com série, nome, turno e número de vagas. |
-| **Notas** | Ainda não implementado. |
+
+> A tela **Gerenciamento de turmas** (`/classes/detail/`), que mostra os alunos
+> de uma turma, ainda não tem item próprio no menu. Veja
+> [academico.md](academico.md#alunos-da-turma).
 
 ## Ordem recomendada de cadastro
 
 Para começar a usar o sistema do zero (ou um novo ano), siga esta ordem:
 
-1. **Ano escolar** → **Cursos oferecidos** → **Turmas**
+1. **Ano escolar** → **Cursos oferecidos** → **Turmas** (e **Matérias**, se
+   faltar alguma)
 2. **Tipos de contratos**, **Tipos de descontos**, **Documentos Necessários**
 3. **Categorias financeiras** (a categoria "Mensalidade" é criada sozinha na
    primeira matrícula, se não existir)

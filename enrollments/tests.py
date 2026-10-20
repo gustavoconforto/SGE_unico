@@ -140,7 +140,7 @@ class SchoolClassOptionsTests(TestCase):
         response = self.client.get(
             reverse("enrollments:school_class_options"),
             {"enrollment_type": self.enrollment_type.pk},
-            **{"HTTP_HX_REQUEST": "true"},
+            HTTP_HX_REQUEST="true",
         )
         self.assertTemplateUsed(
             response, "enrollments/partials/school_class_field.html"

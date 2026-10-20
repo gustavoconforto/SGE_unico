@@ -63,7 +63,7 @@ class AccountViewsTests(TestCase):
             description="Despesa Y",
             category=self.expense,
             supplier=self.supplier,
-            gross_value=Decimal("50"),
+            gross_value=Decimal(50),
         )
         receivables = self.client.get(reverse("accounts:receivable_list"))
         payables = self.client.get(reverse("accounts:payable_list"))
@@ -97,7 +97,7 @@ class AccountViewsTests(TestCase):
         self.create_receivable(count=1)
         account = AccountReceivable.objects.get()
         Payment.objects.create(
-            installment=account.installments.get(), amount=Decimal("10"), method="PIX"
+            installment=account.installments.get(), amount=Decimal(10), method="PIX"
         )
         self.client.post(reverse("accounts:receivable_delete", args=[account.pk]))
         self.assertTrue(AccountReceivable.objects.filter(pk=account.pk).exists())
@@ -118,10 +118,10 @@ class PaymentViewsTests(TestCase):
         cls.account = AccountReceivable.objects.create(
             description="Mensalidade outubro",
             category=category,
-            gross_value=Decimal("100"),
+            gross_value=Decimal(100),
         )
         cls.installment = cls.account.installments.create(
-            number=1, due_date=timezone.localdate(), amount=Decimal("100")
+            number=1, due_date=timezone.localdate(), amount=Decimal(100)
         )
         expense = AccountType.objects.create(name="Aluguel", direction=Direction.PAYABLE)
         supplier = Supplier.objects.create(
@@ -132,10 +132,10 @@ class PaymentViewsTests(TestCase):
                 description="Aluguel outubro",
                 category=expense,
                 supplier=supplier,
-                gross_value=Decimal("100"),
+                gross_value=Decimal(100),
             )
             .installments.create(
-                number=1, due_date=timezone.localdate(), amount=Decimal("100")
+                number=1, due_date=timezone.localdate(), amount=Decimal(100)
             )
         )
 
@@ -188,7 +188,7 @@ class PaymentViewsTests(TestCase):
         response = self.client.get(
             reverse("accounts:payment_add"), {"installment": self.installment.pk}
         )
-        self.assertEqual(response.context["form"].initial["amount"], Decimal("100"))
+        self.assertEqual(response.context["form"].initial["amount"], Decimal(100))
 
     def test_payable_installment_is_rejected(self):
         response = self.post_payment("10", installment=self.payable_installment.pk)
@@ -206,7 +206,7 @@ class PaymentViewsTests(TestCase):
         paid = self.account.installments.create(
             number=2,
             due_date=timezone.localdate(),
-            amount=Decimal("50"),
+            amount=Decimal(50),
             status=InstallmentStatus.PAID,
         )
         self.post_payment("40")
@@ -259,7 +259,7 @@ class PaymentViewsTests(TestCase):
     def test_payable_add_prefills_from_installment_param(self):
         url = reverse("accounts:payable_payment_add")
         response = self.client.get(url, {"installment": self.payable_installment.pk})
-        self.assertEqual(response.context["form"].initial["amount"], Decimal("100"))
+        self.assertEqual(response.context["form"].initial["amount"], Decimal(100))
         response = self.client.get(url, {"installment": self.installment.pk})
         self.assertNotIn("installment", response.context["form"].initial)
 
@@ -307,25 +307,25 @@ class InstallmentViewsTests(TestCase):
         )
         expense = AccountType.objects.create(name="Aluguel", direction=Direction.PAYABLE)
         cls.receivable = AccountReceivable.objects.create(
-            description="Mensalidade João", category=income, gross_value=Decimal("200")
+            description="Mensalidade João", category=income, gross_value=Decimal(200)
         )
         cls.payable = AccountPayable.objects.create(
-            description="Aluguel sede", category=expense, gross_value=Decimal("500")
+            description="Aluguel sede", category=expense, gross_value=Decimal(500)
         )
         today = timezone.localdate()
         cls.overdue = cls.receivable.installments.create(
-            number=1, due_date=today - timedelta(days=5), amount=Decimal("100")
+            number=1, due_date=today - timedelta(days=5), amount=Decimal(100)
         )
         cls.future = cls.receivable.installments.create(
-            number=2, due_date=today + timedelta(days=25), amount=Decimal("100")
+            number=2, due_date=today + timedelta(days=25), amount=Decimal(100)
         )
         cls.rent = cls.payable.installments.create(
-            number=1, due_date=today + timedelta(days=3), amount=Decimal("500")
+            number=1, due_date=today + timedelta(days=3), amount=Decimal(500)
         )
         Payment.objects.create(
             installment=cls.rent,
-            amount=Decimal("210"),
-            penalty=Decimal("10"),
+            amount=Decimal(210),
+            penalty=Decimal(10),
             method="PIX",
         )
 
@@ -364,20 +364,20 @@ class InstallmentViewsTests(TestCase):
     def test_list_annotates_outstanding_and_totals(self):
         response = self.client.get(reverse("accounts:installment_list"))
         rows = {i.pk: i for i in response.context["installments"]}
-        self.assertEqual(rows[self.rent.pk].outstanding, Decimal("300"))
+        self.assertEqual(rows[self.rent.pk].outstanding, Decimal(300))
         self.assertEqual(rows[self.rent.pk].outstanding, self.rent.balance())
         totals = response.context["totals"]
-        self.assertEqual(totals["receivable_outstanding"], Decimal("200"))
-        self.assertEqual(totals["payable_outstanding"], Decimal("300"))
+        self.assertEqual(totals["receivable_outstanding"], Decimal(200))
+        self.assertEqual(totals["payable_outstanding"], Decimal(300))
         self.assertIsNone(totals["payable_paid"])
 
     def test_list_totals_paid_installments(self):
         Payment.objects.create(
-            installment=self.overdue, amount=Decimal("100"), method="PIX"
+            installment=self.overdue, amount=Decimal(100), method="PIX"
         )
         response = self.client.get(reverse("accounts:installment_list"))
         totals = response.context["totals"]
-        self.assertEqual(totals["receivable_paid"], Decimal("100"))
+        self.assertEqual(totals["receivable_paid"], Decimal(100))
         self.assertIsNone(totals["payable_paid"])
         self.assertContains(response, "Recebido")
 
@@ -441,7 +441,7 @@ class SupplierViewsTests(TestCase):
                 name="Aluguel", direction=Direction.PAYABLE
             ),
             supplier=supplier,
-            gross_value=Decimal("100"),
+            gross_value=Decimal(100),
         )
         response = self.client.post(
             reverse("accounts:supplier_delete", args=[supplier.pk])
@@ -479,7 +479,7 @@ class AccountTypeViewsTests(TestCase):
             name="Mensalidade", direction=Direction.RECEIVABLE
         )
         AccountReceivable.objects.create(
-            description="Mensalidade", category=category, gross_value=Decimal("100")
+            description="Mensalidade", category=category, gross_value=Decimal(100)
         )
         self.client.post(
             reverse("accounts:account_type_edit", args=[category.pk]),

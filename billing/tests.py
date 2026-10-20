@@ -95,10 +95,10 @@ class Cnab400Tests(TestCase):
                 address="Condomínio Privê I Quadra 1 Conjunto M Casa 10",
                 zip_code="71539070",
             ),
-            fine_percent=Decimal("2"),
+            fine_percent=Decimal(2),
             daily_interest=Decimal("1.41"),
             discount_deadline=date(2026, 10, 16),
-            discount_amount=Decimal("90"),
+            discount_amount=Decimal(90),
         )
         config = cnab400.RemittanceConfig(self.beneficiary(), 2016, date(2026, 10, 15))
         payload = cnab400.generate_remittance(config, [title])
@@ -143,8 +143,8 @@ class Cnab400Tests(TestCase):
         self.assertTrue(event.is_settlement)
         self.assertEqual(event.nosso_numero, "200000000127")
         self.assertEqual(event.participant_control, "12")
-        self.assertEqual(event.amount_paid, Decimal("10"))
-        self.assertEqual(event.discount_amount, Decimal("90"))
+        self.assertEqual(event.amount_paid, Decimal(10))
+        self.assertEqual(event.discount_amount, Decimal(90))
         self.assertEqual(event.occurrence_date, date(2026, 10, 7))
 
     def test_parse_return_rejects_broken_files(self):
@@ -299,7 +299,7 @@ class ReturnServiceTests(BillingTestMixin, TestCase):
         self.assertEqual(self.slip.status, SlipStatus.REGISTERED)
 
     def test_settlement_with_punctuality_discount_pays_installment(self):
-        paid = self.installment.amount - Decimal("90")
+        paid = self.installment.amount - Decimal(90)
         return_file = self.import_events(
             self.slip_return(
                 self.slip, "06", title=self.slip.amount, discount="90", paid=paid
@@ -310,13 +310,13 @@ class ReturnServiceTests(BillingTestMixin, TestCase):
         payment = Payment.objects.get()
         self.assertEqual(event.payment, payment)
         self.assertEqual(payment.amount, paid)
-        self.assertEqual(payment.discount, Decimal("90"))
+        self.assertEqual(payment.discount, Decimal(90))
         self.assertEqual(payment.method, PaymentMethod.BOLETO)
         self.installment.refresh_from_db()
         self.assertEqual(self.installment.status, InstallmentStatus.PAID)
         self.assertEqual(
             Installment.objects.with_balance().get(pk=self.installment.pk).outstanding,
-            Decimal("0"),
+            Decimal(0),
         )
         self.slip.refresh_from_db()
         self.assertEqual(self.slip.status, SlipStatus.PAID)
@@ -332,14 +332,14 @@ class ReturnServiceTests(BillingTestMixin, TestCase):
         self.assertEqual(self.installment.status, InstallmentStatus.PAID)
 
     def test_settlement_above_balance_is_flagged(self):
-        paid = self.installment.amount + Decimal("50")
+        paid = self.installment.amount + Decimal(50)
         event = self.import_events(self.slip_return(self.slip, "06", paid=paid)).events.get()
         self.assertEqual(event.status, EventStatus.ERROR)
         self.assertFalse(Payment.objects.exists())
 
     def test_same_file_or_line_is_not_imported_twice(self):
         settlement = self.slip_return(
-            self.slip, "06", discount="90", paid=self.installment.amount - Decimal("90")
+            self.slip, "06", discount="90", paid=self.installment.amount - Decimal(90)
         )
         self.import_events(settlement)
         with self.assertRaises(BillingError):
@@ -353,7 +353,7 @@ class ReturnServiceTests(BillingTestMixin, TestCase):
 
     def test_reversal_deletes_payment_and_reopens_installment(self):
         self.import_events(
-            self.slip_return(self.slip, "06", discount="90", paid=self.installment.amount - Decimal("90"))
+            self.slip_return(self.slip, "06", discount="90", paid=self.installment.amount - Decimal(90))
         )
         event = self.import_events(self.slip_return(self.slip, "40"), name="r2.RET").events.get()
         self.assertEqual(event.status, EventStatus.PROCESSED)
@@ -377,13 +377,13 @@ class ReturnServiceTests(BillingTestMixin, TestCase):
         self.import_events(self.slip_return(self.slip, "09"))
         self.installment.refresh_from_db()
         Payment.objects.create(
-            installment=self.installment, amount=Decimal("10"), method=PaymentMethod.CASH
+            installment=self.installment, amount=Decimal(10), method=PaymentMethod.CASH
         )
         self.installment.refresh_from_db()
         self.assertEqual(self.installment.status, InstallmentStatus.EXPIRED)
         Payment.objects.create(
             installment=self.installment,
-            amount=self.installment.amount - Decimal("10"),
+            amount=self.installment.amount - Decimal(10),
             method=PaymentMethod.CASH,
         )
         self.installment.refresh_from_db()
@@ -461,7 +461,7 @@ class WriteOffTests(BillingTestMixin, TestCase):
         self.assertEqual(write_off_candidates(), [])
 
     def test_partial_cash_payment_is_resent_after_bank_confirms(self):
-        self.pay_cash(Decimal("40"))
+        self.pay_cash(Decimal(40))
         self.request_write_off()
         # Still live until the bank confirms the write-off.
         self.assertNotIn(self.installment, remittance_candidates())
@@ -470,7 +470,7 @@ class WriteOffTests(BillingTestMixin, TestCase):
         self.slip.refresh_from_db()
         self.assertEqual(self.slip.status, SlipStatus.WRITTEN_OFF)
         candidate = remittance_candidates().get(pk=self.installment.pk)
-        self.assertEqual(candidate.outstanding, self.installment.amount - Decimal("40"))
+        self.assertEqual(candidate.outstanding, self.installment.amount - Decimal(40))
 
     def test_rejected_write_off_keeps_slip_registered(self):
         self.pay_cash(self.installment.amount)
@@ -513,7 +513,7 @@ class PaymentDiscountTests(BillingTestMixin, TestCase):
             data={
                 "installment": installment.pk,
                 "paid_at": timezone.localdate().isoformat(),
-                "amount": installment.amount - Decimal("90"),
+                "amount": installment.amount - Decimal(90),
                 "penalty": "0",
                 "interest": "0",
                 "monetary_adjust": "0",

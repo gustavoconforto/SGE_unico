@@ -23,10 +23,11 @@ Browser ──HTTP──▶ config/urls.py ──▶ <app>/urls.py ──▶ cla
 
 | App | URL prefix | Responsibility |
 |---|---|---|
-| `base` | `/` | Abstract models (`TimeStampedModel`, `Person`), htmx search/filter mixins, layout and UI components, users/groups/permissions screens, `clean` seed command |
+| `base` | `/` | Abstract models (`TimeStampedModel`, `Person`), htmx search/filter mixins, layout and UI components, login page template, users/groups/permissions screens, `clean` and `seed` commands |
 | `employees` | `/employees/` | `EmployeeRoleType`, `Employee` |
 | `programs` | `/programs/` | `Program` (course: Ensino Médio, Pré UNB, Pré ENEM) |
-| `classes` | `/classes/` | `Class` (turma) |
+| `classes` | `/classes/` | `Class` (turma), and the class roster page (students actively enrolled in a class) |
+| `grades` | `/grades/` | `Subject` (matéria). Grade entry (notas) is planned here but not built |
 | `students` | `/students/` | `Student`, `Guardian`, `GuardianAssociation` |
 | `enrollments` | `/enrollments/` | `SchoolYear`, `EnrollmentType`, `DiscountType`, `NeededDocumentType`, `Enrollment`, `EnrollmentNeededDocument` |
 | `accounts` | `/accounts/` | `AccountType`, `Supplier`, `Account` (+ receivable/payable proxies), `Installment`, `Payment` |
@@ -40,12 +41,17 @@ base ◀── students ◀── enrollments ──▶ classes ──▶ progra
                           │  ▲
                           ▼  │ (signals)
                        accounts ◀── billing
+
+grades (standalone for now)
 ```
 
 `accounts` imports `Enrollment` and `Guardian`. `enrollments` reaches
 `accounts` only through **signals** (`enrollments/signals.py`) and the
 installment formset on the enrollment edit page. `classes.Class.year` refers to
-`enrollments.SchoolYear` by string to avoid a circular import.
+`enrollments.SchoolYear` by string to avoid a circular import. The one
+exception to the arrow is `classes/views.py`, which imports `SchoolYear`,
+`EnrollmentStatus` and `Student` for the class roster page. Keep those imports
+in views; `classes/models.py` must not import `enrollments` or `students`.
 
 ## Data model
 
@@ -96,6 +102,7 @@ erDiagram
 | `DiscountType` | description and percentage (0–100) |
 | `Enrollment` | student, contract type, optional class, status (`A` active, `T` transferred, `D` dropped, `C` completed, `X` cancelled), date, discount, `due_day` (1–28). Copies `gross_value` and `discount_percent` from the contract and discount on save, so later price changes don't affect existing contracts. Unique per (student, contract type) |
 | `EnrollmentNeededDocument` | one row per required document type per enrollment, with `is_delivered` |
+| `Subject` (`grades`) | `name` unique. Not linked to classes or programs yet. `seed` creates the ten high-school subjects |
 
 `Enrollment.clean()` requires the student to have a **financial guardian**, and
 the class to match the contract's year, program and grade.
@@ -238,6 +245,18 @@ URLs follow one pattern per resource:
 name: <resource>_list, _add, _edit, _delete     namespace: the app's app_name
 ```
 
+### Authentication
+
+`config/urls.py` maps `/login/` to Django's `LoginView` (template
+`base/templates/login/login.html`, `redirect_authenticated_user=True`) and
+`/logout/` to `LogoutView`, which only accepts POST. These URL names (`login`,
+`logout`) have no namespace. Settings: `LOGIN_URL = "login"`,
+`LOGIN_REDIRECT_URL = "base:main"`, `LOGOUT_REDIRECT_URL = "login"`.
+
+The login page is standalone: it doesn't extend `base/base.html`. No app view
+requires login yet (no `LoginRequiredMixin` or middleware), and the UI has no
+logout button.
+
 ### Search, filters and htmx (`base/search.py`)
 
 - **`HtmxSearchMixin`**: filters by `?q=` using `icontains` over
@@ -261,6 +280,27 @@ components/search/filter_form.html     hx-get on input (500 ms debounce),
 Pagination links also use `hx-get`, so search, filters and the page number all
 stay in the URL and survive reloads and the back button.
 
+### Dependent selects (class roster, `classes/detail/`)
+
+`ClassDetailView` (`HtmxSearchMixin` + `ListView` of `Student`) lists students
+with an **active** enrollment in `?school_class=<pk>`. With no class selected
+it returns an empty queryset. The page has two selects:
+
+```
+school_year select ──hx-get──▶ ClassOptionsView (classes/detail/class-options/)
+                               returns partials/class_select.html:
+                               • the class select, filtered by year (outerHTML swap of #class-select)
+                               • an empty #search-results with hx-swap-oob, clearing the old table
+                               • HX-Push-Url: classes/detail/?school_year=<pk>
+school_class select ──hx-get──▶ ClassDetailView (hx-include the year, hx-push-url)
+                               returns partials/class_detail_table.html into #search-results
+```
+
+Both values stay in the URL, so a reload rebuilds the page from
+`?school_year=&school_class=`. `get_int_param()` ignores non-numeric values.
+Use this pattern for any "pick A, then B filtered by A" screen. The page has no
+sidebar link yet.
+
 ### Mixin order
 
 Mixins go left of the generic view. A mixin whose `get_queryset()` adds
@@ -282,15 +322,28 @@ pages; don't introduce new colors or components without a reason.
 
 ### Layout (`base/templates/base/`)
 
-- `base.html`: loads the CDNs and the Inter font, defines the `.nav-*`
-  component classes, and renders flash messages. Blocks: `title`,
+- `base.html`: loads the CDNs, the Inter font and the Material Symbols
+  Outlined icon font (Google Fonts), defines the `.nav-*` component classes,
+  and renders flash messages. It includes `sidebar/sidebar.html`,
+  `navbar/navbar.html` and `sidebar/js/sidebar_js.html`. Blocks: `title`,
   `extra_head`, `page_title` (navbar heading), `header` (above content: action
   buttons and search), `content`, `extra_js`.
-- `sidebar.html`: sections **Recursos Humanos**, **Configuração de
-  Matrículas**, **Financeiro**, **Acadêmico**. Each entry is
-  `<a href={% url "app:name" %} class="nav-link"><svg …/>Label</a>`, with a
-  24×24 outline Heroicons icon at `stroke-width="1.5"`. Collapsible on desktop,
-  off-canvas on mobile (`sidebar_js.html`).
+- `sidebar/sidebar.html`: sections **Recursos Humanos**, **Configuração de
+  Matrículas**, **Financeiro**, **Acadêmico**, each a daisyUI `menu` with a
+  `<details>` toggle. Collapsible on desktop, off-canvas on mobile
+  (`sidebar/js/sidebar_js.html`). The sections are being moved to components:
+  - **Recursos Humanos** is in `sidebar/menu/recursos_humanos/menu.html`, and
+    each entry is
+    `{% include 'base/sidebar/items/menu_item.html' with path="app:name" label="…" icon="…" %}`,
+    where `icon` is a [Material Symbols](https://fonts.google.com/icons) name.
+  - The other sections are still inline in `sidebar/sidebar.html`. Each entry
+    is `<a href={% url "app:name" %} class="nav-link"><svg …/>Label</a>`,
+    with a 24×24 outline Heroicons icon at `stroke-width="1.5"`.
+  - **Acadêmico** has a nested **Edição** submenu (Turmas, Matérias, Notas)
+    above Matrículas, Alunos and Responsáveis.
+
+  Add a new entry in the style of its section. `base/templates/base/sidebar.html`
+  (no subfolder) is the old copy and is no longer included anywhere.
 
 ### Page patterns
 
@@ -348,20 +401,28 @@ pages; don't introduce new colors or components without a reason.
   only in debug.
 - Message levels are mapped to `alert-*` tags, which `base.html` turns into
   colors.
+- Login redirects: see [Authentication](#authentication).
+- Linting: `ruff` is a project dependency, with no custom configuration. The
+  existing code isn't clean yet (lint errors, unformatted files), so run it on
+  the files you change.
 
 ## Testing
 
 Django's `TestCase` with the test client. `accounts/tests.py` covers views,
-forms, filters, htmx partials and protected deletes; `enrollments/tests.py`
+forms, filters, htmx partials and protected deletes. `billing/tests.py` covers
+CNAB files, remittances, write-offs and return import. `enrollments/tests.py`
 covers the installments generated for an enrollment and the settings
-redirects. The other apps have no tests yet. htmx requests
-are simulated with `HTTP_HX_REQUEST="true"`. New features should come with
-tests in the same style.
+redirects. `base/tests.py` covers the login page, and `classes/tests.py` the
+class roster page and its year → class select. `employees`, `programs`,
+`students` and `grades` have no tests yet. htmx requests are simulated with
+`HTTP_HX_REQUEST="true"`. New features should come with tests in the same
+style.
 
 ## Known issues and technical debt
 
-- **No authentication or authorization** on app views. Users, groups and
-  permissions can be managed, but nothing checks them.
+- **No authorization, and login isn't enforced.** The login page works, but
+  every app view is public. Users, groups and permissions can be managed, but
+  nothing checks them. There's no logout button.
 - **Production settings are missing:** `DATABASES` is empty without debug,
   `ALLOWED_HOSTS = []`, CDN assets aren't pinned/self-hosted.
 - `Enrollment.installments_count` exists (default 12) but isn't used:
@@ -369,7 +430,8 @@ tests in the same style.
   [workflow](#enrollment--finance-workflow)).
 - `enrollments/forms.py` and `accounts/forms.py` each define an
   `InstallmentForm` with different purposes.
-- `pandas` is an unused dependency. `tailwind.config.js` and `src/gestao/`
-  (uv scaffolding) are empty or unused.
+- `tailwind.config.js` and `src/gestao/` (uv scaffolding) are empty or unused.
+- The `grades` subject CRUD doesn't use `SuccessMessageMixin` or
+  `ProtectedDeleteMixin` yet, so it shows no flash messages.
 - `Account.balance()` and `Installment.balance()` query per object. Prefer the
   `with_balance()` annotation in lists.
