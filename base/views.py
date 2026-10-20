@@ -7,7 +7,7 @@ from base.search import apply_search, is_htmx_partial
 
 
 def main_view(request):
-    return render(request, "base/base.html", {})
+    return render(request, "login/login.html", {})
 
 
 # USERS VIEWS
