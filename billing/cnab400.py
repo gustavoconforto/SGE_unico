@@ -384,3 +384,82 @@ def parse_return(payload: bytes) -> ReturnData:
         file_date=_parse_date(header[94:100]),
         events=events,
     )
+
+
+@dataclass(frozen=True)
+class ReturnEntry:
+    """One detail of a simulated return file (see generate_return)."""
+
+    nosso_numero: str  # 11 digits plus the check digit
+    occurrence_code: str
+    occurrence_date: date
+    participant_control: str = ""
+    document_number: str = ""
+    due_date: date | None = None
+    title_amount: Decimal = Decimal("0.00")
+    amount_paid: Decimal = Decimal("0.00")
+    interest_amount: Decimal = Decimal("0.00")
+    discount_amount: Decimal = Decimal("0.00")
+    credit_date: date | None = None
+    reason_codes: tuple[str, ...] = ()
+
+
+def _return_header(company_code: str, file_date: date) -> str:
+    return (
+        Record()
+        .set(1, 9, "02RETORNO")
+        .set(10, 26, "01COBRANCA".ljust(17))
+        .set(27, 46, _digits(company_code, 20, field="company_code"))
+        .set(47, 76, " " * 30)
+        .set(77, 79, BANK_CODE)
+        .set(80, 94, "BRADESCO".ljust(15))
+        .set(95, 100, _date(file_date))
+        .set(101, 394, " " * 294)
+        .set(395, 400, "000001")
+        .render()
+    )
+
+
+def _return_detail(entry: ReturnEntry, sequence: int) -> str:
+    reasons = "".join(entry.reason_codes)
+    if len(reasons) > 10:
+        raise ValueError("reason_codes: no máximo 5 motivos")
+    return (
+        Record()
+        .set(1, 1, "1")
+        .set(2, 37, " " * 36)
+        .set(38, 62, _text(entry.participant_control, 25, field="participant_control"))
+        .set(63, 70, " " * 8)
+        .set(71, 82, _text(entry.nosso_numero, 12, field="nosso_numero"))
+        .set(83, 108, " " * 26)
+        .set(109, 110, _digits(entry.occurrence_code, 2, field="occurrence_code"))
+        .set(111, 116, _date(entry.occurrence_date))
+        .set(117, 126, _text(entry.document_number, 10, field="document_number"))
+        .set(127, 146, " " * 20)
+        .set(147, 152, _date(entry.due_date))
+        .set(153, 165, _money(entry.title_amount, 13, field="title_amount"))
+        .set(166, 240, " " * 75)
+        .set(241, 253, _money(entry.discount_amount, 13, field="discount_amount"))
+        .set(254, 266, _money(entry.amount_paid, 13, field="amount_paid"))
+        .set(267, 279, _money(entry.interest_amount, 13, field="interest_amount"))
+        .set(280, 295, " " * 16)
+        .set(296, 301, _date(entry.credit_date))
+        .set(302, 318, " " * 17)
+        .set(319, 328, reasons.ljust(10, "0"))
+        .set(329, 394, " " * 66)
+        .set(395, 400, _digits(sequence, 6, field="sequence"))
+        .render()
+    )
+
+
+def generate_return(
+    company_code: str, file_date: date, entries: Iterable[ReturnEntry]
+) -> bytes:
+    """Write a return file as the bank would, filling the fields parse_return reads.
+
+    For development data and tests only: in production the bank sends this file.
+    """
+    lines = [_return_header(company_code, file_date)]
+    lines.extend(_return_detail(entry, index) for index, entry in enumerate(entries, 2))
+    lines.append(_trailer(len(lines) + 1))
+    return ("\r\n".join(lines) + "\r\n").encode("ascii")

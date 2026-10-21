@@ -71,16 +71,20 @@ def migrate() -> None:
     run_managepy("migrate")
 
 
-def load_initial_data(populate) -> None:
-    if populate:
-        run_managepy("seed")
-    else:
-        run_managepy("clean")
+SEED_COMMANDS = {"1": "clean", "2": "seed", "3": "full_seed"}
+
+
+def load_initial_data(option: str) -> None:
+    run_managepy(SEED_COMMANDS[option])
 
 
 def main() -> None:
-    print("Choose 1 for clean DB or 2 to clean and populate DB")
-    option = input("-> ")
+    print(
+        "Choose 1 for clean DB, 2 to clean and populate DB or 3 for clean and full populate DB"
+    )
+    option = input("-> ").strip()
+    if option not in SEED_COMMANDS:
+        sys.exit(f"Invalid option: {option!r}. Nothing was deleted.")
     print("=" * 60)
     print("RESETTING DEVELOPMENT DATABASE")
     print("=" * 60)
@@ -91,11 +95,7 @@ def main() -> None:
     create_migrations()
     migrate()
 
-    if option == "1":
-        populate = False
-    else:
-        populate = True
-    load_initial_data(populate=populate)
+    load_initial_data(option)
 
     print("\n" + "=" * 60)
     print("Development database successfully recreated.")
