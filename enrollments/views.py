@@ -296,7 +296,7 @@ def build_report_context(pk):
     discount_percentage = enrollment.discount_percent
     has_discount = bool(discount_percentage)
     discount_amount = enrollment.discount_value
-
+    sign_date = enrollment.enrolled_at
     start_date_of_the_contract = enrollment.enrollment_type.start_date
     end_date_of_the_contract = enrollment.enrollment_type.end_date
     ultima_parcela = f"{enrollment.due_day}/12/{school_year}"
@@ -322,6 +322,7 @@ def build_report_context(pk):
         "end_date_of_the_contract": end_date_of_the_contract,
         "numero_de_parcelas": 12,
         "ultima_parcela": ultima_parcela,
+        "sign_date": sign_date,
     }
     return context
 

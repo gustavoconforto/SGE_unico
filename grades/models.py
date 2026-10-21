@@ -40,6 +40,12 @@ class Bimester(models.IntegerChoices):
     FOURTH = 4, "4º bimestre"
 
 
+# Recovery grades are stored in a fifth period: the recovery exam is taken once
+# the year is over, by students whose annual average is below the passing grade.
+FINAL_RECOVERY = 5
+GRADE_PERIODS = [*Bimester.choices, (FINAL_RECOVERY, "Recuperação final")]
+
+
 class ExamKind(models.TextChoices):
     REGULAR = "R", "Avaliação"
     BONUS = "B", "Ponto extra"
@@ -50,8 +56,9 @@ class ExamType(models.Model):
     """An evaluation applied every bimester (P1, prova bimestral, recuperação...).
 
     Each exam's maximum already sets its share of the bimester (PS up to 3,
-    PB up to 6...): regular and bonus scores are added up, capped at 10; a
-    recovery exam replaces the bimester grade when it is higher.
+    PB up to 6...): regular and bonus scores are added up, capped at 10. A
+    recovery exam is the final recovery: its grades go in the FINAL_RECOVERY
+    period, never in a bimester.
     """
 
     name = models.CharField("Nome", max_length=50, unique=True)
@@ -152,7 +159,7 @@ class Grade(TimeStampedModel):
         related_name="grades",
         verbose_name="Avaliação",
     )
-    bimester = models.PositiveSmallIntegerField("Bimestre", choices=Bimester.choices)
+    bimester = models.PositiveSmallIntegerField("Bimestre", choices=GRADE_PERIODS)
     score = models.DecimalField("Nota", **SCORE, validators=[MinValueValidator(0)])
 
     class Meta:
@@ -168,7 +175,7 @@ class Grade(TimeStampedModel):
                 condition=Q(score__gte=0), name="grade_score_not_negative"
             ),
             models.CheckConstraint(
-                condition=Q(bimester__gte=1, bimester__lte=4),
+                condition=Q(bimester__gte=1, bimester__lte=FINAL_RECOVERY),
                 name="grade_bimester_range",
             ),
         ]
@@ -187,6 +194,16 @@ class Grade(TimeStampedModel):
                     "score": f"A nota máxima desta avaliação é {self.exam_type.max_score}."
                 }
             )
+        if self.exam_type_id and self.bimester is not None:
+            is_recovery = self.exam_type.kind == ExamKind.RECOVERY
+            if is_recovery != (self.bimester == FINAL_RECOVERY):
+                raise ValidationError(
+                    {
+                        "bimester": "A recuperação é lançada só na recuperação final."
+                        if is_recovery
+                        else "Na recuperação final só se lançam notas de recuperação."
+                    }
+                )
         if self.enrollment_id and self.subject_id:
             school_class = self.enrollment.school_class
             if not GradeLevelSubject.objects.filter(

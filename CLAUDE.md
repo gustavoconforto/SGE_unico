@@ -118,12 +118,15 @@ all migration files.
 
 ### Tests
 - Add tests in `<app>/tests.py` (Django `TestCase`, `setUpTestData`, test
-  client). Simulate htmx with `**{"HTTP_HX_REQUEST": "true"}` and check
+  client). Tests that hit views use `base.testing.LoggedInTestCase` (its
+  `setUp` logs the client in; call `super().setUp()` if you override it).
+  Simulate htmx with `**{"HTTP_HX_REQUEST": "true"}` and check
   `assertTemplateUsed` for the partial.
 
 ## Known pitfalls
 
-- `/login/` and `/logout/` exist (Django auth views, URL names `login` and
-  `logout` with no namespace), but no view requires login yet. Logout is
-  POST-only.
+- Every view requires login (`base.middleware.LoginRequiredMiddleware`,
+  which answers htmx requests with `HX-Redirect`). Mark public views with
+  `@login_not_required`. `/login/` and `/logout/` are Django auth views (URL
+  names `login` and `logout`, no namespace); logout is POST-only.
 - `manage.py clean` **seeds** reference data despite its name.

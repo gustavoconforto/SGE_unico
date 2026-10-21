@@ -6,6 +6,7 @@ from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
 
+from base.testing import LoggedInTestCase
 from classes.models import Class
 from departments.models import Department
 from employees.models import Employee, EmployeeRoleType
@@ -15,13 +16,20 @@ from enrollments.models import (
     EnrollmentType,
     SchoolYear,
 )
-from grades.models import ExamKind, ExamType, Grade, GradeLevelSubject, Subject
-from grades.services import bimester_grade, final_average, report_card
+from grades.models import (
+    FINAL_RECOVERY,
+    ExamKind,
+    ExamType,
+    Grade,
+    GradeLevelSubject,
+    Subject,
+)
+from grades.services import bimester_grade, final_average, final_grade, report_card
 from programs.models import Program
 from students.models import Student
 
 
-class GradeTestData(TestCase):
+class GradeTestData(LoggedInTestCase):
     @classmethod
     def setUpTestData(cls):
         school_year = SchoolYear.objects.create(
@@ -109,14 +117,10 @@ class BimesterGradeTests(GradeTestData):
         ]
         self.assertEqual(bimester_grade(grades), Decimal("10.00"))
 
-    def test_recovery_replaces_the_grade_only_when_higher(self):
+    def test_recovery_does_not_count_in_the_bimester(self):
         self.assertEqual(
             bimester_grade([self.grade(self.pb, "4"), self.grade(self.recovery, "7")]),
-            Decimal("7.00"),
-        )
-        self.assertEqual(
-            bimester_grade([self.grade(self.pb, "5"), self.grade(self.recovery, "3")]),
-            Decimal("5.00"),
+            Decimal("4.00"),
         )
 
     def test_none_without_regular_grades(self):
@@ -125,15 +129,57 @@ class BimesterGradeTests(GradeTestData):
 
 
 class FinalAverageTests(TestCase):
-    def test_mean_of_four_bimesters_rounded_half_up(self):
+    def test_weighted_mean_of_four_bimesters(self):
+        # 6*0.2 + 7*0.3 + 8*0.2 + 7.5*0.3 = 7.15 -> 7.0
         grades = [Decimal(6), Decimal(7), Decimal(8), Decimal("7.5")]
-        self.assertEqual(final_average(grades), Decimal("7.13"))
+        self.assertEqual(final_average(grades), Decimal("7.00"))
+
+    def test_rounds_to_half_point_at_quarter_thresholds(self):
+        # Equal bimester grades make the weighted mean equal to that grade.
+        cases = {
+            "7.24": "7.00",
+            "7.25": "7.50",
+            "7.50": "7.50",
+            "7.74": "7.50",
+            "7.75": "8.00",
+            "9.80": "10.00",
+        }
+        for grade, expected in cases.items():
+            with self.subTest(grade=grade):
+                self.assertEqual(final_average([Decimal(grade)] * 4), Decimal(expected))
 
     def test_none_while_a_bimester_is_missing(self):
         self.assertIsNone(final_average([Decimal(6), None, Decimal(8), Decimal(7)]))
 
 
+class FinalGradeTests(TestCase):
+    def test_average_at_or_above_passing_ignores_recovery(self):
+        self.assertEqual(final_grade(Decimal(6), Decimal(10)), Decimal(6))
+
+    def test_mean_with_recovery_rounded_to_half_point(self):
+        cases = {
+            ("5.00", "7.00"): "6.00",
+            ("5.00", "6.50"): "6.00",  # 5.75 rounds up
+            ("4.00", "7.00"): "5.50",
+            ("5.50", "6.00"): "6.00",  # 5.75 rounds up
+            ("5.50", "5.50"): "5.50",
+        }
+        for (average, recovery), expected in cases.items():
+            with self.subTest(average=average, recovery=recovery):
+                self.assertEqual(
+                    final_grade(Decimal(average), Decimal(recovery)), Decimal(expected)
+                )
+
+    def test_average_while_recovery_is_missing(self):
+        self.assertEqual(final_grade(Decimal(5), None), Decimal(5))
+        self.assertIsNone(final_grade(None, Decimal(7)))
+
+
 class ReportCardTests(GradeTestData):
+    def year_with_average(self, score):
+        for bimester in range(1, 5):
+            self.grade(self.pb, score, bimester).save()
+
     def test_rows_per_series_subject_with_grades(self):
         for bimester, score in enumerate(["3", "4", "5", "6"], start=1):
             self.grade(self.ps, "2", bimester).save()
@@ -156,6 +202,36 @@ class ReportCardTests(GradeTestData):
         self.assertIsNone(row.final)
         self.assertIsNone(row.passed)
 
+    def test_below_passing_waits_for_recovery(self):
+        self.year_with_average("5")
+        [row] = report_card(self.enrollment)
+        self.assertEqual(row.average, Decimal("5.00"))
+        self.assertTrue(row.needs_recovery)
+        self.assertIsNone(row.passed)
+
+    def test_recovery_mean_decides_the_result(self):
+        self.year_with_average("5")
+        recovery = self.grade(self.recovery, "7", FINAL_RECOVERY)
+        recovery.save()
+        [row] = report_card(self.enrollment)
+        self.assertEqual(row.recovery, Decimal("7.00"))
+        self.assertEqual(row.final, Decimal("6.00"))
+        self.assertTrue(row.passed)
+
+        recovery.score = Decimal(6)
+        recovery.save()
+        [row] = report_card(self.enrollment)
+        self.assertEqual(row.final, Decimal("5.50"))
+        self.assertFalse(row.passed)
+
+    def test_recovery_is_ignored_above_passing(self):
+        self.year_with_average("6")
+        self.grade(self.recovery, "2", FINAL_RECOVERY).save()
+        [row] = report_card(self.enrollment)
+        self.assertFalse(row.needs_recovery)
+        self.assertEqual(row.final, Decimal("6.00"))
+        self.assertTrue(row.passed)
+
 
 class GradeValidationTests(GradeTestData):
     def test_score_above_exam_maximum_is_rejected(self):
@@ -167,6 +243,15 @@ class GradeValidationTests(GradeTestData):
         with self.assertRaises(ValidationError) as error:
             self.grade(self.ps, "2", subject=self.physics).full_clean()
         self.assertIn("subject", error.exception.message_dict)
+
+    def test_recovery_only_in_the_final_recovery(self):
+        with self.assertRaises(ValidationError) as error:
+            self.grade(self.recovery, "7", bimester=1).full_clean()
+        self.assertIn("bimester", error.exception.message_dict)
+        with self.assertRaises(ValidationError) as error:
+            self.grade(self.pb, "5", bimester=FINAL_RECOVERY).full_clean()
+        self.assertIn("bimester", error.exception.message_dict)
+        self.grade(self.recovery, "7", bimester=FINAL_RECOVERY).full_clean()
 
     def test_one_grade_per_exam_and_bimester(self):
         self.grade(self.ps, "7").save()
@@ -399,6 +484,45 @@ class GradeEntryViewTests(GradeTestData):
         form = response.context["form"]
         self.assertEqual(form.enrollments, [self.enrollment])
         self.assertIn(self.field(self.pb), form.fields)
+        self.assertNotIn(self.field(self.recovery), form.fields)
+
+    def test_recovery_sheet_lists_students_below_passing(self):
+        approved = Enrollment.objects.create(
+            student=Student.objects.create(
+                name="Carla Dias",
+                cpf="12345678903",
+                rg="5678903",
+                issuing_authority="SSP",
+            ),
+            enrollment_type=self.enrollment.enrollment_type,
+            school_class=self.school_class,
+            enrolled_at=date(2027, 1, 15),
+            due_day=10,
+        )
+        for bimester in range(1, 5):
+            self.grade(self.pb, "5", bimester).save()
+            Grade.objects.create(
+                enrollment=approved,
+                subject=self.math,
+                exam_type=self.pb,
+                bimester=bimester,
+                score=Decimal(6),
+            )
+
+        response = self.client.get(
+            self.url(bimester=FINAL_RECOVERY), HTTP_HX_REQUEST="true"
+        )
+        form = response.context["form"]
+        self.assertEqual(form.enrollments, [self.enrollment])
+        self.assertEqual(form.exam_types, [self.recovery])
+
+        response = self.client.post(
+            self.url(bimester=FINAL_RECOVERY), {self.field(self.recovery): "7"}
+        )
+        self.assertRedirects(response, self.url(bimester=FINAL_RECOVERY))
+        recovery = Grade.objects.get(exam_type=self.recovery)
+        self.assertEqual(recovery.bimester, FINAL_RECOVERY)
+        self.assertEqual(recovery.score, Decimal(7))
 
     def test_no_sheet_until_bimester_is_chosen(self):
         params = self.params()
@@ -446,7 +570,6 @@ class GradeEntryViewTests(GradeTestData):
                 self.field(self.pb): "5,5",
                 self.field(self.behavior): "",
                 self.field(self.extra): "",
-                self.field(self.recovery): "",
             },
         )
         self.assertRedirects(response, self.url())
@@ -482,6 +605,14 @@ class ReportCardViewTests(GradeTestData):
         [row] = response.context["rows"]
         self.assertEqual(row.bimesters[0], Decimal("5.00"))
         self.assertContains(response, "Em andamento")
+
+    def test_student_below_passing_is_in_recovery(self):
+        for bimester in range(1, 5):
+            self.grade(self.pb, "5", bimester).save()
+        response = self.client.get(
+            reverse("grades:report_card", args=[self.enrollment.pk])
+        )
+        self.assertContains(response, "Em recuperação")
 
     def test_enrollment_list_links_to_the_report_card(self):
         response = self.client.get(reverse("enrollments:enrollment_list"))

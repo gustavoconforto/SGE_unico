@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.test import TestCase
 from django.urls import reverse
 
+from base.testing import LoggedInTestCase
 from classes.models import Class
 from enrollments.forms import EnrollmentForm
 from enrollments.models import (
@@ -86,7 +87,7 @@ class EnrollmentAccountTests(TestCase):
         self.assertEqual(set(amounts[1:]), {Decimal("83.33")})
 
 
-class EnrollmentSettingsRedirectTests(TestCase):
+class EnrollmentSettingsRedirectTests(LoggedInTestCase):
     def test_create_views_redirect_to_their_lists(self):
         cases = [
             ("discount_type", {"description": "Irmãos", "percentage": "10"}),
@@ -102,7 +103,7 @@ class EnrollmentSettingsRedirectTests(TestCase):
         self.assertTrue(NeededDocumentType.objects.exists())
 
 
-class SchoolClassOptionsTests(TestCase):
+class SchoolClassOptionsTests(LoggedInTestCase):
     @classmethod
     def setUpTestData(cls):
         cls.school_year = SchoolYear.objects.create(

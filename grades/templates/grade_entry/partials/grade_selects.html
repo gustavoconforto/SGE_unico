@@ -32,7 +32,7 @@
 </select>
 </fieldset>
 <fieldset class="fieldset">
-<legend class="fieldset-legend">Bimestre:</legend>
+<legend class="fieldset-legend">Período:</legend>
 <select class="select select-neutral w-full"
         name="bimester"
         hx-get="{% url 'grades:grade_entry' %}"
@@ -41,7 +41,7 @@
         hx-target="#search-results"
         hx-push-url="true"
         {% if not selected_class_id %}disabled{% endif %}>
-    <option value="" disabled {% if not selected_bimester %}selected{% endif %}>Selecione um bimestre:</option>
+    <option value="" disabled {% if not selected_bimester %}selected{% endif %}>Selecione um período:</option>
     {% for value, label in bimesters %}
         <option value="{{ value }}" {% if value == selected_bimester %}selected{% endif %}>{{ label }}</option>
     {% endfor %}

@@ -1,7 +1,6 @@
 from datetime import timedelta
 from decimal import Decimal
 
-from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
@@ -14,11 +13,12 @@ from accounts.models import (
     Payment,
     Supplier,
 )
+from base.testing import LoggedInTestCase
 
 HTMX = {"HTTP_HX_REQUEST": "true"}
 
 
-class AccountViewsTests(TestCase):
+class AccountViewsTests(LoggedInTestCase):
     @classmethod
     def setUpTestData(cls):
         cls.income = AccountType.objects.create(
@@ -109,7 +109,7 @@ class AccountViewsTests(TestCase):
         self.assertFalse(AccountReceivable.objects.exists())
 
 
-class PaymentViewsTests(TestCase):
+class PaymentViewsTests(LoggedInTestCase):
     @classmethod
     def setUpTestData(cls):
         category = AccountType.objects.create(
@@ -299,7 +299,7 @@ class PaymentViewsTests(TestCase):
         self.assertNotContains(response, "Mensalidade outubro")
 
 
-class InstallmentViewsTests(TestCase):
+class InstallmentViewsTests(LoggedInTestCase):
     @classmethod
     def setUpTestData(cls):
         income = AccountType.objects.create(
@@ -398,7 +398,7 @@ class InstallmentViewsTests(TestCase):
         )
 
 
-class SupplierViewsTests(TestCase):
+class SupplierViewsTests(LoggedInTestCase):
     def test_crud(self):
         response = self.client.post(
             reverse("accounts:supplier_add"),
@@ -450,7 +450,7 @@ class SupplierViewsTests(TestCase):
         self.assertTrue(Supplier.objects.filter(pk=supplier.pk).exists())
 
 
-class AccountTypeViewsTests(TestCase):
+class AccountTypeViewsTests(LoggedInTestCase):
     def test_crud_and_filter(self):
         response = self.client.post(
             reverse("accounts:account_type_add"), {"name": "Material", "direction": "P"}
