@@ -1,9 +1,9 @@
 from datetime import date
 from decimal import Decimal
 
-from django.test import TestCase
 from django.urls import reverse
 
+from base.testing import LoggedInTestCase
 from classes.models import Class
 from enrollments.models import (
     Enrollment,
@@ -15,7 +15,7 @@ from programs.models import Program
 from students.models import Student
 
 
-class ClassDetailViewTests(TestCase):
+class ClassDetailViewTests(LoggedInTestCase):
     @classmethod
     def setUpTestData(cls):
         cls.school_year = school_year = SchoolYear.objects.create(

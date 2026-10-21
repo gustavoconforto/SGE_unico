@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from accounts.forms import PaymentForm
 from accounts.models import Installment, InstallmentStatus, Payment, PaymentMethod
+from base.testing import LoggedInTestCase
 from billing import cnab400
 from billing.models import (
     BankSettings,
@@ -471,8 +472,9 @@ class ReturnServiceTests(BillingTestMixin, TestCase):
         self.assertFalse(ReturnFile.objects.exists())
 
 
-class WriteOffTests(BillingTestMixin, TestCase):
+class WriteOffTests(BillingTestMixin, LoggedInTestCase):
     def setUp(self):
+        super().setUp()
         self.installment = self.installments()[0]
         self.slip = create_remittance([self.installment.pk]).slips.get()
         import_return("confirm.RET", ret_payload([self.slip_return(self.slip, "02")]))
@@ -595,7 +597,7 @@ class PaymentDiscountTests(BillingTestMixin, TestCase):
         self.assertIn("amount", form.errors)
 
 
-class BillingViewTests(BillingTestMixin, TestCase):
+class BillingViewTests(BillingTestMixin, LoggedInTestCase):
     def test_settings_edit_creates_single_row(self):
         BankSettings.objects.all().delete()
         response = self.client.post(

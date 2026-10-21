@@ -40,6 +40,42 @@ class LoginViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context["form"].non_field_errors())
 
+    def test_logged_in_user_is_sent_away_from_login(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("login"))
+        self.assertRedirects(response, reverse("base:main"))
+
+
+class LoginRequiredTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_user(
+            username="secretaria", password="s3nha-forte"
+        )
+
+    def test_anonymous_user_is_redirected_to_login(self):
+        url = reverse("accounts:supplier_list")
+        response = self.client.get(url)
+        self.assertRedirects(response, f"{reverse('login')}?next={url}")
+
+    def test_anonymous_htmx_request_gets_full_page_redirect(self):
+        url = reverse("accounts:supplier_list")
+        response = self.client.get(url, HTTP_HX_REQUEST="true")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["HX-Redirect"], f"{reverse('login')}?next={url}")
+
+    def test_logged_in_user_sees_logout_in_sidebar(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("base:main"))
+        self.assertContains(response, f'action="{reverse("logout")}"')
+
+    def test_logout_ends_session(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("logout"))
+        self.assertRedirects(response, reverse("login"))
+        response = self.client.get(reverse("base:main"))
+        self.assertRedirects(response, f"{reverse('login')}?next=/")
+
 
 class FullSeedTests(TestCase):
     def test_today_option_fills_a_future_school_year(self):

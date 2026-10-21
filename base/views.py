@@ -10,10 +10,6 @@ def main_view(request):
     return render(request, "base/base.html", {})
 
 
-def login_view(request):
-    return render(request, "login/login.html", {})
-
-
 # USERS VIEWS
 
 

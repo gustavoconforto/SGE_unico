@@ -1,12 +1,12 @@
-from django.test import TestCase
 from django.urls import reverse
 
+from base.testing import LoggedInTestCase
 from departments.models import Department
 from employees.models import Employee, EmployeeRoleType
 from grades.models import Subject
 
 
-class DepartmentViewTests(TestCase):
+class DepartmentViewTests(LoggedInTestCase):
     @classmethod
     def setUpTestData(cls):
         role = EmployeeRoleType.objects.create(role="Professor")
