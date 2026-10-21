@@ -1,3 +1,4 @@
+from datetime import date
 from io import StringIO
 
 from django.contrib.auth.models import User
@@ -41,6 +42,19 @@ class LoginViewTests(TestCase):
 
 
 class FullSeedTests(TestCase):
+    def test_today_option_fills_a_future_school_year(self):
+        # --today makes a year that hasn't started look under way.
+        year = timezone.localdate().year + 1
+        call_command(
+            "full_seed",
+            students_per_class=2,
+            year=year,
+            today=date(year, 11, 20),
+            stdout=StringIO(),
+        )
+        self.assertTrue(Grade.objects.filter(exam_type__code="PB").exists())
+        self.assertTrue(BankSlip.objects.filter(status=SlipStatus.PAID).exists())
+
     def test_fills_a_past_school_year(self):
         # A past year runs every step: all bimesters graded, every month billed.
         call_command(

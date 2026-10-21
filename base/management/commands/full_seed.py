@@ -6,7 +6,11 @@ installments, grades, bank slips (remittances and return files run through
 billing/services.py), counter payments, other receivables and payables.
 
 Data is generated for the current school year by default, so bimesters,
-due dates and payments are spread around today's date.
+due dates and payments are spread around today's date. To fill a future year
+as if it were already under way, pass a reference date with --today
+(e.g. `full_seed --year 2027 --today 2027-11-20`).
+
+Every run starts by flushing the database, so it always seeds from empty.
 """
 
 import random
@@ -20,6 +24,7 @@ from decimal import Decimal
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import Group, Permission, User
 from django.contrib.contenttypes.models import ContentType
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
@@ -279,6 +284,12 @@ class Command(BaseCommand):
             help="School year to fill (default: the current one)",
         )
         parser.add_argument(
+            "--today",
+            type=date.fromisoformat,
+            default=None,
+            help="Reference date (YYYY-MM-DD) for grades and payments (default: today)",
+        )
+        parser.add_argument(
             "--random-seed", type=int, default=42, help="Seed for reproducible data"
         )
 
@@ -286,11 +297,14 @@ class Command(BaseCommand):
         random.seed(options["random_seed"])
         Faker.seed(options["random_seed"])
         self.fake = Faker("pt_BR")
-        self.today = timezone.localdate()
+        self.today = options["today"] or timezone.localdate()
         self.year = options["year"]
         self.students_per_class = options["students_per_class"]
 
         with transaction.atomic():
+            with self.step("Deleting existing data"):
+                # Same atomic block as the seed: a failed run keeps the old data
+                call_command("flush", interactive=False, verbosity=0)
             with self.step("Reference data"):
                 self.seed_groups()
                 self.seed_admin_users()
@@ -419,7 +433,7 @@ class Command(BaseCommand):
                     "bi_4_ends": date(year, 12, 15),
                 },
             )[0]
-            for year in (self.year, self.year + 1)
+            for year in [self.year]
         }
 
     def seed_classes(self, program, school_year):
@@ -1144,6 +1158,9 @@ class Command(BaseCommand):
         )
         first_day = date(self.year, 1, 1)
         last_day = min(self.today, date(self.year, 12, 31))
+        if last_day < first_day:
+            # A future year: spread the expenses over the whole year
+            last_day = date(self.year, 12, 31)
         for _ in range(ONE_OFF_EXPENSES):
             gross = Decimal(random.randint(300, 25000))
             issued = first_day + timedelta(
