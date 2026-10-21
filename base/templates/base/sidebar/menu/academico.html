@@ -1,0 +1,15 @@
+<ul class="menu bg-base-200 rounded-box w-56">
+    <li>
+        <details >
+            <summary class="font-semibold">Acadêmico</summary>
+            <ul>
+                {% include 'base/sidebar/menu/academico_edicao.html' %}
+                {% include 'base/sidebar/items/menu_item.html' with path="grades:grade_entry" label="Lançamento de notas" icon="edit_note" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="enrollments:enrollment_list" label="Matrículas" icon="how_to_reg" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="students:student_list" label="Alunos" icon="school" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="students:guardian_list" label="Responsáveis" icon="family_restroom" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="students:guardian_list" label="Turmas" icon="class" %}
+            </ul>
+        </details>
+    </li>
+</ul>

@@ -1,0 +1,40 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Lançamento de notas{% endblock page_title %}
+
+{% block header %}
+
+{% endblock header %}
+
+{% block content %}
+<div class="bg-white py-12 px-4">
+  <div class="w-full">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl font-semibold text-gray-900 ">Lançamento de notas</h2>
+      <p class="mt-4 text-lg text-gray-600 ">
+        Selecione o ano letivo, a turma, a matéria e o bimestre
+      </p>
+    </div>
+    <fieldset class="fieldset">
+    <legend class="fieldset-legend">Ano letivo:</legend>
+    <select class="select select-neutral w-full"
+            name="school_year"
+            hx-get="{% url 'grades:grade_entry_options' %}"
+            hx-trigger="change"
+            hx-target="#grade-selects"
+            hx-swap="outerHTML">
+        <option value="" disabled {% if not selected_year_id %}selected{% endif %}>Selecione um ano letivo:</option>
+        {% for year in school_years %}
+            <option value="{{ year.pk }}" {% if year.pk == selected_year_id %}selected{% endif %}>{{ year }}</option>
+        {% endfor %}
+    </select>
+    </fieldset>
+
+    {% include 'grade_entry/partials/grade_selects.html' %}
+
+    <div id="search-results" class="mt-6">
+      {% include 'grade_entry/partials/grade_sheet.html' %}
+    </div>
+  </div>
+</div>
+{% endblock content %}

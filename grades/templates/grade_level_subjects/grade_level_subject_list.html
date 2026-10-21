@@ -1,0 +1,19 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Matérias por série{% endblock page_title %}
+
+{% block header %}
+  <div class="flex justify-between px-2 pb-4">
+    <h1></h1>
+    <a href="{% url 'grades:grade_level_subject_add' %}{% if request.GET.grade_level %}?grade_level={{ request.GET.grade_level }}{% endif %}">
+    {% include 'components/button/button_select.html' with label='Adicionar registro'%}
+    </a>
+  </div>
+  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por matéria ou professor...' %}
+{% endblock header %}
+
+{% block content %}
+  <div id="search-results">
+    {% include 'grade_level_subjects/partials/grade_level_subject_table.html' %}
+  </div>
+{% endblock content %}

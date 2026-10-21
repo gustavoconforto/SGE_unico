@@ -52,7 +52,12 @@ def ret_payload(events, company_code=COMPANY_CODE, file_date=date(2026, 10, 7)):
         _put(line, 71, event["nosso_numero"])
         _put(line, 109, event["code"])
         _put(line, 111, event.get("date", date(2026, 10, 7)).strftime("%d%m%y"))
-        for start, key in ((153, "title"), (241, "discount"), (254, "paid"), (267, "interest")):
+        for start, key in (
+            (153, "title"),
+            (241, "discount"),
+            (254, "paid"),
+            (267, "interest"),
+        ):
             _put(line, start, f"{int(Decimal(event.get(key, '0')) * 100):013d}")
         _put(line, 296, event.get("date", date(2026, 10, 7)).strftime("%d%m%y"))
         _put(line, 319, event.get("reasons", "0000000000"))
@@ -95,10 +100,10 @@ class Cnab400Tests(TestCase):
                 address="Condomínio Privê I Quadra 1 Conjunto M Casa 10",
                 zip_code="71539070",
             ),
-            fine_percent=Decimal("2"),
+            fine_percent=Decimal(2),
             daily_interest=Decimal("1.41"),
             discount_deadline=date(2026, 10, 16),
-            discount_amount=Decimal("90"),
+            discount_amount=Decimal(90),
         )
         config = cnab400.RemittanceConfig(self.beneficiary(), 2016, date(2026, 10, 15))
         payload = cnab400.generate_remittance(config, [title])
@@ -111,7 +116,9 @@ class Cnab400Tests(TestCase):
         self.assertEqual(header[108:117], "MX0002016")
         self.assertEqual(detail[20:37], "00090048400183601")
         self.assertEqual(detail[65:70], "20200")  # 2% fine
-        self.assertEqual(detail[70:82], "20000000015" + cnab400.nosso_numero_dv("09", "20000000015"))
+        self.assertEqual(
+            detail[70:82], "20000000015" + cnab400.nosso_numero_dv("09", "20000000015")
+        )
         self.assertEqual(detail[93], "N")
         self.assertEqual(detail[105], "2")
         self.assertEqual(detail[126:139], "0000000422700")
@@ -143,8 +150,8 @@ class Cnab400Tests(TestCase):
         self.assertTrue(event.is_settlement)
         self.assertEqual(event.nosso_numero, "200000000127")
         self.assertEqual(event.participant_control, "12")
-        self.assertEqual(event.amount_paid, Decimal("10"))
-        self.assertEqual(event.discount_amount, Decimal("90"))
+        self.assertEqual(event.amount_paid, Decimal(10))
+        self.assertEqual(event.discount_amount, Decimal(90))
         self.assertEqual(event.occurrence_date, date(2026, 10, 7))
 
     def test_parse_return_rejects_broken_files(self):
@@ -155,6 +162,37 @@ class Cnab400Tests(TestCase):
             cnab400.parse_return(payload.replace(b"237BRADESCO", b"341ITAU     "))
         with self.assertRaises(ValueError):
             cnab400.parse_return(payload[:-10])
+
+    def test_generated_return_round_trips(self):
+        entry = cnab400.ReturnEntry(
+            nosso_numero="20000000012P",
+            occurrence_code="06",
+            occurrence_date=date(2026, 3, 9),
+            participant_control="12",
+            document_number="345",
+            due_date=date(2026, 3, 10),
+            title_amount=Decimal("4500.00"),
+            amount_paid=Decimal("4410.00"),
+            discount_amount=Decimal("90.00"),
+            credit_date=date(2026, 3, 10),
+            reason_codes=("48",),
+        )
+        payload = cnab400.generate_return(COMPANY_CODE, date(2026, 3, 10), [entry])
+        data = cnab400.parse_return(payload)
+        self.assertEqual(data.company_code.lstrip("0"), COMPANY_CODE)
+        self.assertEqual(data.file_date, date(2026, 3, 10))
+        (event,) = data.events
+        self.assertEqual(event.nosso_numero, "20000000012P")
+        self.assertEqual(event.occurrence_code, "06")
+        self.assertEqual(event.occurrence_date, date(2026, 3, 9))
+        self.assertEqual(event.participant_control, "12")
+        self.assertEqual(event.document_number, "345")
+        self.assertEqual(event.due_date, date(2026, 3, 10))
+        self.assertEqual(event.title_amount, Decimal("4500.00"))
+        self.assertEqual(event.amount_paid, Decimal("4410.00"))
+        self.assertEqual(event.discount_amount, Decimal("90.00"))
+        self.assertEqual(event.credit_date, date(2026, 3, 10))
+        self.assertEqual(event.reason_codes, ("48",))
 
 
 class BillingTestMixin:
@@ -234,7 +272,9 @@ class RemittanceServiceTests(BillingTestMixin, TestCase):
         self.assertEqual(len(slips), 2)
         slip = slips[0]
         self.assertEqual(slip.nosso_numero, f"2000{slip.pk:07d}")
-        self.assertEqual(slip.nosso_numero_dv, cnab400.nosso_numero_dv("09", slip.nosso_numero))
+        self.assertEqual(
+            slip.nosso_numero_dv, cnab400.nosso_numero_dv("09", slip.nosso_numero)
+        )
         self.assertEqual(slip.amount, first.amount)
         self.assertEqual(slip.discount, Decimal("90.00"))
 
@@ -299,7 +339,7 @@ class ReturnServiceTests(BillingTestMixin, TestCase):
         self.assertEqual(self.slip.status, SlipStatus.REGISTERED)
 
     def test_settlement_with_punctuality_discount_pays_installment(self):
-        paid = self.installment.amount - Decimal("90")
+        paid = self.installment.amount - Decimal(90)
         return_file = self.import_events(
             self.slip_return(
                 self.slip, "06", title=self.slip.amount, discount="90", paid=paid
@@ -310,13 +350,13 @@ class ReturnServiceTests(BillingTestMixin, TestCase):
         payment = Payment.objects.get()
         self.assertEqual(event.payment, payment)
         self.assertEqual(payment.amount, paid)
-        self.assertEqual(payment.discount, Decimal("90"))
+        self.assertEqual(payment.discount, Decimal(90))
         self.assertEqual(payment.method, PaymentMethod.BOLETO)
         self.installment.refresh_from_db()
         self.assertEqual(self.installment.status, InstallmentStatus.PAID)
         self.assertEqual(
             Installment.objects.with_balance().get(pk=self.installment.pk).outstanding,
-            Decimal("0"),
+            Decimal(0),
         )
         self.slip.refresh_from_db()
         self.assertEqual(self.slip.status, SlipStatus.PAID)
@@ -324,7 +364,9 @@ class ReturnServiceTests(BillingTestMixin, TestCase):
     def test_late_settlement_records_interest(self):
         paid = self.installment.amount + Decimal("3.50")
         self.import_events(
-            self.slip_return(self.slip, "06", title=self.slip.amount, interest="3.50", paid=paid)
+            self.slip_return(
+                self.slip, "06", title=self.slip.amount, interest="3.50", paid=paid
+            )
         )
         payment = Payment.objects.get()
         self.assertEqual(payment.interest, Decimal("3.50"))
@@ -332,14 +374,16 @@ class ReturnServiceTests(BillingTestMixin, TestCase):
         self.assertEqual(self.installment.status, InstallmentStatus.PAID)
 
     def test_settlement_above_balance_is_flagged(self):
-        paid = self.installment.amount + Decimal("50")
-        event = self.import_events(self.slip_return(self.slip, "06", paid=paid)).events.get()
+        paid = self.installment.amount + Decimal(50)
+        event = self.import_events(
+            self.slip_return(self.slip, "06", paid=paid)
+        ).events.get()
         self.assertEqual(event.status, EventStatus.ERROR)
         self.assertFalse(Payment.objects.exists())
 
     def test_same_file_or_line_is_not_imported_twice(self):
         settlement = self.slip_return(
-            self.slip, "06", discount="90", paid=self.installment.amount - Decimal("90")
+            self.slip, "06", discount="90", paid=self.installment.amount - Decimal(90)
         )
         self.import_events(settlement)
         with self.assertRaises(BillingError):
@@ -353,9 +397,16 @@ class ReturnServiceTests(BillingTestMixin, TestCase):
 
     def test_reversal_deletes_payment_and_reopens_installment(self):
         self.import_events(
-            self.slip_return(self.slip, "06", discount="90", paid=self.installment.amount - Decimal("90"))
+            self.slip_return(
+                self.slip,
+                "06",
+                discount="90",
+                paid=self.installment.amount - Decimal(90),
+            )
         )
-        event = self.import_events(self.slip_return(self.slip, "40"), name="r2.RET").events.get()
+        event = self.import_events(
+            self.slip_return(self.slip, "40"), name="r2.RET"
+        ).events.get()
         self.assertEqual(event.status, EventStatus.PROCESSED)
         self.assertFalse(Payment.objects.exists())
         self.installment.refresh_from_db()
@@ -377,13 +428,13 @@ class ReturnServiceTests(BillingTestMixin, TestCase):
         self.import_events(self.slip_return(self.slip, "09"))
         self.installment.refresh_from_db()
         Payment.objects.create(
-            installment=self.installment, amount=Decimal("10"), method=PaymentMethod.CASH
+            installment=self.installment, amount=Decimal(10), method=PaymentMethod.CASH
         )
         self.installment.refresh_from_db()
         self.assertEqual(self.installment.status, InstallmentStatus.EXPIRED)
         Payment.objects.create(
             installment=self.installment,
-            amount=self.installment.amount - Decimal("10"),
+            amount=self.installment.amount - Decimal(10),
             method=PaymentMethod.CASH,
         )
         self.installment.refresh_from_db()
@@ -461,7 +512,7 @@ class WriteOffTests(BillingTestMixin, TestCase):
         self.assertEqual(write_off_candidates(), [])
 
     def test_partial_cash_payment_is_resent_after_bank_confirms(self):
-        self.pay_cash(Decimal("40"))
+        self.pay_cash(Decimal(40))
         self.request_write_off()
         # Still live until the bank confirms the write-off.
         self.assertNotIn(self.installment, remittance_candidates())
@@ -470,7 +521,7 @@ class WriteOffTests(BillingTestMixin, TestCase):
         self.slip.refresh_from_db()
         self.assertEqual(self.slip.status, SlipStatus.WRITTEN_OFF)
         candidate = remittance_candidates().get(pk=self.installment.pk)
-        self.assertEqual(candidate.outstanding, self.installment.amount - Decimal("40"))
+        self.assertEqual(candidate.outstanding, self.installment.amount - Decimal(40))
 
     def test_rejected_write_off_keeps_slip_registered(self):
         self.pay_cash(self.installment.amount)
@@ -513,7 +564,7 @@ class PaymentDiscountTests(BillingTestMixin, TestCase):
             data={
                 "installment": installment.pk,
                 "paid_at": timezone.localdate().isoformat(),
-                "amount": installment.amount - Decimal("90"),
+                "amount": installment.amount - Decimal(90),
                 "penalty": "0",
                 "interest": "0",
                 "monetary_adjust": "0",
@@ -572,7 +623,9 @@ class BillingViewTests(BillingTestMixin, TestCase):
         self.assertEqual(response.context["ready_count"], 12)
 
         response = self.client.get(url, {"q": "Maria", "due_to": due_to}, **HTMX)
-        self.assertTemplateUsed(response, "remittances/partials/remittance_candidates.html")
+        self.assertTemplateUsed(
+            response, "remittances/partials/remittance_candidates.html"
+        )
 
         first, second = self.installments()[:2]
         response = self.client.post(url, {"installments": [first.pk, second.pk]})
@@ -582,7 +635,9 @@ class BillingViewTests(BillingTestMixin, TestCase):
     def test_remittance_add_without_selection_shows_error(self):
         url = reverse("billing:remittance_add")
         response = self.client.post(url, {}, follow=True)
-        self.assertContains(response, "Selecione ao menos uma parcela ou um pedido de baixa.")
+        self.assertContains(
+            response, "Selecione ao menos uma parcela ou um pedido de baixa."
+        )
         self.assertFalse(Remittance.objects.exists())
 
     def test_remittance_download(self):
@@ -606,7 +661,10 @@ class BillingViewTests(BillingTestMixin, TestCase):
         for name, partial in (
             ("billing:remittance_list", "remittances/partials/remittance_table.html"),
             ("billing:bank_slip_list", "bank_slips/partials/bank_slip_table.html"),
-            ("billing:return_file_list", "return_files/partials/return_file_table.html"),
+            (
+                "billing:return_file_list",
+                "return_files/partials/return_file_table.html",
+            ),
         ):
             response = self.client.get(reverse(name), **HTMX)
             self.assertTemplateUsed(response, partial)
@@ -624,7 +682,9 @@ class BillingViewTests(BillingTestMixin, TestCase):
         upload = SimpleUploadedFile(
             "CB081000.RET", ret_payload([self.slip_return(slip, "02")])
         )
-        response = self.client.post(reverse("billing:return_file_add"), {"file": upload})
+        response = self.client.post(
+            reverse("billing:return_file_add"), {"file": upload}
+        )
         return_file = ReturnFile.objects.get()
         self.assertRedirects(
             response, reverse("billing:return_file_detail", args=[return_file.pk])
@@ -634,7 +694,9 @@ class BillingViewTests(BillingTestMixin, TestCase):
 
     def test_return_upload_invalid_file(self):
         upload = SimpleUploadedFile("x.RET", b"not a cnab file")
-        response = self.client.post(reverse("billing:return_file_add"), {"file": upload})
+        response = self.client.post(
+            reverse("billing:return_file_add"), {"file": upload}
+        )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Arquivo inválido")
         self.assertFalse(ReturnFile.objects.exists())
@@ -653,7 +715,10 @@ class BillingViewTests(BillingTestMixin, TestCase):
             reverse("billing:return_file_list"),
             reverse("billing:return_file_add"),
             reverse("billing:return_file_detail", args=[return_file.pk]),
-            reverse("enrollments:enrollment_type_edit", args=[self.account.enrollment.enrollment_type_id]),
+            reverse(
+                "enrollments:enrollment_type_edit",
+                args=[self.account.enrollment.enrollment_type_id],
+            ),
         ):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)

@@ -1,0 +1,77 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Boletim{% endblock page_title %}
+
+{% block header %}
+  <div class="flex justify-end gap-2 px-2 pb-4 print:hidden">
+    <a href={% url 'enrollments:enrollment_list' %}>
+      {% include 'components/button/button_cancel.html' with label='Voltar' %}
+    </a>
+    <a href="#" onclick="window.print(); return false;">
+      {% include 'components/button/button_select.html' with label='Imprimir' %}
+    </a>
+  </div>
+{% endblock header %}
+
+{% block content %}
+<div class="bg-white py-12 px-4">
+  <div class="w-full">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl font-semibold text-gray-900 ">Boletim escolar</h2>
+      <p class="mt-4 text-lg text-gray-600 ">
+        {{ enrollment.school_class.year|default:enrollment.enrollment_type.school_year }}
+      </p>
+    </div>
+
+    <div class="bg-slate-50 rounded-2xl p-6 md:p-8 mb-6 grid grid-cols-1 gap-2 sm:grid-cols-2 text-slate-700">
+      <p><span class="font-semibold">Aluno:</span> {{ enrollment.student.name }}</p>
+      <p><span class="font-semibold">Matrícula:</span> {{ enrollment.student.registration }}</p>
+      <p><span class="font-semibold">Curso:</span> {{ enrollment.enrollment_type.program }}</p>
+      <p><span class="font-semibold">Turma:</span> {{ enrollment.school_class|default:"Sem turma" }}</p>
+    </div>
+
+    <div class="overflow-x-auto">
+    <table class="rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
+      <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+        <tr>
+          <th class="px-3 py-2.5 text-left font-semibold md:px-4 md:py-3 lg:px-6 lg:py-3.5">Matéria</th>
+          {% for value, label in bimesters %}
+          <th class="px-3 py-2.5 text-right font-semibold whitespace-nowrap md:px-4 md:py-3 lg:px-6 lg:py-3.5">{{ value }}º bim.</th>
+          {% endfor %}
+          <th class="px-3 py-2.5 text-right font-semibold whitespace-nowrap md:px-4 md:py-3 lg:px-6 lg:py-3.5">Média final</th>
+          <th class="px-3 py-2.5 text-right font-semibold md:px-4 md:py-3 lg:px-6 lg:py-3.5">Situação</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-slate-100">
+      {% for row in rows %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+            {{ row.subject }}
+          </td>
+          {% for bimester_grade in row.bimesters %}
+          <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+            {{ bimester_grade|floatformat:2|default:"-" }}
+          </td>
+          {% endfor %}
+          <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-semibold text-slate-800">
+            {{ row.final|floatformat:2|default:"-" }}
+          </td>
+          <td class="px-2 py-2 text-right sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5">
+            {% if row.passed is None %}
+              <span class="badge badge-sm badge-neutral badge-outline">Em andamento</span>
+            {% elif row.passed %}
+              <span class="badge badge-sm badge-success">Aprovado</span>
+            {% else %}
+              <span class="badge badge-sm badge-error">Reprovado</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        {% include 'components/table/empty_table.html' with collspan=7 %}
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+{% endblock content %}

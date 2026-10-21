@@ -1,0 +1,65 @@
+{% if form %}
+<form method="POST" action="{{ request.get_full_path }}">
+  {% csrf_token %}
+  {% if form.exam_types %}
+  <p class="px-2 pb-3 text-sm text-slate-500">Use vírgula nos decimais (ex.: 2,5). Apague o valor para remover uma nota. A nota do bimestre é a soma das avaliações e pontos extras, limitada a 10.</p>
+  <div class="overflow-x-auto">
+  <table class="rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
+    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+      <tr>
+        <th class="px-3 py-2.5 text-left font-semibold md:px-4 md:py-3 lg:px-6 lg:py-3.5">Aluno</th>
+        {% for exam_type in form.exam_types %}
+        <th class="px-3 py-2.5 text-right font-semibold whitespace-nowrap md:px-4 md:py-3" title="{{ exam_type.name }}">
+          {{ exam_type.code }}
+          <span class="block font-normal normal-case text-slate-400">
+            {% if exam_type.kind == 'C' %}{{ exam_type.get_kind_display }}{% else %}{% if exam_type.kind == 'B' %}extra, {% endif %}até {{ exam_type.max_score|floatformat:"-2" }}{% endif %}
+          </span>
+        </th>
+        {% endfor %}
+        <th class="px-3 py-2.5 text-right font-semibold whitespace-nowrap md:px-4 md:py-3 lg:px-6 lg:py-3.5">Nota do bimestre</th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-slate-100">
+    {% for enrollment, fields, bimester_grade in form.rows %}
+      <tr class="hover:bg-slate-50">
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+          {{ enrollment.student.name }}
+        </td>
+        {% for field in fields %}
+        <td class="px-2 py-2 text-right sm:px-3 md:px-4">
+          {{ field }}
+          {% for error in field.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </td>
+        {% endfor %}
+        <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-semibold text-slate-700">
+          {{ bimester_grade|floatformat:2|default:"-" }}
+        </td>
+      </tr>
+    {% empty %}
+      <tr>
+        <td colspan="{{ form.exam_types|length|add:2 }}" class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-center">
+          Nenhum aluno com matrícula ativa nesta turma
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if form.enrollments %}
+  <div class="flex flex-row gap-4 pt-6">
+    {% include 'components/button/button_submit_form.html' with label='Salvar notas' %}
+  </div>
+  {% endif %}
+  {% else %}
+  <p class="text-center text-slate-600">
+    Nenhum tipo de avaliação cadastrado.
+    <a href="{% url 'grades:exam_type_add' %}" class="underline hover:text-slate-900">Cadastre um tipo de avaliação</a>.
+  </p>
+  {% endif %}
+</form>
+{% elif selected_class_id and not level_subjects %}
+<p class="text-center text-slate-600">
+  A série desta turma não tem matérias.
+  <a href="{% url 'grades:grade_level_subject_list' %}" class="underline hover:text-slate-900">Cadastre as matérias por série</a>.
+</p>
+{% endif %}

@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     "enrollments",
     "accounts",
     "billing",
+    "departments",
+    "grades",
 ]
 
 MIDDLEWARE = [
@@ -165,6 +167,13 @@ STATIC_ROOT = BASE_DIR / "static"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+
+# Authentication
+
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "base:main"
+LOGOUT_REDIRECT_URL = "login"
 
 
 # Email

@@ -1,8 +1,9 @@
 # Gestão Escolar
 
 School management system for **Único Educacional**. It covers staff, courses,
-classes, students and guardians, enrollment contracts and the school's finances
-(receivables, payables, installments and payments).
+classes, subjects, students and guardians, enrollment contracts, the school's
+finances (receivables, payables, installments and payments) and Bradesco bank
+slips.
 
 It is a server-rendered Django app. The UI is in Brazilian Portuguese; the code
 is in English.
@@ -20,8 +21,8 @@ is in English.
 | Area | What you can do |
 |---|---|
 | Recursos Humanos | Users, groups and permissions (Django auth), employee roles, employees |
-| Acadêmico | Courses (programs), school years and their four bimesters, classes, students with their guardians, enrollment contract types, discount types, required documents, enrollments |
-| Financeiro | Financial categories, suppliers, accounts receivable, accounts payable, installments, payments |
+| Acadêmico | Courses (programs), school years and their four bimesters, classes, class roster (active students of a class), subjects, students with their guardians, enrollment contract types, discount types, required documents, enrollments. Grade entry isn't built yet |
+| Financeiro | Financial categories, suppliers, accounts receivable, accounts payable, installments, payments, bank slips (CNAB 400 remittance and return files) |
 
 Creating an enrollment automatically creates its receivable account and
 monthly installments. Ending an enrollment early (transferred, dropped,
@@ -62,7 +63,8 @@ debug is on (see [Known issues](#known-issues)).
 | `conforto` | superuser |
 | `teste` | staff, non-superuser |
 
-The app pages don't require login yet; these users are for `/admin/`.
+Sign in at http://127.0.0.1:8000/login/. The app pages don't require login
+yet, so you can also open them directly. The same users work for `/admin/`.
 
 ## Common commands
 
@@ -72,29 +74,39 @@ uv run python manage.py test accounts        # one app
 uv run python manage.py makemigrations
 uv run python manage.py migrate
 uv run python manage.py clean                # (re)seed reference data
+uv run python manage.py seed                 # reference data + fake employees, students and guardians
+uv run ruff check <files>                    # lint (the repo isn't clean yet)
+uv run ruff format <files>                   # format
 uv run python reset_db.py                    # see warning below
 ```
+
+`seed` takes `--students N` (default 10) and `--random-seed` (default 42). It
+skips the fake people if students already exist.
 
 > **`reset_db.py` is destructive.** It deletes `db.sqlite3` **and every
 > migration file** in the project, then regenerates them. Only use it while the
 > schema is still throwaway, and never once there's a database you care about.
-> Option 2 calls a `seed` command that doesn't exist yet; use option 1.
+> Option 1 then runs `clean`, option 2 runs `seed`.
 
 ## Project layout
 
 ```
 config/        settings, root URLconf, WSGI/ASGI
 base/          shared models (Person, TimeStampedModel), search/htmx mixins,
-               layout templates, UI components, users/groups/permissions, seed command
+               layout templates, login page, UI components, users/groups/permissions,
+               clean and seed commands
 employees/     employee roles and employees
 programs/      courses
-classes/       classes (turmas)
+classes/       classes (turmas) and the class roster page
+grades/        subjects (matérias); grade entry to come
 students/      students, guardians and the student↔guardian link
 enrollments/   school years, contract types, discounts, required documents, enrollments
 accounts/      finance: categories, suppliers, accounts, installments, payments
+billing/       Bradesco CNAB 400 bank slips: settings, remittances, returns
 utils/         small formatting helpers (CPF, CEP, weekend adjustment)
-assets/        static files (logo, placeholder images)
+assets/        static files (logo, favicon, placeholder images)
 media/         uploaded files (student photos)
+doc/           user manual, in Portuguese
 ```
 
 ## Documentation
@@ -103,11 +115,13 @@ media/         uploaded files (student photos)
   financial rules, design system.
 - [CLAUDE.md](CLAUDE.md): conventions for AI coding agents (and a good
   checklist for humans too).
+- [doc/README.md](doc/README.md): user manual (Portuguese), screen by screen
+  and the common workflows.
 
 ## Known issues
 
-- No authentication on the app's pages: every view is public.
+- Login exists but isn't enforced: every app view is public, and permissions
+  aren't checked.
 - Production settings are incomplete: `DATABASES` is empty when
   `DJANGO_DEBUG` isn't `true`, and `ALLOWED_HOSTS` is empty.
-- Only `accounts` and `enrollments` have tests.
-- `pandas` is a dependency but isn't used.
+- `employees`, `programs`, `students` and `grades` have no tests.

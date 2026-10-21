@@ -1,0 +1,41 @@
+{% extends 'base/base.html' %}
+
+{% block header %}
+
+{% endblock header %}
+
+{% block content %}
+<div class="bg-white py-12 px-4">
+  <div class="w-full">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de turmas</h2>
+      <p class="mt-4 text-lg text-gray-600 ">
+        Selecione o ano letivo e a turma
+      </p>
+    </div>
+    <fieldset class="fieldset">
+    <legend class="fieldset-legend">Ano letivo:</legend>
+    <select class="select select-neutral w-full"
+            name="school_year"
+            hx-get="{% url 'classes:class_options' %}"
+            hx-trigger="change"
+            hx-target="#class-select"
+            hx-swap="outerHTML">
+        <option value="" disabled {% if not selected_year_id %}selected{% endif %}>Selecione um ano letivo:</option>
+        {% for year in school_years %}
+            <option value="{{ year.pk }}" {% if year.pk == selected_year_id %}selected{% endif %}>{{ year }}</option>
+        {% endfor %}
+    </select>
+    </fieldset>
+
+    {% include 'classes/partials/class_select.html' %}
+
+    <div id="search-results" class="mt-6">
+      {% if selected_class_id %}
+        {% include 'classes/partials/class_detail_table.html' %}
+      {% endif %}
+    </div>
+    </div>
+</div>
+        
+{% endblock content %}

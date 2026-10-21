@@ -5,6 +5,7 @@ from base.views import (
     group_delete_view,
     group_edit_view,
     group_list_view,
+    login_view,
     main_view,
     permission_add_view,
     permission_delete_view,
@@ -20,6 +21,7 @@ app_name = "base"
 
 urlpatterns = [
     path("", main_view, name="main"),
+    path("login/", login_view, name="main"),
     path("users/", user_list_view, name="user_list"),
     path("users/add/", user_add_view, name="user_add"),
     path("users/edit/<int:pk>/", user_edit_view, name="user_edit"),

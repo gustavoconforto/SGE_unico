@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Gestão Escolar{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.11/dist/htmx.min.js" 
@@ -30,13 +31,13 @@
 <body class="h-full bg-white font-sans text-gray-800 antialiased">
 <div class="flex h-full">
 
-    {% include "base/sidebar.html" %}
+    {% include "base/sidebar/sidebar.html" %}
 
     <!-- Main -->
     <div class="flex min-w-0 flex-1 flex-col">
 
         <!-- Navbar -->
-    {% include "base/navbar.html"%}
+    {% include "base/navbar/navbar.html"%}
 
         <!-- Content -->
         <main class="flex-1 overflow-y-auto p-4">
@@ -60,7 +61,7 @@
     </div>
 </div>
 
-{% include 'base/sidebar_js.html' %}
+{% include 'base/sidebar/js/sidebar_js.html' %}
 {% block extra_js %}{% endblock %}
 </body>
 </html>

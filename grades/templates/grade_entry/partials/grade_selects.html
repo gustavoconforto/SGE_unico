@@ -1,0 +1,55 @@
+<div id="grade-selects" class="grid grid-cols-1 gap-x-4 sm:grid-cols-3">
+<fieldset class="fieldset">
+<legend class="fieldset-legend">Turma:</legend>
+<select class="select select-neutral w-full"
+        name="school_class"
+        hx-get="{% url 'grades:grade_entry_options' %}"
+        hx-trigger="change"
+        hx-include="[name='school_year']"
+        hx-target="#grade-selects"
+        hx-swap="outerHTML"
+        {% if not selected_year_id %}disabled{% endif %}>
+    <option value="" disabled {% if not selected_class_id %}selected{% endif %}>Selecione uma turma:</option>
+    {% for class in classes %}
+        <option value="{{ class.pk }}" {% if class.pk == selected_class_id %}selected{% endif %}>{{ class }}</option>
+    {% endfor %}
+</select>
+</fieldset>
+<fieldset class="fieldset">
+<legend class="fieldset-legend">Matéria:</legend>
+<select class="select select-neutral w-full"
+        name="subject"
+        hx-get="{% url 'grades:grade_entry' %}"
+        hx-trigger="change"
+        hx-include="[name='school_year'], #grade-selects"
+        hx-target="#search-results"
+        hx-push-url="true"
+        {% if not selected_class_id %}disabled{% endif %}>
+    <option value="" disabled {% if not selected_subject_id %}selected{% endif %}>Selecione uma matéria:</option>
+    {% for level_subject in level_subjects %}
+        <option value="{{ level_subject.subject_id }}" {% if level_subject.subject_id == selected_subject_id %}selected{% endif %}>{{ level_subject.subject }}</option>
+    {% endfor %}
+</select>
+</fieldset>
+<fieldset class="fieldset">
+<legend class="fieldset-legend">Bimestre:</legend>
+<select class="select select-neutral w-full"
+        name="bimester"
+        hx-get="{% url 'grades:grade_entry' %}"
+        hx-trigger="change"
+        hx-include="[name='school_year'], #grade-selects"
+        hx-target="#search-results"
+        hx-push-url="true"
+        {% if not selected_class_id %}disabled{% endif %}>
+    <option value="" disabled {% if not selected_bimester %}selected{% endif %}>Selecione um bimestre:</option>
+    {% for value, label in bimesters %}
+        <option value="{{ value }}" {% if value == selected_bimester %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+</select>
+</fieldset>
+</div>
+{% if clear_results %}
+<div id="search-results" class="mt-6" hx-swap-oob="true">
+  {% include 'grade_entry/partials/grade_sheet.html' %}
+</div>
+{% endif %}
