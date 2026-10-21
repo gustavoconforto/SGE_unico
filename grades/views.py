@@ -21,7 +21,15 @@ from grades.forms import (
     GradeSheetForm,
     SubjectForm,
 )
-from grades.models import Bimester, ExamType, GradeLevelSubject, Subject
+from grades.models import (
+    FINAL_RECOVERY,
+    GRADE_PERIODS,
+    Bimester,
+    ExamKind,
+    ExamType,
+    GradeLevelSubject,
+    Subject,
+)
 from grades.services import report_card
 
 
@@ -161,7 +169,8 @@ class GradeLevelSubjectDeleteView(ProtectedDeleteMixin, DeleteView):
 
 
 def grade_selection(request):
-    """The year → class → subject → bimester choices in the query string.
+    """The year → class → subject → bimester (or final recovery) choices in the
+    query string.
 
     A choice that doesn't belong to the one before it (the class of another
     year, after the year changed) is dropped.
@@ -185,11 +194,11 @@ def grade_selection(request):
         "school_years": SchoolYear.objects.order_by("-begins"),
         "classes": classes,
         "level_subjects": level_subjects,
-        "bimesters": Bimester.choices,
+        "bimesters": GRADE_PERIODS,
         "selected_year_id": year_id,
         "selected_class_id": school_class.pk if school_class else None,
         "selected_subject_id": subject_id,
-        "selected_bimester": bimester if bimester in Bimester.values else None,
+        "selected_bimester": bimester if bimester in dict(GRADE_PERIODS) else None,
     }
 
 
@@ -224,10 +233,16 @@ class GradeEntryView(TemplateView):
             .select_related("student")
             .order_by("student__name")
         )
+        # Recovery exams are only taken in the final recovery, and only there.
+        exam_types = (
+            ExamType.objects.filter(kind=ExamKind.RECOVERY)
+            if selection["selected_bimester"] == FINAL_RECOVERY
+            else ExamType.objects.exclude(kind=ExamKind.RECOVERY)
+        )
         return GradeSheetForm(
             data,
             enrollments=enrollments,
-            exam_types=ExamType.objects.all(),
+            exam_types=exam_types,
             subject=level_subject.subject,
             bimester=selection["selected_bimester"],
         )

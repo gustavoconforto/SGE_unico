@@ -3,69 +3,140 @@
 Grades are computed from the scores on every request, never stored, so a
 corrected score is reflected everywhere at once.
 
-Bimester grade:
-    1. sum of the regular exams and the bonus points (each exam's max_score
-       is its share, e.g. PS 3 + PB 6 + behavior 1), capped at MAX_GRADE so
-       extra points can't go past 10;
-    2. replaced by the recovery score when that is higher.
-Final average: arithmetic mean of the four bimester grades, only once all
-four exist.
+Bimester grade: sum of the regular exams and the bonus points (each exam's
+max_score is its share, e.g. PS 3 + PB 6 + behavior 1), capped at MAX_GRADE so
+extra points can't go past 10.
+Annual average: weighted mean of the four bimester grades (20%, 30%, 20%,
+30%), only once all four exist, rounded to the nearest half point: below .25
+goes down to .0, from .25 up to .5, from .75 up to the next whole grade.
+Final grade: the annual average; below PASSING_GRADE the student takes the
+final recovery exam, and the final grade becomes the mean of the average and
+the recovery score, rounded the same way. The student passes with a final
+grade of at least PASSING_GRADE.
 """
 
 from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
 
-from grades.models import Bimester, ExamKind, Grade, GradeLevelSubject
+from grades.models import (
+    FINAL_RECOVERY,
+    Bimester,
+    ExamKind,
+    Grade,
+    GradeLevelSubject,
+)
 
 MAX_GRADE = Decimal("10.00")
 PASSING_GRADE = Decimal("6.00")
 CENTS = Decimal("0.01")
+HALF = Decimal("0.5")
+BIMESTER_WEIGHTS = (Decimal("0.2"), Decimal("0.3"), Decimal("0.2"), Decimal("0.3"))
 
 
 def _round(value):
     return value.quantize(CENTS, rounding=ROUND_HALF_UP)
 
 
+def _round_to_half(value):
+    """Round to .0 or .5, with .25 and .75 as the thresholds (7.24 -> 7.0,
+    7.25 -> 7.5, 7.75 -> 8.0)."""
+    halves = (value / HALF).quantize(Decimal(1), rounding=ROUND_HALF_UP)
+    return _round(halves * HALF)
+
+
 def bimester_grade(grades):
     """Grade of one subject in one bimester; None without regular grades.
 
     `grades` are Grade objects with `exam_type` loaded (select_related).
+    Recovery grades don't count: recovery is the final exam, not a bimester's.
     """
     total = Decimal(0)
     has_regular = False
-    recovery = None
     for grade in grades:
         kind = grade.exam_type.kind
         if kind == ExamKind.RECOVERY:
-            recovery = grade.score if recovery is None else max(recovery, grade.score)
-        else:
-            total += grade.score
-            has_regular = has_regular or kind == ExamKind.REGULAR
+            continue
+        total += grade.score
+        has_regular = has_regular or kind == ExamKind.REGULAR
 
     if not has_regular:
         return None
-    result = min(total, MAX_GRADE)
-    if recovery is not None:
-        result = max(result, recovery)
-    return _round(result)
+    return _round(min(total, MAX_GRADE))
+
+
+def recovery_score(grades):
+    """Best recovery score among `grades`; None without one."""
+    return max(
+        (grade.score for grade in grades if grade.exam_type.kind == ExamKind.RECOVERY),
+        default=None,
+    )
 
 
 def final_average(bimester_grades):
-    """Mean of the four bimester grades; None while any of them is missing."""
+    """Weighted mean of the four bimester grades, rounded to the nearest half
+    point; None while any of them is missing."""
     if len(bimester_grades) < len(Bimester) or None in bimester_grades:
         return None
-    return _round(sum(bimester_grades) / len(bimester_grades))
+    return _round_to_half(
+        sum(
+            grade * weight
+            for grade, weight in zip(bimester_grades, BIMESTER_WEIGHTS, strict=True)
+        )
+    )
+
+
+def needs_recovery(average):
+    return average is not None and average < PASSING_GRADE
+
+
+def final_grade(average, recovery):
+    """Mean of the annual average and the recovery score, rounded to the
+    nearest half point, for a student below the passing grade; the average
+    itself otherwise or while there is no recovery score."""
+    if not needs_recovery(average) or recovery is None:
+        return average
+    return _round_to_half((average + recovery) / 2)
+
+
+def annual_averages(enrollments, subject):
+    """Annual average of `subject` per enrollment pk, in one query."""
+    grouped = {}
+    for grade in Grade.objects.filter(
+        enrollment__in=enrollments, subject=subject, bimester__in=Bimester.values
+    ).select_related("exam_type"):
+        grouped.setdefault((grade.enrollment_id, grade.bimester), []).append(grade)
+    return {
+        enrollment.pk: final_average(
+            [
+                bimester_grade(grouped.get((enrollment.pk, bimester), []))
+                for bimester in Bimester.values
+            ]
+        )
+        for enrollment in enrollments
+    }
 
 
 @dataclass
 class ReportCardRow:
     subject: object
     bimesters: list = field(default_factory=list)  # one grade or None per bimester
-    final: Decimal | None = None
+    average: Decimal | None = None
+    recovery: Decimal | None = None
+
+    @property
+    def needs_recovery(self):
+        return needs_recovery(self.average)
+
+    @property
+    def final(self):
+        return final_grade(self.average, self.recovery)
 
     @property
     def passed(self):
-        return None if self.final is None else self.final >= PASSING_GRADE
+        """None while the year or the recovery exam is still to come."""
+        if self.average is None or (self.needs_recovery and self.recovery is None):
+            return None
+        return self.final >= PASSING_GRADE
 
 
 def report_card(enrollment):
@@ -91,7 +162,10 @@ def report_card(enrollment):
             ReportCardRow(
                 subject=level_subject.subject,
                 bimesters=grades,
-                final=final_average(grades),
+                average=final_average(grades),
+                recovery=recovery_score(
+                    grouped.get((level_subject.subject_id, FINAL_RECOVERY), [])
+                ),
             )
         )
     return rows

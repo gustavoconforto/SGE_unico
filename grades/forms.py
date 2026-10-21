@@ -3,8 +3,21 @@ from django.db import transaction
 from django.urls import reverse
 
 from employees.models import Employee
-from grades.models import ExamType, Grade, GradeLevel, GradeLevelSubject, Subject
-from grades.services import bimester_grade
+from grades.models import (
+    FINAL_RECOVERY,
+    ExamType,
+    Grade,
+    GradeLevel,
+    GradeLevelSubject,
+    Subject,
+)
+from grades.services import (
+    annual_averages,
+    bimester_grade,
+    final_grade,
+    needs_recovery,
+    recovery_score,
+)
 
 
 class SubjectForm(forms.ModelForm):
@@ -122,11 +135,24 @@ class GradeLevelSubjectFilterForm(forms.Form):
 
 class GradeSheetForm(forms.Form):
     """Every score of one subject and bimester for a class: a row per enrollment
-    and a column per exam type. Blank cells delete the grade."""
+    and a column per exam type. Blank cells delete the grade.
+
+    For the final recovery, only the enrollments whose annual average is below
+    the passing grade get a row.
+    """
 
     def __init__(self, *args, enrollments, exam_types, subject, bimester, **kwargs):
         super().__init__(*args, **kwargs)
         self.enrollments = list(enrollments)
+        self.is_recovery = bimester == FINAL_RECOVERY
+        self.averages = {}
+        if self.is_recovery:
+            self.averages = annual_averages(self.enrollments, subject)
+            self.enrollments = [
+                enrollment
+                for enrollment in self.enrollments
+                if needs_recovery(self.averages[enrollment.pk])
+            ]
         self.exam_types = list(exam_types)
         self.subject = subject
         self.bimester = bimester
@@ -163,7 +189,8 @@ class GradeSheetForm(forms.Form):
         return f"score_{enrollment.pk}_{exam_type.pk}"
 
     def rows(self):
-        """(enrollment, bound fields in exam type order, saved bimester grade)."""
+        """(enrollment, bound fields in exam type order, annual average, saved
+        grade): the bimester grade, or the final grade after recovery."""
         grades_by_enrollment = {}
         for (enrollment_id, _), grade in self.existing.items():
             grades_by_enrollment.setdefault(enrollment_id, []).append(grade)
@@ -173,7 +200,16 @@ class GradeSheetForm(forms.Form):
                 self[self.field_name(enrollment, exam_type)]
                 for exam_type in self.exam_types
             ]
-            yield enrollment, fields, bimester_grade(grades)
+            if self.is_recovery:
+                average = self.averages[enrollment.pk]
+                yield (
+                    enrollment,
+                    fields,
+                    average,
+                    final_grade(average, recovery_score(grades)),
+                )
+            else:
+                yield enrollment, fields, None, bimester_grade(grades)
 
     @transaction.atomic
     def save(self):

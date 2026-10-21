@@ -38,6 +38,8 @@
           {% for value, label in bimesters %}
           <th class="px-3 py-2.5 text-right font-semibold whitespace-nowrap md:px-4 md:py-3 lg:px-6 lg:py-3.5">{{ value }}º bim.</th>
           {% endfor %}
+          <th class="px-3 py-2.5 text-right font-semibold whitespace-nowrap md:px-4 md:py-3 lg:px-6 lg:py-3.5">Média anual</th>
+          <th class="px-3 py-2.5 text-right font-semibold whitespace-nowrap md:px-4 md:py-3 lg:px-6 lg:py-3.5">Recuperação</th>
           <th class="px-3 py-2.5 text-right font-semibold whitespace-nowrap md:px-4 md:py-3 lg:px-6 lg:py-3.5">Média final</th>
           <th class="px-3 py-2.5 text-right font-semibold md:px-4 md:py-3 lg:px-6 lg:py-3.5">Situação</th>
         </tr>
@@ -53,11 +55,19 @@
             {{ bimester_grade|floatformat:2|default:"-" }}
           </td>
           {% endfor %}
+          <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+            {{ row.average|floatformat:2|default:"-" }}
+          </td>
+          <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+            {% if row.needs_recovery %}{{ row.recovery|floatformat:2|default:"-" }}{% else %}-{% endif %}
+          </td>
           <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-semibold text-slate-800">
             {{ row.final|floatformat:2|default:"-" }}
           </td>
           <td class="px-2 py-2 text-right sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5">
-            {% if row.passed is None %}
+            {% if row.passed is None and row.needs_recovery %}
+              <span class="badge badge-sm badge-warning">Em recuperação</span>
+            {% elif row.passed is None %}
               <span class="badge badge-sm badge-neutral badge-outline">Em andamento</span>
             {% elif row.passed %}
               <span class="badge badge-sm badge-success">Aprovado</span>
@@ -67,7 +77,7 @@
           </td>
         </tr>
       {% empty %}
-        {% include 'components/table/empty_table.html' with collspan=7 %}
+        {% include 'components/table/empty_table.html' with collspan=9 %}
       {% endfor %}
       </tbody>
     </table>

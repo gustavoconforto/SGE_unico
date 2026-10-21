@@ -120,12 +120,21 @@ Grades and averages are never stored; `grades/services.py` computes them per
 request:
 
 - `bimester_grade(grades)`: **sum** of the `R` and `B` scores, capped at 10
-  (so extra points can't go past 10), then replaced by the `C` score when that
-  is higher. `None` without any `R` score. Rounded half-up to cents.
-- `final_average(grades)`: mean of the four bimester grades, `None` until all four
-  exist. `PASSING_GRADE` is 6.00.
+  (so extra points can't go past 10). `C` scores don't count. `None` without
+  any `R` score. Rounded half-up to cents.
+- `final_average(grades)`: the **annual average**, the weighted mean of the four
+  bimester grades (20%, 30%, 20%, 30%) rounded to the half point (.25 → .5,
+  .75 → next whole), `None` until all four exist. `PASSING_GRADE` is 6.00.
+- **Final recovery**: a student whose annual average is below 6 takes the
+  recovery exam (`C`) of that subject. Its grades are stored with
+  `bimester = FINAL_RECOVERY` (5, "Recuperação final"); `Grade.clean()` keeps
+  `C` exams in that period and every other exam out of it. `final_grade(average,
+  recovery)` is the mean of the average and the recovery score, rounded to the
+  half point; the student passes when it is ≥ 6. A recovery score is ignored
+  when the average is already ≥ 6.
 - `report_card(enrollment)`: one `ReportCardRow` per subject of the class's series (4 bimester grades,
-  final, `passed`), in two queries.
+  `average`, `recovery`, `final`, `passed`), in two queries. `passed` is `None`
+  while the year is incomplete or the recovery score is missing ("Em recuperação").
 
 `Enrollment.clean()` requires the student to have a **financial guardian**, and
 the class to match the contract's year, program and grade.
@@ -333,7 +342,11 @@ changing the subject reloads them from `grades:grade_level_subject_teachers`
 
 ### Grade entry (`grades/entry/`)
 
-Same pattern with four selects: year → class → subject → bimester.
+Same pattern with four selects: year → class → subject → period (the four
+bimesters plus "Recuperação final"). A bimester sheet has every exam type but
+the `C` ones; the final recovery sheet has only the `C` ones and only the
+students whose annual average is below 6 (`annual_averages()`), with their
+average and resulting final grade.
 `GradeEntryOptionsView` re-renders the class, subject and bimester selects
 (`#grade-selects`) when the year or class changes, clears `#search-results`
 out of band and pushes `?school_year=&school_class=`. `grade_selection()`
