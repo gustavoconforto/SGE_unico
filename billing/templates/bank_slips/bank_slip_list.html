@@ -3,6 +3,9 @@
 {% block page_title %}Boletos{% endblock page_title %}
 
 {% block header %}
+  <div class="flex items-center justify-between px-2 pb-4">
+    {% include 'components/page/heading.html' with title='Boletos' %}
+  </div>
   {% include 'components/search/filter_form.html' with placeholder='Pesquisar por nosso número, conta, responsável ou aluno...' %}
 {% endblock header %}
 

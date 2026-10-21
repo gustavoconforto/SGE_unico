@@ -3,13 +3,16 @@
 {% block page_title %}Remessas{% endblock page_title %}
 
 {% block header %}
-  <div class="flex justify-end gap-2 px-2 pb-4">
-    <a href={% url 'billing:bank_settings_edit' %}>
-    {% include 'components/button/button_select.html' with label='Configuração bancária'%}
-    </a>
-    <a href={% url 'billing:remittance_add' %}>
-    {% include 'components/button/button_select.html' with label='Gerar remessa'%}
-    </a>
+  <div class="flex items-center justify-between px-2 pb-4">
+    {% include 'components/page/heading.html' with title='Remessas' %}
+    <div class="flex gap-2">
+      <a href={% url 'billing:bank_settings_edit' %}>
+      {% include 'components/button/button_select.html' with label='Configuração bancária'%}
+      </a>
+      <a href={% url 'billing:remittance_add' %}>
+      {% include 'components/button/button_select.html' with label='Gerar remessa'%}
+      </a>
+    </div>
   </div>
   {% include 'components/search/filter_form.html' with placeholder='Pesquisar por número da remessa...' %}
 {% endblock header %}

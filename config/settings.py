@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "billing",
     "departments",
     "grades",
+    "incidents",
 ]
 
 MIDDLEWARE = [

@@ -1,0 +1,19 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Ocorrências{% endblock page_title %}
+
+{% block header %}
+  <div class="flex items-center justify-between px-2 pb-4">
+    {% include 'components/page/heading.html' with title='Ocorrências' %}
+    <a href={% url 'incidents:incident_add' %}>
+    {% include 'components/button/button_select.html' with label='Adicionar registro'%}
+    </a>
+  </div>
+  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por aluno ou tipo...' %}
+{% endblock header %}
+
+{% block content %}
+  <div id="search-results">
+    {% include 'incidents/partials/incident_table.html' %}
+  </div>
+{% endblock content %}

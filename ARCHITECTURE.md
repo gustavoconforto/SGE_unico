@@ -411,7 +411,7 @@ pages; don't introduce new colors or components without a reason.
 
 | Page | Structure |
 |---|---|
-| List | `header`: right-aligned "Adicionar registro" button + `filter_form.html` with a `placeholder` naming the searchable fields. `content`: `<div id="search-results">{% include partial %}</div>` |
+| List | `header`: page name on the left (`components/page/heading.html` with `title=`), right-aligned "Adicionar registro" button + `filter_form.html` with a `placeholder` naming the searchable fields. `content`: `<div id="search-results">{% include partial %}</div>` |
 | Add / edit | centered `h2` "Gerenciamento de <plural lowercase>" + subtitle, then `<thing>_form.html` in a `bg-slate-50 rounded-2xl p-6 md:p-8` card. Fields side by side go in `flex w-full gap-4` rows |
 | Delete | same header, subtitle "Deseja, realmente, deletar este registro?", one `<p>` per key field, red delete button + cancel |
 
