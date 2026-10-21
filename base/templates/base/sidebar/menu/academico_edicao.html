@@ -1,0 +1,14 @@
+<ul class="menu bg-base-200 rounded-box w-56">
+    <li>
+        <details >
+            <summary class="font-semibold">Edição</summary>
+            <ul>
+                {% include 'base/sidebar/items/menu_item.html' with path="classes:class_list" label="Turmas" icon="class" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="departments:department_list" label="Departamentos" icon="groups" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="grades:subject_list" label="Matérias" icon="menu_book" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="grades:grade_level_subject_list" label="Matérias por série" icon="library_books" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="grades:exam_type_list" label="Tipos de avaliação" icon="assignment" %}
+            </ul>
+        </details>
+    </li>
+</ul>

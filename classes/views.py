@@ -11,6 +11,7 @@ from base.search import HtmxSearchMixin
 from classes.forms import ClassForm
 from classes.models import Class
 from enrollments.models import EnrollmentStatus, SchoolYear
+from grades.models import GradeLevelSubject
 from students.models import Student
 
 
@@ -86,7 +87,17 @@ class ClassDetailView(HtmxSearchMixin, ListView):
         context["school_years"] = SchoolYear.objects.order_by("-begins")
         context["selected_year_id"] = year_id
         context["classes"] = classes_of_year(year_id)
-        context["selected_class_id"] = get_int_param(self.request, "school_class")
+        class_id = get_int_param(self.request, "school_class")
+        context["selected_class_id"] = class_id
+        selected_class = Class.objects.filter(pk=class_id).first() if class_id else None
+        context["selected_class"] = selected_class
+        context["level_subjects"] = (
+            GradeLevelSubject.objects.filter(grade_level=selected_class.grade_level)
+            .select_related("subject")
+            .prefetch_related("teachers")
+            if selected_class and selected_class.grade_level
+            else GradeLevelSubject.objects.none()
+        )
         return context
 
 

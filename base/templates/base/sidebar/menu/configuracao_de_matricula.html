@@ -1,0 +1,14 @@
+<ul class="menu bg-base-200 rounded-box w-56">
+    <li>
+        <details >
+            <summary class="font-semibold">Configuração de Matrícula</summary>
+            <ul>
+                {% include 'base/sidebar/items/menu_item.html' with path="enrollments:school_year_list" label="Ano escolar" icon="calendar_month" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="programs:program_list" label="Cursos oferecidos" icon="auto_stories" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="enrollments:enrollment_type_list" label="Contratos" icon="contract" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="enrollments:discount_type_list" label="Descontos" icon="percent" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="enrollments:needed_document_list" label="Documentos" icon="description" %}
+            </ul>
+        </details>
+    </li>
+</ul>

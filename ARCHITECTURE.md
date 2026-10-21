@@ -26,8 +26,9 @@ Browser ──HTTP──▶ config/urls.py ──▶ <app>/urls.py ──▶ cla
 | `base` | `/` | Abstract models (`TimeStampedModel`, `Person`), htmx search/filter mixins, layout and UI components, login page template, users/groups/permissions screens, `clean` and `seed` commands |
 | `employees` | `/employees/` | `EmployeeRoleType`, `Employee` |
 | `programs` | `/programs/` | `Program` (course: Ensino Médio, Pré UNB, Pré ENEM) |
-| `classes` | `/classes/` | `Class` (turma), and the class roster page (students actively enrolled in a class) |
-| `grades` | `/grades/` | `Subject` (matéria). Grade entry (notas) is planned here but not built |
+| `classes` | `/classes/` | `Class` (turma), and the class page (the class's subjects and the students actively enrolled in it) |
+| `departments` | `/departments/` | `Department`: groups subjects and the teachers who can teach them |
+| `grades` | `/grades/` | `Subject` (matéria), `ExamType`, `GradeLevelSubject`, `Grade`; grade entry sheet, report card, grade calculation (`grades/services.py`) |
 | `students` | `/students/` | `Student`, `Guardian`, `GuardianAssociation` |
 | `enrollments` | `/enrollments/` | `SchoolYear`, `EnrollmentType`, `DiscountType`, `NeededDocumentType`, `Enrollment`, `EnrollmentNeededDocument` |
 | `accounts` | `/accounts/` | `AccountType`, `Supplier`, `Account` (+ receivable/payable proxies), `Installment`, `Payment` |
@@ -42,7 +43,7 @@ base ◀── students ◀── enrollments ──▶ classes ──▶ progra
                           ▼  │ (signals)
                        accounts ◀── billing
 
-grades (standalone for now)
+employees ◀── departments ◀── grades ──▶ enrollments, classes, employees
 ```
 
 `accounts` imports `Enrollment` and `Guardian`. `enrollments` reaches
@@ -52,6 +53,8 @@ installment formset on the enrollment edit page. `classes.Class.year` refers to
 exception to the arrow is `classes/views.py`, which imports `SchoolYear`,
 `EnrollmentStatus` and `Student` for the class roster page. Keep those imports
 in views; `classes/models.py` must not import `enrollments` or `students`.
+`classes/views.py` also imports `grades.models.GradeLevelSubject` to list the
+subjects of the selected class's series on the class page.
 
 ## Data model
 
@@ -102,7 +105,27 @@ erDiagram
 | `DiscountType` | description and percentage (0–100) |
 | `Enrollment` | student, contract type, optional class, status (`A` active, `T` transferred, `D` dropped, `C` completed, `X` cancelled), date, discount, `due_day` (1–28). Copies `gross_value` and `discount_percent` from the contract and discount on save, so later price changes don't affect existing contracts. Unique per (student, contract type) |
 | `EnrollmentNeededDocument` | one row per required document type per enrollment, with `is_delivered` |
-| `Subject` (`grades`) | `name` unique. Not linked to classes or programs yet. `seed` creates the ten high-school subjects |
+| `Department` (`departments`) | `name` unique; `teachers` (many-to-many to `Employee`; a teacher can be in several departments). Can't be deleted while subjects use it |
+| `Subject` (`grades`) | `name` unique; optional `department`. `seed` creates the ten high-school subjects |
+
+### Grade models (`grades/models.py`)
+
+| Model | Key fields and rules |
+|---|---|
+| `ExamType` | name and `code` (both unique, code upper-cased by the form), `kind` (`R` avaliação, `B` ponto extra, `C` recuperação), `max_score` (> 0), `order` (column order). There are no weights: each exam's `max_score` is its share of the bimester (e.g. PS 3, PB 6, comportamento 1) |
+| `GradeLevelSubject` | a subject taught in every class of a series (`grade_level` 1–3, matched against `Class.grade_level`), with **several teachers** (`teachers`, many-to-many to `Employee`, limited to the teachers of the subject's department) and classes per week (decimal, ≥ 0: a weekly mean such as 1,5). Unique per (series, subject). The report card's rows and the grade entry subjects come from it; a class without a series has no subjects |
+| `Grade` | **enrollment** (not student: it fixes year and class), subject, exam type, bimester (1–4), `score` (0 to the exam's `max_score`). Unique per (enrollment, subject, exam type, bimester). `clean()` requires the subject to be taught in the series of the enrollment's class |
+
+Grades and averages are never stored; `grades/services.py` computes them per
+request:
+
+- `bimester_grade(grades)`: **sum** of the `R` and `B` scores, capped at 10
+  (so extra points can't go past 10), then replaced by the `C` score when that
+  is higher. `None` without any `R` score. Rounded half-up to cents.
+- `final_average(grades)`: mean of the four bimester grades, `None` until all four
+  exist. `PASSING_GRADE` is 6.00.
+- `report_card(enrollment)`: one `ReportCardRow` per subject of the class's series (4 bimester grades,
+  final, `passed`), in two queries.
 
 `Enrollment.clean()` requires the student to have a **financial guardian**, and
 the class to match the contract's year, program and grade.
@@ -299,7 +322,33 @@ school_class select ──hx-get──▶ ClassDetailView (hx-include the year, 
 Both values stay in the URL, so a reload rebuilds the page from
 `?school_year=&school_class=`. `get_int_param()` ignores non-numeric values.
 Use this pattern for any "pick A, then B filtered by A" screen. The page has no
-sidebar link yet.
+sidebar link yet. When a class is picked, the partial also shows the subjects
+and teachers of the class's series (read-only), linking to the "Matérias por
+série" list (`grades:grade_level_subject_list?grade_level=<n>`), a standard
+CRUD with a series filter where subjects and teachers are managed. In its
+form, `GradeLevelSubjectForm` limits the teacher checkboxes to the subject's
+department (none, with a help text, when the subject has no department);
+changing the subject reloads them from `grades:grade_level_subject_teachers`
+(`hx-include` keeps the boxes already ticked).
+
+### Grade entry (`grades/entry/`)
+
+Same pattern with four selects: year → class → subject → bimester.
+`GradeEntryOptionsView` re-renders the class, subject and bimester selects
+(`#grade-selects`) when the year or class changes, clears `#search-results`
+out of band and pushes `?school_year=&school_class=`. `grade_selection()`
+drops a class that isn't in the chosen year and a subject the class's series
+doesn't have. Subject and bimester load the sheet (`GradeEntryView`) into
+`#search-results`.
+
+The sheet is `GradeSheetForm`: one optional `DecimalField` (comma decimals)
+per active enrollment × exam type, named `score_<enrollment>_<exam type>`.
+On POST, any invalid cell saves nothing; otherwise `save()` creates, updates
+or (for an emptied cell) deletes grades in one transaction, then redirects to
+the same URL.
+
+The report card (`grades/report_card/<enrollment pk>/`) is linked from the
+enrollment list.
 
 ### Mixin order
 
@@ -339,8 +388,8 @@ pages; don't introduce new colors or components without a reason.
   - The other sections are still inline in `sidebar/sidebar.html`. Each entry
     is `<a href={% url "app:name" %} class="nav-link"><svg …/>Label</a>`,
     with a 24×24 outline Heroicons icon at `stroke-width="1.5"`.
-  - **Acadêmico** has a nested **Edição** submenu (Turmas, Matérias, Notas)
-    above Matrículas, Alunos and Responsáveis.
+  - **Acadêmico** has a nested **Edição** submenu (Turmas, Matérias, Departamentos, Matérias por série, Tipos de avaliação)
+    above Lançamento de notas, Matrículas, Alunos and Responsáveis.
 
   Add a new entry in the style of its section. `base/templates/base/sidebar.html`
   (no subfolder) is the old copy and is no longer included anywhere.
@@ -413,8 +462,10 @@ forms, filters, htmx partials and protected deletes. `billing/tests.py` covers
 CNAB files, remittances, write-offs and return import. `enrollments/tests.py`
 covers the installments generated for an enrollment and the settings
 redirects. `base/tests.py` covers the login page, and `classes/tests.py` the
-class roster page and its year → class select. `employees`, `programs`,
-`students` and `grades` have no tests yet. htmx requests are simulated with
+class roster page and its year → class select, and `grades/tests.py` the
+averages, report card, exam types, series subjects and grade entry, and
+`departments/tests.py` the department screens.
+`employees`, `programs` and `students` have no tests yet. htmx requests are simulated with
 `HTTP_HX_REQUEST="true"`. New features should come with tests in the same
 style.
 

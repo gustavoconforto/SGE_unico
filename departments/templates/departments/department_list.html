@@ -1,0 +1,19 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Departamentos{% endblock page_title %}
+
+{% block header %}
+  <div class="flex justify-between px-2 pb-4">
+    <h1></h1>
+    <a href={% url 'departments:department_add' %}>
+    {% include 'components/button/button_select.html' with label='Adicionar registro'%}
+    </a>
+  </div>
+  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por departamento, matéria ou professor...' %}
+{% endblock header %}
+
+{% block content %}
+  <div id="search-results">
+    {% include 'departments/partials/department_table.html' %}
+  </div>
+{% endblock content %}

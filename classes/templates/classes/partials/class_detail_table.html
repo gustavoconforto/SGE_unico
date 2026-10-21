@@ -1,7 +1,51 @@
+{% if selected_class %}
+  <div class="flex items-center justify-between px-2 pb-3">
+    <h3 class="text-lg font-semibold text-slate-800">
+      Matérias{% if selected_class.grade_level %} da {{ selected_class.grade_level }}ª série{% endif %}
+    </h3>
+    {% if selected_class.grade_level %}
+    <a href="{% url 'grades:grade_level_subject_list' %}?grade_level={{ selected_class.grade_level }}">
+      {% include 'components/button/button_select.html' with label='Gerenciar matérias da série' %}
+    </a>
+    {% endif %}
+  </div>
+  <table class=" overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm mb-8">
+    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+      <tr>
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Matéria</th>
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Professores</th>
+        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Aulas por semana</th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-slate-100">
+    {% for level_subject in level_subjects %}
+      <tr class="hover:bg-slate-50">
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+            {{ level_subject.subject }}
+        </td>
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+            {{ level_subject.teachers.all|join:", "|default:"-" }}
+        </td>
+        <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+            {{ level_subject.weekly_classes|floatformat:"-2"|default:"-" }}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="3" class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-center">
+          {% if selected_class.grade_level %}Nenhuma matéria cadastrada para esta série{% else %}Turma sem série: informe a série da turma para ver as matérias{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h3 class="px-2 pb-3 text-lg font-semibold text-slate-800">Alunos</h3>
+{% endif %}
   <table class=" overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
     <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
       <tr>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Nome</th>        
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Nome</th>
       </tr>
     </thead>
     <tbody class="bg-white divide-y divide-slate-100">
