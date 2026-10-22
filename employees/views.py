@@ -1,6 +1,7 @@
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
+from accounts.views import ProtectedDeleteMixin, SuccessMessageMixin
 from base.search import HtmxSearchMixin
 from employees.forms import EmployeeForm, EmployeeRoleTypeForm
 from employees.models import Employee, EmployeeRoleType
@@ -18,21 +19,23 @@ class EmployeeListView(HtmxSearchMixin, ListView):
     search_fields = ("name", "cpf", "role__role")
 
 
-class EmployeeCreateView(CreateView):
+class EmployeeCreateView(SuccessMessageMixin, CreateView):
     model = Employee
     template_name = "employees/employee_add.html"
     form_class = EmployeeForm
     success_url = reverse_lazy("employees:employee_list")
+    success_message = "Registro cadastrado com sucesso"
 
 
-class EmployeeUpdateView(UpdateView):
+class EmployeeUpdateView(SuccessMessageMixin, UpdateView):
     model = Employee
     template_name = "employees/employee_edit.html"
     form_class = EmployeeForm
     success_url = reverse_lazy("employees:employee_list")
+    success_message = "Registro atualizado com sucesso"
 
 
-class EmployeeDeleteView(DeleteView):
+class EmployeeDeleteView(ProtectedDeleteMixin, DeleteView):
     model = Employee
     template_name = "employees/employee_delete.html"
     success_url = reverse_lazy("employees:employee_list")
@@ -51,21 +54,23 @@ class EmployeeRoleListView(HtmxSearchMixin, ListView):
     search_fields = ("role",)
 
 
-class EmployeeRoleCreateView(CreateView):
+class EmployeeRoleCreateView(SuccessMessageMixin, CreateView):
     model = EmployeeRoleType
     template_name = "employees/employee_role_add.html"
     form_class = EmployeeRoleTypeForm
     success_url = reverse_lazy("employees:employee_role_list")
+    success_message = "Registro cadastrado com sucesso"
 
 
-class EmployeeRoleUpdateView(UpdateView):
+class EmployeeRoleUpdateView(SuccessMessageMixin, UpdateView):
     model = EmployeeRoleType
     template_name = "employees/employee_role_edit.html"
     form_class = EmployeeRoleTypeForm
     success_url = reverse_lazy("employees:employee_role_list")
+    success_message = "Registro atualizado com sucesso"
 
 
-class EmployeeRoleDeleteView(DeleteView):
+class EmployeeRoleDeleteView(ProtectedDeleteMixin, DeleteView):
     model = EmployeeRoleType
     template_name = "employees/employee_role_delete.html"
     success_url = reverse_lazy("employees:employee_role_list")

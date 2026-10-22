@@ -1,7 +1,7 @@
 from django.db import models
 
 from base.models import TimeStampedModel
-from students.models import Student
+from enrollments.models import Enrollment
 
 
 class IncidentType(models.Model):
@@ -27,8 +27,13 @@ class Incident(TimeStampedModel):
     incident_type = models.ForeignKey(
         IncidentType, verbose_name="Tipo", on_delete=models.PROTECT
     )
-    student = models.ForeignKey(Student, verbose_name="Aluno", on_delete=models.PROTECT)
-    incident_data = models.DateField("Data da ocorrência")
+    enrollment = models.ForeignKey(
+        Enrollment,
+        on_delete=models.PROTECT,
+        related_name="incidents",
+        verbose_name="Matrícula",
+    )
+    incident_date = models.DateField("Data da ocorrência")
 
     class Meta:
         verbose_name = "Ocorrência"
@@ -36,4 +41,49 @@ class Incident(TimeStampedModel):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.student} - {self.incident_type}"
+        return f"{self.enrollment.student} - {self.incident_type}"
+
+
+class StudentDelayType(models.TextChoices):
+    ACCEPTABLE = "A", "Tolerado"
+    UNACCEPTABLE = "U", "Não tolerado"
+
+
+class StudentDelay(TimeStampedModel):
+    delay_type = models.CharField(
+        "Tipo", max_length=1, choices=StudentDelayType.choices
+    )
+    enrollment = models.ForeignKey(
+        Enrollment,
+        on_delete=models.PROTECT,
+        related_name="delays",
+        verbose_name="Matrícula",
+    )
+    incident_date = models.DateField("Data da ocorrência")
+
+    class Meta:
+        verbose_name = "Atraso"
+        verbose_name_plural = "Atrasos"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.enrollment.student} - {self.get_delay_type_display()}"
+
+
+class BathroomPermission(TimeStampedModel):
+    enrollment = models.ForeignKey(
+        Enrollment,
+        on_delete=models.PROTECT,
+        related_name="bathroom_permissions",
+        verbose_name="Matrícula",
+    )
+    class_period = models.SmallIntegerField("Horário")
+    incident_date = models.DateField("Data da ocorrência")
+
+    class Meta:
+        verbose_name = "Saída para banheiro"
+        verbose_name_plural = "Saídas para banheiro"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.enrollment.student} - {self.class_period}º horário"

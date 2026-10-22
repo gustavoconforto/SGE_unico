@@ -43,21 +43,23 @@ class SubjectListView(HtmxSearchMixin, ListView):
     search_fields = ("name", "department__name")
 
 
-class SubjectCreateView(CreateView):
+class SubjectCreateView(SuccessMessageMixin, CreateView):
     model = Subject
     template_name = "subjects/subject_add.html"
     form_class = SubjectForm
     success_url = reverse_lazy("grades:subject_list")
+    success_message = "Registro cadastrado com sucesso"
 
 
-class SubjectUpdateView(UpdateView):
+class SubjectUpdateView(SuccessMessageMixin, UpdateView):
     model = Subject
     template_name = "subjects/subject_edit.html"
     form_class = SubjectForm
     success_url = reverse_lazy("grades:subject_list")
+    success_message = "Registro atualizado com sucesso"
 
 
-class SubjectDeleteView(DeleteView):
+class SubjectDeleteView(ProtectedDeleteMixin, DeleteView):
     model = Subject
     template_name = "subjects/subject_delete.html"
     success_url = reverse_lazy("grades:subject_list")

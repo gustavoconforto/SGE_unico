@@ -6,6 +6,8 @@
                 {% include 'base/sidebar/menu/academico_edicao.html' %}
                 {% include 'base/sidebar/items/menu_item.html' with path="grades:grade_entry" label="Lançamento de notas" icon="edit_note" %}
                 {% include 'base/sidebar/items/menu_item.html' with path="incidents:incident_list" label="Ocorrências" icon="report" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="incidents:student_delay_list" label="Atrasos" icon="schedule" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="incidents:bathroom_permission_list" label="Saídas para banheiro" icon="wc" %}
                 {% include 'base/sidebar/items/menu_item.html' with path="enrollments:enrollment_list" label="Matrículas" icon="how_to_reg" %}
                 {% include 'base/sidebar/items/menu_item.html' with path="students:student_list" label="Alunos" icon="school" %}
                 {% include 'base/sidebar/items/menu_item.html' with path="students:guardian_list" label="Responsáveis" icon="family_restroom" %}

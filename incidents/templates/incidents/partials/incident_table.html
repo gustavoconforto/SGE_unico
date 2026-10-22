@@ -3,6 +3,7 @@
       <tr>
         <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Data</th>
         <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Aluno</th>
+        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Turma</th>
         <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Tipo</th>
         <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Penalidade</th>
         <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Opções</th>
@@ -12,10 +13,13 @@
     {% for incident in incidents %}
       <tr class="hover:bg-slate-50">
         <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 whitespace-nowrap">
-            {{ incident.incident_data|date:"d/m/Y" }}
+            {{ incident.incident_date|date:"d/m/Y" }}
         </td>
         <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
-            {{ incident.student }}
+            {{ incident.enrollment.student }}
+        </td>
+        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+            {{ incident.enrollment.school_class|default:"-" }}
         </td>
         <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
             {{ incident.incident_type }}
@@ -35,7 +39,7 @@
         </td>
       </tr>
       {% empty %}
-      {% include 'components/table/empty_table.html' with collspan=5%}
+      {% include 'components/table/empty_table.html' with collspan=6%}
       {% endfor %}
     </tbody>
   </table>

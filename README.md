@@ -21,7 +21,7 @@ is in English.
 | Area | What you can do |
 |---|---|
 | Recursos Humanos | Users, groups and permissions (Django auth), employee roles, employees |
-| Acadêmico | Courses (programs), school years and their four bimesters, classes, class roster (active students of a class), subjects, students with their guardians, enrollment contract types, discount types, required documents, enrollments. Grade entry isn't built yet |
+| Acadêmico | Courses (programs), school years and their four bimesters, classes, class roster (active students of a class), subjects, students with their guardians, enrollment contract types, discount types, required documents, enrollments, grade entry and report cards, student incidents (ocorrências), delays and bathroom permissions |
 | Financeiro | Financial categories, suppliers, accounts receivable, accounts payable, installments, payments, bank slips (CNAB 400 remittance and return files) |
 
 Creating an enrollment automatically creates its receivable account and

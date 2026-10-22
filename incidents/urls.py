@@ -1,6 +1,10 @@
 from django.urls import path
 
 from incidents.views import (
+    BathroomPermissionCreateView,
+    BathroomPermissionDeleteView,
+    BathroomPermissionListView,
+    BathroomPermissionUpdateView,
     IncidentCreateView,
     IncidentDeleteView,
     IncidentListView,
@@ -9,6 +13,10 @@ from incidents.views import (
     IncidentTypeListView,
     IncidentTypeUpdateView,
     IncidentUpdateView,
+    StudentDelayCreateView,
+    StudentDelayDeleteView,
+    StudentDelayListView,
+    StudentDelayUpdateView,
 )
 
 app_name = "incidents"
@@ -29,5 +37,37 @@ urlpatterns = [
         "type/delete/<int:pk>/",
         IncidentTypeDeleteView.as_view(),
         name="incident_type_delete",
+    ),
+    path("delay/list/", StudentDelayListView.as_view(), name="student_delay_list"),
+    path("delay/add/", StudentDelayCreateView.as_view(), name="student_delay_add"),
+    path(
+        "delay/edit/<int:pk>/",
+        StudentDelayUpdateView.as_view(),
+        name="student_delay_edit",
+    ),
+    path(
+        "delay/delete/<int:pk>/",
+        StudentDelayDeleteView.as_view(),
+        name="student_delay_delete",
+    ),
+    path(
+        "bathroom/list/",
+        BathroomPermissionListView.as_view(),
+        name="bathroom_permission_list",
+    ),
+    path(
+        "bathroom/add/",
+        BathroomPermissionCreateView.as_view(),
+        name="bathroom_permission_add",
+    ),
+    path(
+        "bathroom/edit/<int:pk>/",
+        BathroomPermissionUpdateView.as_view(),
+        name="bathroom_permission_edit",
+    ),
+    path(
+        "bathroom/delete/<int:pk>/",
+        BathroomPermissionDeleteView.as_view(),
+        name="bathroom_permission_delete",
     ),
 ]

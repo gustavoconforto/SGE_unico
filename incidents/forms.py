@@ -1,22 +1,65 @@
 from django import forms
+from django.db.models import Q
 
-from incidents.models import Incident, IncidentType
+from accounts.forms import date_input
+from enrollments.models import Enrollment, EnrollmentStatus
+from incidents.models import BathroomPermission, Incident, IncidentType, StudentDelay
 
 
-class IncidentForm(forms.ModelForm):
+class ActiveEnrollmentFormMixin:
+    """Limit the enrollment select to active enrollments, keeping the current
+    one when editing."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["enrollment"].queryset = Enrollment.objects.filter(
+            Q(status=EnrollmentStatus.ACTIVE) | Q(pk=self.instance.enrollment_id)
+        ).select_related(
+            "student", "enrollment_type__program", "enrollment_type__school_year"
+        )
+
+
+class IncidentForm(ActiveEnrollmentFormMixin, forms.ModelForm):
     class Meta:
         model = Incident
-        fields = ["incident_type", "student", "incident_data"]
+        fields = ["incident_type", "enrollment", "incident_date"]
         widgets = {
             "incident_type": forms.Select(
                 attrs={"class": "select select-neutral w-full"}
             ),
-            "student": forms.Select(attrs={"class": "select select-neutral w-full"}),
-            "incident_data": forms.DateInput(
-                format="%Y-%m-%d",
-                attrs={"type": "date", "class": "input input-neutral w-full"},
-            ),
+            "enrollment": forms.Select(attrs={"class": "select select-neutral w-full"}),
+            "incident_date": date_input(),
         }
+
+
+class StudentDelayForm(ActiveEnrollmentFormMixin, forms.ModelForm):
+    class Meta:
+        model = StudentDelay
+        fields = ["enrollment", "delay_type", "incident_date"]
+        widgets = {
+            "enrollment": forms.Select(attrs={"class": "select select-neutral w-full"}),
+            "delay_type": forms.Select(attrs={"class": "select select-neutral w-full"}),
+            "incident_date": date_input(),
+        }
+
+
+class BathroomPermissionForm(ActiveEnrollmentFormMixin, forms.ModelForm):
+    class Meta:
+        model = BathroomPermission
+        fields = ["enrollment", "class_period", "incident_date"]
+        widgets = {
+            "enrollment": forms.Select(attrs={"class": "select select-neutral w-full"}),
+            "class_period": forms.NumberInput(
+                attrs={"class": "input input-neutral w-full", "min": 1}
+            ),
+            "incident_date": date_input(),
+        }
+
+    def clean_class_period(self):
+        class_period = self.cleaned_data["class_period"]
+        if class_period is not None and class_period < 1:
+            raise forms.ValidationError("O horário deve ser maior que zero.")
+        return class_period
 
 
 class IncidentTypeForm(forms.ModelForm):

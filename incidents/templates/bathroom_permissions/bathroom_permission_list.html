@@ -1,0 +1,19 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Saídas para banheiro{% endblock page_title %}
+
+{% block header %}
+  <div class="flex items-center justify-between px-2 pb-4">
+    {% include 'components/page/heading.html' with title='Saídas para banheiro' %}
+    <a href={% url 'incidents:bathroom_permission_add' %}>
+    {% include 'components/button/button_select.html' with label='Adicionar registro'%}
+    </a>
+  </div>
+  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por aluno...' %}
+{% endblock header %}
+
+{% block content %}
+  <div id="search-results">
+    {% include 'bathroom_permissions/partials/bathroom_permission_table.html' %}
+  </div>
+{% endblock content %}

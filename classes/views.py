@@ -7,6 +7,7 @@ from django.views.generic import (
     UpdateView,
 )
 
+from accounts.views import ProtectedDeleteMixin, SuccessMessageMixin
 from base.search import HtmxSearchMixin
 from classes.forms import ClassForm
 from classes.models import Class
@@ -25,21 +26,23 @@ class ClassListView(HtmxSearchMixin, ListView):
     search_fields = ("name", "program__name", "year__begins")
 
 
-class ClassCreateView(CreateView):
+class ClassCreateView(SuccessMessageMixin, CreateView):
     model = Class
     template_name = "classes/class_add.html"
     form_class = ClassForm
     success_url = reverse_lazy("classes:class_list")
+    success_message = "Registro cadastrado com sucesso"
 
 
-class ClassUpdateView(UpdateView):
+class ClassUpdateView(SuccessMessageMixin, UpdateView):
     model = Class
     template_name = "classes/class_edit.html"
     form_class = ClassForm
     success_url = reverse_lazy("classes:class_list")
+    success_message = "Registro atualizado com sucesso"
 
 
-class ClassDeleteView(DeleteView):
+class ClassDeleteView(ProtectedDeleteMixin, DeleteView):
     model = Class
     template_name = "classes/class_delete.html"
     success_url = reverse_lazy("classes:class_list")

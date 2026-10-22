@@ -32,6 +32,7 @@ Browser ──HTTP──▶ config/urls.py ──▶ <app>/urls.py ──▶ cla
 | `students` | `/students/` | `Student`, `Guardian`, `GuardianAssociation` |
 | `enrollments` | `/enrollments/` | `SchoolYear`, `EnrollmentType`, `DiscountType`, `NeededDocumentType`, `Enrollment`, `EnrollmentNeededDocument` |
 | `accounts` | `/accounts/` | `AccountType`, `Supplier`, `Account` (+ receivable/payable proxies), `Installment`, `Payment` |
+| `incidents` | `/incidents/` | Student conduct records, all per enrollment: `IncidentType` (with a penalty), `Incident`, `StudentDelay` (atraso), `BathroomPermission` (saída para banheiro) |
 | `billing` | `/billing/` | Bradesco CNAB 400 bank slips: `BankSettings`, `Remittance` (.REM), `BankSlip`, `ReturnFile` (.RET), `ReturnEvent` |
 
 Dependencies point one way, from the general to the specific:
@@ -44,6 +45,7 @@ base ◀── students ◀── enrollments ──▶ classes ──▶ progra
                        accounts ◀── billing
 
 employees ◀── departments ◀── grades ──▶ enrollments, classes, employees
+                                incidents ──▶ enrollments
 ```
 
 `accounts` imports `Enrollment` and `Guardian`. `enrollments` reaches
@@ -138,6 +140,24 @@ request:
 
 `Enrollment.clean()` requires the student to have a **financial guardian**, and
 the class to match the contract's year, program and grade.
+
+### Incident models (`incidents/models.py`)
+
+Conduct records point at an **enrollment**, not a student, for the same reason
+as `Grade`: the enrollment fixes the school year and the class
+(`enrollment.school_class`). Each has an `incident_date` (the day it
+happened, which can differ from `created_at`).
+
+| Model | Key fields and rules |
+|---|---|
+| `IncidentType` | `type` unique, `penalty` (decimal, ≥ 0, `CheckConstraint`) |
+| `Incident` | enrollment (`related_name="incidents"`), incident type, `incident_date` |
+| `StudentDelay` | enrollment (`delays`), `delay_type` (`A` tolerado, `U` não tolerado), `incident_date` |
+| `BathroomPermission` | enrollment (`bathroom_permissions`), `class_period` (the lesson, ≥ 1, checked by the form), `incident_date` |
+
+The forms share `ActiveEnrollmentFormMixin` (`incidents/forms.py`): the
+enrollment select lists only active enrollments, plus the record's current one
+when editing. The lists search by student name and show the class.
 
 ### Financial models (`accounts/models.py`)
 
@@ -390,19 +410,18 @@ pages; don't introduce new colors or components without a reason.
   `navbar/navbar.html` and `sidebar/js/sidebar_js.html`. Blocks: `title`,
   `extra_head`, `page_title` (navbar heading), `header` (above content: action
   buttons and search), `content`, `extra_js`.
-- `sidebar/sidebar.html`: sections **Recursos Humanos**, **Configuração de
-  Matrículas**, **Financeiro**, **Acadêmico**, each a daisyUI `menu` with a
+- `sidebar/sidebar.html`: includes one file per section from
+  `sidebar/menu/`: `recursos_humanos.html`, `configuracao_de_matricula.html`,
+  `financeiro.html`, `academico.html`. Each section is a daisyUI `menu` with a
   `<details>` toggle. Collapsible on desktop, off-canvas on mobile
-  (`sidebar/js/sidebar_js.html`). The sections are being moved to components:
-  - **Recursos Humanos** is in `sidebar/menu/recursos_humanos/menu.html`, and
-    each entry is
+  (`sidebar/js/sidebar_js.html`).
+  - Each entry is
     `{% include 'base/sidebar/items/menu_item.html' with path="app:name" label="…" icon="…" %}`,
     where `icon` is a [Material Symbols](https://fonts.google.com/icons) name.
-  - The other sections are still inline in `sidebar/sidebar.html`. Each entry
-    is `<a href={% url "app:name" %} class="nav-link"><svg …/>Label</a>`,
-    with a 24×24 outline Heroicons icon at `stroke-width="1.5"`.
-  - **Acadêmico** has a nested **Edição** submenu (Turmas, Matérias, Departamentos, Matérias por série, Tipos de avaliação)
-    above Lançamento de notas, Matrículas, Alunos and Responsáveis.
+  - **Acadêmico** nests the **Edição** submenu (`academico_edicao.html`:
+    Turmas, Departamentos, Matérias, Matérias por série, Tipos de avaliação,
+    Tipos de ocorrência) above Lançamento de notas, Ocorrências, Atrasos,
+    Saídas para banheiro, Matrículas, Alunos and Responsáveis.
 
   Add a new entry in the style of its section. `base/templates/base/sidebar.html`
   (no subfolder) is the old copy and is no longer included anywhere.
@@ -440,7 +459,8 @@ pages; don't introduce new colors or components without a reason.
 - **Badges** (daisyUI `badge badge-sm`): receivable = `badge-success
   badge-outline`, payable = `badge-error badge-outline`; installment status
   paid = `badge-success`, partial = `badge-warning`, cancelled = `badge-ghost`,
-  expired = `badge-error`, open = `badge-neutral badge-outline`. Overdue rows get `bg-red-50` and a red
+  expired = `badge-error`, open = `badge-neutral badge-outline`; delay
+  tolerado = `badge-neutral badge-outline`, não tolerado = `badge-error`. Overdue rows get `bg-red-50` and a red
   "Vencida" label.
 - **Form widgets** (set in the form's `widgets`): `input input-neutral w-full`,
   `select select-neutral w-full`, `textarea textarea-neutral w-full`; add
@@ -477,7 +497,8 @@ covers the installments generated for an enrollment and the settings
 redirects. `base/tests.py` covers the login page, and `classes/tests.py` the
 class roster page and its year → class select, and `grades/tests.py` the
 averages, report card, exam types, series subjects and grade entry, and
-`departments/tests.py` the department screens.
+`departments/tests.py` the department screens, and `incidents/tests.py` the
+incident, incident type, delay and bathroom permission screens.
 `employees`, `programs` and `students` have no tests yet. htmx requests are simulated with
 `HTTP_HX_REQUEST="true"`. New features should come with tests in the same
 style.

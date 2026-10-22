@@ -20,13 +20,13 @@
       <form class="space-y-6" method="POST">
         {% csrf_token %}
         <p>
-        Aluno: {{ object.student }}
+        Aluno: {{ object.enrollment.student }}
         </p>
         <p>
         Tipo: {{ object.incident_type }}
         </p>
         <p>
-        Data: {{ object.created_at|date:"d/m/Y" }}
+        Data: {{ object.incident_date|date:"d/m/Y" }}
         </p>
         <div class="flex flex-row gap-4 pt-4">
           {% include 'components/button/button_delete_form.html' with label=submit_label|default:'Deletar' %}
