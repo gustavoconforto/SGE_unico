@@ -3,6 +3,7 @@ from django.db.models import Q
 
 from accounts.forms import date_input
 from enrollments.models import Enrollment, EnrollmentStatus
+from grades.models import Bimester
 from incidents.models import BathroomPermission, Incident, IncidentType, StudentDelay
 
 
@@ -81,3 +82,51 @@ class IncidentTypeForm(forms.ModelForm):
         if penalty is not None and penalty < 0:
             raise forms.ValidationError("A penalidade não pode ser negativa.")
         return penalty
+
+
+def active_enrollments():
+    return (
+        Enrollment.objects.filter(status=EnrollmentStatus.ACTIVE)
+        .select_related(
+            "student",
+            "school_class",
+            "enrollment_type__program",
+            "enrollment_type__school_year",
+        )
+        .order_by("student__name")
+    )
+
+
+class ConceptGradeForm(forms.Form):
+    """Pick an active enrollment and a bimester to compute its concept grade."""
+
+    enrollment = forms.ModelChoiceField(
+        label="Aluno",
+        required=False,
+        queryset=Enrollment.objects.none(),
+        empty_label="Selecione um aluno",
+        widget=forms.Select(attrs={"class": "select select-neutral w-full"}),
+    )
+    bimester = forms.TypedChoiceField(
+        label="Bimestre",
+        required=False,
+        coerce=int,
+        empty_value=None,
+        choices=[("", "Selecione um bimestre"), *Bimester.choices],
+        widget=forms.Select(attrs={"class": "select select-neutral w-full"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["enrollment"].queryset = active_enrollments()
+
+
+class ConceptBimesterFilterForm(forms.Form):
+    bimester = forms.TypedChoiceField(
+        label="Bimestre",
+        required=False,
+        coerce=int,
+        empty_value=None,
+        choices=[("", "Selecione um bimestre"), *Bimester.choices],
+        widget=forms.Select(attrs={"class": "select select-neutral select-sm w-full"}),
+    )

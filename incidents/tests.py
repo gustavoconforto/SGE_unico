@@ -11,6 +11,7 @@ from enrollments.models import (
     EnrollmentType,
     SchoolYear,
 )
+from grades.models import ExamType, Grade, GradeLevelSubject, Subject
 from incidents.forms import IncidentForm
 from incidents.models import (
     BathroomPermission,
@@ -19,6 +20,7 @@ from incidents.models import (
     StudentDelay,
     StudentDelayType,
 )
+from incidents.services import concept_grades
 from programs.models import Program
 from students.models import Student
 
@@ -269,3 +271,127 @@ class BathroomPermissionViewsTests(LoggedInTestCase):
             response, "bathroom_permissions/bathroom_permission_list.html"
         )
         self.assertContains(response, "Saídas para banheiro")
+
+
+class ConceptGradeTests(LoggedInTestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.enrollment = create_enrollment()
+        school_year = cls.enrollment.enrollment_type.school_year
+        school_year.bi_1_begins = date(2027, 2, 1)
+        school_year.bi_1_ends = date(2027, 4, 15)
+        school_year.save()
+        cls.other = Enrollment.objects.create(
+            student=Student.objects.create(
+                name="Bruno Lima",
+                cpf="12345678902",
+                rg="7654321",
+                issuing_authority="SSP",
+            ),
+            enrollment_type=cls.enrollment.enrollment_type,
+            school_class=cls.enrollment.school_class,
+        )
+        cls.math = Subject.objects.create(name="Matemática")
+        cls.history = Subject.objects.create(name="História")
+        GradeLevelSubject.objects.create(grade_level=1, subject=cls.math)
+        GradeLevelSubject.objects.create(grade_level=1, subject=cls.history)
+        cls.concept = ExamType.objects.create(
+            name="Conceito", code="C", max_score=Decimal(1)
+        )
+        cls.light = IncidentType.objects.create(type="Conversa", penalty=Decimal("0.3"))
+
+    def incident(self, day, enrollment=None):
+        Incident.objects.create(
+            incident_type=self.light,
+            enrollment=enrollment or self.enrollment,
+            incident_date=day,
+        )
+
+    def delays(self, count, delay_type=StudentDelayType.ACCEPTABLE, day=None):
+        for _ in range(count):
+            StudentDelay.objects.create(
+                enrollment=self.enrollment,
+                delay_type=delay_type,
+                incident_date=day or date(2027, 3, 1),
+            )
+
+    def concept_scores(self, enrollment):
+        return sorted(
+            Grade.objects.filter(
+                enrollment=enrollment, exam_type=self.concept, bimester=1
+            ).values_list("score", flat=True)
+        )
+
+    def test_penalties_and_extra_tolerated_delays_in_the_bimester(self):
+        self.incident(date(2027, 3, 1))
+        self.incident(date(2027, 5, 1))  # outside the bimester
+        self.delays(3)  # one beyond the two tolerated
+        self.delays(2, delay_type=StudentDelayType.UNACCEPTABLE)
+        self.delays(2, day=date(2027, 6, 1))  # outside the bimester
+        grades = concept_grades([self.enrollment, self.other], 1)
+        self.assertEqual(grades[self.enrollment.pk], Decimal("0.5"))
+        self.assertEqual(grades[self.other.pk], Decimal(1))
+
+    def test_never_below_zero(self):
+        for day in (1, 2, 3, 4):
+            self.incident(date(2027, 3, day))
+        self.assertEqual(concept_grades([self.enrollment], 1)[self.enrollment.pk], 0)
+
+    def test_bimester_without_dates_is_skipped(self):
+        self.assertEqual(concept_grades([self.enrollment], 2), {})
+
+    def test_individual_calculates_every_subject(self):
+        url = reverse("incidents:incident_grades_individual")
+        params = {"enrollment": self.enrollment.pk, "bimester": 1}
+        Grade.objects.create(
+            enrollment=self.enrollment,
+            subject=self.math,
+            exam_type=self.concept,
+            bimester=1,
+            score=Decimal(1),
+        )
+        self.incident(date(2027, 3, 1))
+
+        response = self.client.get(url, params, **HTMX)
+        self.assertTemplateUsed(
+            response, "incident_grades/partials/incident_grades_subjects.html"
+        )
+        self.assertContains(response, "História")
+        self.assertContains(response, "Calcular")
+
+        response = self.client.post(f"{url}?enrollment={self.enrollment.pk}&bimester=1")
+        self.assertRedirects(
+            response, f"{url}?enrollment={self.enrollment.pk}&bimester=1"
+        )
+        self.assertEqual(
+            self.concept_scores(self.enrollment), [Decimal("0.7"), Decimal("0.7")]
+        )
+        self.assertEqual(self.concept_scores(self.other), [])
+
+    def test_all_calculates_active_enrollments(self):
+        url = reverse("incidents:incident_grades_all")
+        self.incident(date(2027, 3, 1), enrollment=self.other)
+        dropped = Enrollment.objects.create(
+            student=Student.objects.create(
+                name="Caio Dias",
+                cpf="12345678903",
+                rg="7654322",
+                issuing_authority="SSP",
+            ),
+            enrollment_type=self.enrollment.enrollment_type,
+            school_class=self.enrollment.school_class,
+            status=EnrollmentStatus.DROPPED,
+        )
+
+        response = self.client.post(url, {"bimester": 1})
+        self.assertRedirects(response, f"{url}?bimester=1")
+        self.assertEqual(self.concept_scores(self.enrollment), [Decimal(1)] * 2)
+        self.assertEqual(self.concept_scores(self.other), [Decimal("0.7")] * 2)
+        self.assertEqual(self.concept_scores(dropped), [])
+
+        response = self.client.get(url, {"bimester": 1, "q": "bruno"}, **HTMX)
+        self.assertTemplateUsed(
+            response, "incident_grades/partials/incident_grades_table.html"
+        )
+        self.assertContains(response, "0,70")
+        self.assertNotContains(response, "Ana Souza")

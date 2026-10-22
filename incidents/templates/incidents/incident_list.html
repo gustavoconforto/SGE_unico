@@ -5,9 +5,17 @@
 {% block header %}
   <div class="flex items-center justify-between px-2 pb-4">
     {% include 'components/page/heading.html' with title='Ocorrências' %}
+    <div class="flex gap-3">
+    <a href={% url 'incidents:incident_grades_individual' %}>
+    {% include 'components/button/button_select.html' with label='Gerar notas de conceito individuais'%}
+    </a>
+    <a href={% url 'incidents:incident_grades_all' %}>
+    {% include 'components/button/button_select.html' with label='Gerar notas de conceito coletiva'%}
+    </a>
     <a href={% url 'incidents:incident_add' %}>
     {% include 'components/button/button_select.html' with label='Adicionar registro'%}
     </a>
+    </div>
   </div>
   {% include 'components/search/filter_form.html' with placeholder='Pesquisar por aluno ou tipo...' %}
 {% endblock header %}

@@ -7,6 +7,8 @@ from incidents.views import (
     BathroomPermissionUpdateView,
     IncidentCreateView,
     IncidentDeleteView,
+    IncidentGradesAll,
+    IncidentGradesIndividual,
     IncidentListView,
     IncidentTypeCreateView,
     IncidentTypeDeleteView,
@@ -22,6 +24,12 @@ from incidents.views import (
 app_name = "incidents"
 
 urlpatterns = [
+    path(
+        "grades/individual",
+        IncidentGradesIndividual.as_view(),
+        name="incident_grades_individual",
+    ),
+    path("grades/all", IncidentGradesAll.as_view(), name="incident_grades_all"),
     path("list/", IncidentListView.as_view(), name="incident_list"),
     path("add/", IncidentCreateView.as_view(), name="incident_add"),
     path("edit/<int:pk>/", IncidentUpdateView.as_view(), name="incident_edit"),
