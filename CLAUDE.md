@@ -65,7 +65,7 @@ all migration files.
   in `accounts/views.py` for new CRUDs.
 - Multi-model writes go in `transaction.atomic()`.
 - Student records tied to a school year (grades, incidents, delays, bathroom
-  permissions) point at `Enrollment`, not `Student`. Their forms use
+  permissions, Q&A sessions) point at `Enrollment`, not `Student`. Their forms use
   `ActiveEnrollmentFormMixin` from `incidents/forms.py` to list only active
   enrollments.
 - Prefill from a query param (`?installment=<pk>`, `?account=<pk>`) via

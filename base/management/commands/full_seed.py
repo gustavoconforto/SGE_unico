@@ -2,8 +2,11 @@
 
 Default: 31 high-school classes (11 first-year, 10 second-year, 10 third-year)
 of 45 students each = 1395 students with their guardians, enrollments,
-installments, grades, bank slips (remittances and return files run through
-billing/services.py), counter payments, other receivables and payables.
+installments, incidents, delays and bathroom permissions, Q&A sessions
+(plantões), grades (the
+concept grade computed from the incidents), bank slips (remittances and return
+files run through billing/services.py), counter payments, other receivables
+and payables.
 
 Data is generated for the current school year by default, so bimesters,
 due dates and payments are spread around today's date. To fill a future year
@@ -79,7 +82,16 @@ from grades.models import (
     GradeLevelSubject,
     Subject,
 )
+from incidents.models import (
+    BathroomPermission,
+    Incident,
+    IncidentType,
+    StudentDelay,
+    StudentDelayType,
+)
+from incidents.services import concept_grades
 from programs.models import Program
+from q_and_a.models import QandA
 from students.models import (
     Guardian,
     GuardianAssociation,
@@ -181,6 +193,29 @@ EXAM_TYPES = [
 EXTRA_CHANCE = 0.12
 ADJUSTMENT_CHANCE = 0.7  # of the bimesters below the passing grade
 PASSING_GRADE = Decimal(6)
+
+# (type, penalty) subtracted from the 1-point concept grade of the bimester.
+INCIDENT_TYPES = [
+    ("Conversa excessiva", Decimal("0.1")),
+    ("Uniforme incompleto", Decimal("0.1")),
+    ("Uso de celular em sala", Decimal("0.2")),
+    ("Não realização de tarefa", Decimal("0.1")),
+    ("Saída de sala sem autorização", Decimal("0.3")),
+    ("Cola em avaliação", Decimal("0.5")),
+    ("Desrespeito ao professor", Decimal("0.5")),
+    ("Dano ao patrimônio", Decimal("0.7")),
+    ("Briga", Decimal("1.0")),
+]
+# Average records per student per bimester; a few students get most incidents.
+TROUBLEMAKER_SHARE = 0.12
+INCIDENTS_PER_BIMESTER = {"troublemaker": 3.0, "other": 0.3}
+DELAYS_PER_BIMESTER = 2.5
+UNACCEPTABLE_DELAY_CHANCE = 0.25
+BATHROOM_PERMISSIONS_PER_BIMESTER = 6.0
+CLASS_PERIODS = 6
+# Q&A sessions per student per bimester; regulars attend most of them.
+Q_AND_A_REGULAR_SHARE = 0.25
+Q_AND_AS_PER_BIMESTER = {"regular": 2.0, "other": 0.2}
 
 STAFF_ROLES = {"Coordenador": 3, "Fiscal": 6, "Orientadora": 2, "Secretária": 4}
 TEACHER_ROLE = "Professor"
@@ -315,6 +350,7 @@ class Command(BaseCommand):
                 self.seed_needed_document_types()
                 discount_types = self.seed_discount_types()
                 exam_types = self.seed_exam_types()
+                incident_types = self.seed_incident_types()
                 subjects = self.seed_departments_and_subjects()
                 bank_settings = self.seed_bank_settings()
 
@@ -338,6 +374,12 @@ class Command(BaseCommand):
                     students, classes, enrollment_types, discount_types
                 )
                 self.seed_documents()
+            with self.step("Incidents, delays and bathroom permissions"):
+                self.seed_incidents(
+                    enrollments, incident_types, school_years[self.year]
+                )
+            with self.step("Q&A sessions"):
+                self.seed_q_and_as(enrollments, school_years[self.year])
             with self.step("Grades"):
                 self.seed_grades(enrollments, exam_types, school_years[self.year])
             with self.step("Tuition: payments, remittances and bank returns"):
@@ -497,6 +539,14 @@ class Command(BaseCommand):
             )[0]
             for order, (code, name, kind, max_score) in enumerate(EXAM_TYPES, 1)
         }
+
+    def seed_incident_types(self):
+        return [
+            IncidentType.objects.update_or_create(
+                type=name, defaults={"penalty": penalty}
+            )[0]
+            for name, penalty in INCIDENT_TYPES
+        ]
 
     def seed_departments_and_subjects(self):
         subjects = []
@@ -797,6 +847,13 @@ class Command(BaseCommand):
             )
             enrollment.save()
             enrollment.planned_status = self.planned_status()
+            # those leaving during the year only attend the first bimesters
+            enrollment.bimesters_attended = (
+                4
+                if enrollment.planned_status
+                in (EnrollmentStatus.ACTIVE, EnrollmentStatus.COMPLETED)
+                else random.randint(1, 2)
+            )
             enrollments.append(enrollment)
 
         Student.objects.bulk_update(students, ["registration", "birth_date"])
@@ -846,15 +903,20 @@ class Command(BaseCommand):
                 grade_level_subject.subject
             )
 
+        # The concept grade comes from the bimester's incidents and delays.
+        concepts = {
+            bimester: concept_grades(enrollments, bimester)
+            for bimester, complete in bimesters.items()
+            if complete
+        }
+
         grades = []
         for enrollment in enrollments:
-            graded = bimesters
-            if enrollment.planned_status in (
-                EnrollmentStatus.TRANSFERRED,
-                EnrollmentStatus.DROPPED,
-            ):
-                # left during the year: only the first bimesters
-                graded = dict(list(bimesters.items())[: random.randint(1, 2)])
+            graded = {
+                bimester: complete
+                for bimester, complete in bimesters.items()
+                if bimester <= enrollment.bimesters_attended
+            }
             ability = random.gauss(0.68, 0.14)
             for subject in subjects_by_level[enrollment.school_class.grade_level]:
                 subject_ability = ability + random.gauss(0, 0.08)
@@ -862,9 +924,7 @@ class Command(BaseCommand):
                     scores = {ps: self.score(ps.max_score, subject_ability)}
                     if complete:
                         scores[pb] = self.score(pb.max_score, subject_ability)
-                        scores[concept] = self.score(
-                            concept.max_score, subject_ability, Decimal("0.5")
-                        )
+                        scores[concept] = concepts[bimester][enrollment.pk]
                         if (
                             sum(scores.values()) < PASSING_GRADE
                             and random.random() < ADJUSTMENT_CHANCE
@@ -888,6 +948,122 @@ class Command(BaseCommand):
                     )
 
         Grade.objects.bulk_create(grades, batch_size=2000)
+
+    # ------------------------------------------------------------------ incidents
+
+    def school_days(self, school_year):
+        """{bimester: weekdays of the bimester up to today}."""
+        days = {}
+        for bimester in Bimester.values:
+            day = getattr(school_year, f"bi_{bimester}_begins")
+            ends = min(getattr(school_year, f"bi_{bimester}_ends"), self.today)
+            days[bimester] = []
+            while day <= ends:
+                if day.weekday() < 5:
+                    days[bimester].append(day)
+                day += timedelta(days=1)
+        return days
+
+    def record_count(self, average):
+        """Records in a bimester: a Poisson draw around the average."""
+        count, limit = 0, random.expovariate(1)
+        while limit < average:
+            count += 1
+            limit += random.expovariate(1)
+        return count
+
+    def seed_incidents(self, enrollments, incident_types, school_year):
+        """Conduct records on school days of the bimesters attended so far.
+
+        Light incidents are more common. A share of the students are
+        troublemakers who get most of them and arrive late more often.
+        """
+        days = self.school_days(school_year)
+        type_weights = [1 / float(t.penalty) for t in incident_types]
+        incidents, delays, permissions = [], [], []
+        for enrollment in enrollments:
+            troublemaker = random.random() < TROUBLEMAKER_SHARE
+            incidents_average = INCIDENTS_PER_BIMESTER[
+                "troublemaker" if troublemaker else "other"
+            ]
+            delays_average = DELAYS_PER_BIMESTER * (2 if troublemaker else 1)
+            for bimester in range(1, enrollment.bimesters_attended + 1):
+                if not days[bimester]:
+                    continue
+                for _ in range(self.record_count(incidents_average)):
+                    incidents.append(
+                        Incident(
+                            enrollment=enrollment,
+                            incident_type=random.choices(
+                                incident_types, weights=type_weights
+                            )[0],
+                            incident_date=random.choice(days[bimester]),
+                        )
+                    )
+                for _ in range(self.record_count(delays_average)):
+                    delays.append(
+                        StudentDelay(
+                            enrollment=enrollment,
+                            delay_type=StudentDelayType.UNACCEPTABLE
+                            if random.random() < UNACCEPTABLE_DELAY_CHANCE
+                            else StudentDelayType.ACCEPTABLE,
+                            incident_date=random.choice(days[bimester]),
+                        )
+                    )
+                for _ in range(self.record_count(BATHROOM_PERMISSIONS_PER_BIMESTER)):
+                    permissions.append(
+                        BathroomPermission(
+                            enrollment=enrollment,
+                            class_period=random.randint(1, CLASS_PERIODS),
+                            incident_date=random.choice(days[bimester]),
+                        )
+                    )
+
+        # Inserted in date order, so created_at follows incident_date.
+        for model, records in [
+            (Incident, incidents),
+            (StudentDelay, delays),
+            (BathroomPermission, permissions),
+        ]:
+            records.sort(key=lambda record: record.incident_date)
+            model.objects.bulk_create(records, batch_size=2000)
+
+    def seed_q_and_as(self, enrollments, school_year):
+        """Q&A sessions on school days of the bimesters attended so far, in
+        subjects of the student's series."""
+        days = self.school_days(school_year)
+        subjects_by_level = defaultdict(list)
+        for grade_level_subject in GradeLevelSubject.objects.select_related("subject"):
+            subjects_by_level[grade_level_subject.grade_level].append(
+                grade_level_subject.subject
+            )
+        q_and_as = []
+        for enrollment in enrollments:
+            subjects = subjects_by_level[enrollment.school_class.grade_level]
+            if not subjects:
+                continue
+            average = Q_AND_AS_PER_BIMESTER[
+                "regular" if random.random() < Q_AND_A_REGULAR_SHARE else "other"
+            ]
+            # Students who need help tend to need it in the same few subjects.
+            struggles = random.sample(subjects, k=min(2, len(subjects)))
+            for bimester in range(1, enrollment.bimesters_attended + 1):
+                if not days[bimester]:
+                    continue
+                for _ in range(self.record_count(average)):
+                    q_and_as.append(
+                        QandA(
+                            enrollment=enrollment,
+                            subject=random.choice(struggles)
+                            if random.random() < 0.7
+                            else random.choice(subjects),
+                            q_and_a_date=random.choice(days[bimester]),
+                        )
+                    )
+
+        # Inserted in date order, so created_at follows q_and_a_date.
+        q_and_as.sort(key=lambda record: record.q_and_a_date)
+        QandA.objects.bulk_create(q_and_as, batch_size=2000)
 
     # ------------------------------------------------------------------ tuition
 
@@ -1208,6 +1384,11 @@ class Command(BaseCommand):
             Enrollment,
             EnrollmentNeededDocument,
             Grade,
+            IncidentType,
+            Incident,
+            StudentDelay,
+            BathroomPermission,
+            QandA,
             AccountType,
             Supplier,
             Account,

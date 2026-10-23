@@ -1,4 +1,9 @@
-{% if bimester and exam_type %}
+{% if not school_year %}
+  <p class="px-2 pb-3 text-sm text-slate-600">
+    {{ school_year_missing }}
+    <a href="{% url 'enrollments:school_year_add' %}" class="underline hover:text-slate-900">Cadastre um ano letivo</a>.
+  </p>
+{% elif bimester and exam_type %}
   <p class="px-2 pb-3 text-sm text-slate-500">
     O conceito começa em 1, perde a penalidade de cada ocorrência do bimestre e 0,2 por atraso tolerado além do segundo, sem ficar abaixo de 0. O valor calculado é lançado em todas as matérias de cada aluno.
   </p>
@@ -39,7 +44,7 @@
     </tbody>
   </table>
 {% include 'components/table/pagination.html' %}
-{% if bimester and exam_type %}
+{% if bimester and exam_type and school_year %}
 <form method="POST" action="{{ request.path }}" class="flex flex-row gap-4 pt-6">
   {% csrf_token %}
   <input type="hidden" name="bimester" value="{{ bimester }}">

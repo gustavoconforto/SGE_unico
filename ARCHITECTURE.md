@@ -33,6 +33,7 @@ Browser ──HTTP──▶ config/urls.py ──▶ <app>/urls.py ──▶ cla
 | `enrollments` | `/enrollments/` | `SchoolYear`, `EnrollmentType`, `DiscountType`, `NeededDocumentType`, `Enrollment`, `EnrollmentNeededDocument` |
 | `accounts` | `/accounts/` | `AccountType`, `Supplier`, `Account` (+ receivable/payable proxies), `Installment`, `Payment` |
 | `incidents` | `/incidents/` | Student conduct records, all per enrollment: `IncidentType` (with a penalty), `Incident`, `StudentDelay` (atraso), `BathroomPermission` (saída para banheiro) |
+| `q_and_a` | `/q_and_a/` | `QandA` (plantão de dúvidas): a student's attendance at a subject's Q&A session, per enrollment |
 | `billing` | `/billing/` | Bradesco CNAB 400 bank slips: `BankSettings`, `Remittance` (.REM), `BankSlip`, `ReturnFile` (.RET), `ReturnEvent` |
 
 Dependencies point one way, from the general to the specific:
@@ -46,6 +47,7 @@ base ◀── students ◀── enrollments ──▶ classes ──▶ progra
 
 employees ◀── departments ◀── grades ──▶ enrollments, classes, employees
                                 incidents ──▶ enrollments
+                                  q_and_a ──▶ enrollments, grades, incidents (forms)
 ```
 
 `accounts` imports `Enrollment` and `Guardian`. `enrollments` reaches
@@ -158,6 +160,15 @@ happened, which can differ from `created_at`).
 The forms share `ActiveEnrollmentFormMixin` (`incidents/forms.py`): the
 enrollment select lists only active enrollments, plus the record's current one
 when editing. The lists search by student name and show the class.
+
+### Q&A session model (`q_and_a/models.py`)
+
+`QandA` (plantão) records that a student attended a subject's Q&A session:
+enrollment (`related_name="q_and_as"`), subject (`grades.Subject`,
+`related_name="q_and_as"`) and `q_and_a_date`. Like the incident models it
+points at an enrollment and its form reuses `ActiveEnrollmentFormMixin`. The
+list searches by student or subject name and filters by subject and date range
+(`QandAFilterForm`).
 
 ### Financial models (`accounts/models.py`)
 
@@ -421,7 +432,7 @@ pages; don't introduce new colors or components without a reason.
   - **Acadêmico** nests the **Edição** submenu (`academico_edicao.html`:
     Turmas, Departamentos, Matérias, Matérias por série, Tipos de avaliação,
     Tipos de ocorrência) above Lançamento de notas, Ocorrências, Atrasos,
-    Saídas para banheiro, Matrículas, Alunos and Responsáveis.
+    Saídas para banheiro, Plantões, Matrículas, Alunos and Responsáveis.
 
   Add a new entry in the style of its section. `base/templates/base/sidebar.html`
   (no subfolder) is the old copy and is no longer included anywhere.
@@ -498,7 +509,8 @@ redirects. `base/tests.py` covers the login page, and `classes/tests.py` the
 class roster page and its year → class select, and `grades/tests.py` the
 averages, report card, exam types, series subjects and grade entry, and
 `departments/tests.py` the department screens, and `incidents/tests.py` the
-incident, incident type, delay and bathroom permission screens.
+incident, incident type, delay and bathroom permission screens, and
+`q_and_a/tests.py` the Q&A session screens.
 `employees`, `programs` and `students` have no tests yet. htmx requests are simulated with
 `HTTP_HX_REQUEST="true"`. New features should come with tests in the same
 style.

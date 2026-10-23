@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.db.models import Max, Min
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -11,7 +12,13 @@ from django.views.generic import (
 )
 
 from accounts.views import ProtectedDeleteMixin, SuccessMessageMixin
-from base.search import HtmxSearchMixin, apply_search, is_htmx_partial
+from base.search import (
+    HtmxFilterMixin,
+    HtmxSearchMixin,
+    apply_search,
+    is_htmx_partial,
+)
+from enrollments.models import Enrollment
 from grades.models import Grade, GradeLevelSubject
 from incidents.forms import (
     BathroomPermissionForm,
@@ -19,8 +26,10 @@ from incidents.forms import (
     ConceptGradeForm,
     IncidentForm,
     IncidentTypeForm,
+    StudentDelayFilterForm,
     StudentDelayForm,
-    active_enrollments,
+    current_school_year,
+    current_year_enrollments,
 )
 from incidents.models import BathroomPermission, Incident, IncidentType, StudentDelay
 from incidents.services import (
@@ -35,6 +44,10 @@ from incidents.services import (
 CONCEPT_MISSING = (
     f"Cadastre o tipo de avaliação Conceito (sigla {CONCEPT_CODE}) para calcular."
 )
+
+
+def school_year_missing():
+    return f"Cadastre o ano letivo de {timezone.localdate().year} para calcular."
 
 
 class IncidentGradesIndividual(TemplateView):
@@ -106,8 +119,8 @@ class IncidentGradesIndividual(TemplateView):
 
 
 class IncidentGradesAll(HtmxSearchMixin, ListView):
-    """Concept grades of the active enrollments for ?bimester; POST recomputes
-    them for every active enrollment."""
+    """Concept grades of the current school year's active enrollments for
+    ?bimester; POST recomputes them for all of those enrollments."""
 
     template_name = "incident_grades/incident_grades_all.html"
     partial_template_name = "incident_grades/partials/incident_grades_table.html"
@@ -116,8 +129,13 @@ class IncidentGradesAll(HtmxSearchMixin, ListView):
     search_fields = ("student__name", "student__social_name", "school_class__name")
 
     def get_queryset(self):
+        self.school_year = current_school_year()
+        if self.school_year is None:
+            return Enrollment.objects.none()
         return apply_search(
-            active_enrollments(), self.get_search_query(), self.search_fields
+            current_year_enrollments(self.school_year),
+            self.get_search_query(),
+            self.search_fields,
         )
 
     def get_bimester(self, data):
@@ -128,10 +146,16 @@ class IncidentGradesAll(HtmxSearchMixin, ListView):
         context = super().get_context_data(**kwargs)
         form, bimester = self.get_bimester(self.request.GET)
         exam_type = concept_exam_type()
-        context.update(filter_form=form, bimester=bimester, exam_type=exam_type)
+        context.update(
+            filter_form=form,
+            bimester=bimester,
+            exam_type=exam_type,
+            school_year=self.school_year,
+            school_year_missing=school_year_missing(),
+        )
         enrollments = context["enrollments"]
         ranges = {}
-        if bimester and exam_type:
+        if bimester and exam_type and self.school_year:
             # Lowest and highest concept grade among the subjects: equal unless
             # some subject was edited by hand.
             ranges = {
@@ -153,14 +177,17 @@ class IncidentGradesAll(HtmxSearchMixin, ListView):
     def post(self, request, *args, **kwargs):
         _, bimester = self.get_bimester(request.POST)
         exam_type = concept_exam_type()
+        school_year = current_school_year()
         url = reverse("incidents:incident_grades_all")
         if bimester is None:
             messages.error(request, "Selecione um bimestre.")
             return redirect(url)
         if exam_type is None:
             messages.error(request, CONCEPT_MISSING)
+        elif school_year is None:
+            messages.error(request, school_year_missing())
         else:
-            enrollments = list(active_enrollments())
+            enrollments = list(current_year_enrollments(school_year))
             graded = save_concept_grades(enrollments, bimester, exam_type)
             messages.success(request, "Registro atualizado com sucesso")
             if skipped := len(enrollments) - graded:
@@ -261,7 +288,7 @@ class IncidentTypeDeleteView(ProtectedDeleteMixin, DeleteView):
 # STUDENT DELAY VIEWS
 
 
-class StudentDelayListView(HtmxSearchMixin, ListView):
+class StudentDelayListView(HtmxFilterMixin, ListView):
     model = StudentDelay
     template_name = "student_delays/student_delay_list.html"
     partial_template_name = "student_delays/partials/student_delay_table.html"
@@ -269,6 +296,11 @@ class StudentDelayListView(HtmxSearchMixin, ListView):
     paginate_by = 10
     ordering = ("-incident_date", "-created_at")
     search_fields = ("enrollment__student__name", "enrollment__student__social_name")
+    filter_form_class = StudentDelayFilterForm
+    filter_lookups = {
+        "date_from": "incident_date__gte",
+        "date_to": "incident_date__lte",
+    }
 
     def get_queryset(self):
         return (

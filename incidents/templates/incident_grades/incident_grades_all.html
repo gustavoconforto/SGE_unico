@@ -5,6 +5,7 @@
 {% block header %}
   <div class="flex items-center justify-between px-2 pb-4">
     {% include 'components/page/heading.html' with title='Notas de conceito coletivas' %}
+    {% if school_year %}<span class="badge badge-neutral badge-outline">Ano letivo {{ school_year }}</span>{% endif %}
   </div>
   {% include 'components/search/filter_form.html' with placeholder='Pesquisar por aluno ou turma...' %}
 {% endblock header %}
