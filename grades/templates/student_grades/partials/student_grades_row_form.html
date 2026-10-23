@@ -1,0 +1,53 @@
+<tr class="bg-slate-50 align-top">
+  <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 font-medium text-slate-700">
+    {% csrf_token %}
+    {{ row.subject }}
+  </td>
+  {% for fields, bimester_grade in bimester_cells %}
+    {% for field in fields %}
+    <td class="px-1 py-2 text-right {% if forloop.first %}border-l border-slate-200{% endif %}">
+      {{ field }}
+      {% for error in field.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
+    </td>
+    {% endfor %}
+    <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:py-3 font-semibold text-slate-800 {% if not fields %}border-l border-slate-200{% endif %}">
+      {{ bimester_grade|floatformat:2|default:"-" }}
+    </td>
+  {% endfor %}
+  <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3 font-medium text-slate-700 border-l border-slate-200">
+    {{ row.average|floatformat:2|default:"-" }}
+  </td>
+  <td class="px-1 py-2 text-right">
+    {% for field in recovery_fields %}
+      <div class="flex items-center justify-end gap-1">
+        {% if recovery_fields|length > 1 %}<span class="text-xs text-slate-500">{{ field.label }}</span>{% endif %}
+        {{ field }}
+      </div>
+      {% for error in field.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
+    {% empty %}
+      -
+    {% endfor %}
+  </td>
+  <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3 font-semibold text-slate-800">
+    {{ row.final|floatformat:2|default:"-" }}
+  </td>
+  <td class="px-2 py-2"></td>
+  <td class="px-2 py-2 text-right whitespace-nowrap">
+    <div class="flex justify-end gap-2">
+      <a href="#"
+         hx-get="{% url 'grades:student_grades_row' enrollment.pk row.subject.pk %}"
+         hx-target="closest tr"
+         hx-swap="outerHTML">
+        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+      </a>
+      <a href="#"
+         hx-post="{% url 'grades:student_grades_edit' enrollment.pk row.subject.pk %}"
+         hx-include="closest tr"
+         hx-target="closest tr"
+         hx-swap="outerHTML">
+        {% include 'components/button/button_select.html' with label='Salvar' %}
+      </a>
+    </div>
+  </td>
+</tr>
+{% include 'student_grades/partials/student_grades_messages.html' %}

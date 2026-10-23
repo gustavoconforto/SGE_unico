@@ -1,0 +1,44 @@
+<tr class="hover:bg-slate-50">
+  <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 font-medium text-slate-700">
+    {{ row.subject }}
+  </td>
+  {% for scores, bimester_grade in row.bimester_details %}
+    {% for score in scores %}
+    <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:py-3 text-slate-600 {% if forloop.first %}border-l border-slate-200{% endif %}">
+      {{ score|floatformat:2|default:"-" }}
+    </td>
+    {% endfor %}
+    <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:py-3 font-semibold text-slate-800 bg-slate-50 {% if not scores %}border-l border-slate-200{% endif %}">
+      {{ bimester_grade|floatformat:2|default:"-" }}
+    </td>
+  {% endfor %}
+  <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3 font-medium text-slate-700 border-l border-slate-200">
+    {{ row.average|floatformat:2|default:"-" }}
+  </td>
+  <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3 font-medium text-slate-700">
+    {% if row.needs_recovery %}{{ row.recovery|floatformat:2|default:"-" }}{% else %}-{% endif %}
+  </td>
+  <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3 font-semibold text-slate-800">
+    {{ row.final|floatformat:2|default:"-" }}
+  </td>
+  <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3">
+    {% if row.passed is None and row.needs_recovery %}
+      <span class="badge badge-sm badge-warning">Em recuperação</span>
+    {% elif row.passed is None %}
+      <span class="badge badge-sm badge-neutral badge-outline">Em andamento</span>
+    {% elif row.passed %}
+      <span class="badge badge-sm badge-success">Aprovado</span>
+    {% else %}
+      <span class="badge badge-sm badge-error">Reprovado</span>
+    {% endif %}
+  </td>
+  <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3">
+    <a href="#"
+       hx-get="{% url 'grades:student_grades_edit' enrollment.pk row.subject.pk %}"
+       hx-target="closest tr"
+       hx-swap="outerHTML">
+      {% include 'components/button/button_select.html' with label='Editar' size="small" %}
+    </a>
+  </td>
+</tr>
+{% if oob_messages %}{% include 'student_grades/partials/student_grades_messages.html' %}{% endif %}

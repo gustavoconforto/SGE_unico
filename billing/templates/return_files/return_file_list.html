@@ -3,7 +3,8 @@
 {% block page_title %}Retornos{% endblock page_title %}
 
 {% block header %}
-  <div class="flex justify-end px-2 pb-4">
+  <div class="flex items-center justify-between px-2 pb-4">
+    {% include 'components/page/heading.html' with title='Retornos' %}
     <a href={% url 'billing:return_file_add' %}>
     {% include 'components/button/button_select.html' with label='Importar retorno'%}
     </a>

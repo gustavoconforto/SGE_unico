@@ -619,3 +619,158 @@ class ReportCardViewTests(GradeTestData):
         self.assertContains(
             response, reverse("grades:report_card", args=[self.enrollment.pk])
         )
+
+
+class StudentGradesViewTests(GradeTestData):
+    url = reverse("grades:grade_entry_specific")
+
+    def test_without_a_student_shows_only_the_select(self):
+        response = self.client.get(self.url)
+        self.assertTemplateUsed(response, "student_grades/student_grades.html")
+        self.assertIsNone(response.context["enrollment"])
+        self.assertNotIn("rows", response.context)
+
+    def test_shows_every_exam_score_per_bimester(self):
+        self.grade(self.ps, "2", 1).save()
+        self.grade(self.pb, "5", 1).save()
+        self.grade(self.extra, "1", 1).save()
+        self.grade(self.pb, "4", 2).save()
+
+        response = self.client.get(
+            self.url,
+            {"enrollment": self.enrollment.pk},
+            **{"HTTP_HX_REQUEST": "true"},
+        )
+
+        self.assertTemplateUsed(
+            response, "student_grades/partials/student_grades_table.html"
+        )
+        exam_types = response.context["exam_types"]
+        self.assertNotIn(self.recovery, exam_types)
+        [row] = response.context["rows"]
+        self.assertEqual(row.subject, self.math)
+        first_scores, first_grade = row.bimester_details[0]
+        self.assertEqual(
+            dict(zip(exam_types, first_scores, strict=True)),
+            {
+                self.ps: Decimal("2.00"),
+                self.pb: Decimal("5.00"),
+                self.behavior: None,
+                self.extra: Decimal("1.00"),
+            },
+        )
+        self.assertEqual(first_grade, Decimal("8.00"))
+        self.assertEqual(row.bimester_details[1][1], Decimal("4.00"))
+        self.assertContains(response, "EX")
+
+    def test_shows_average_recovery_and_final(self):
+        for bimester in range(1, 5):
+            self.grade(self.pb, "5", bimester).save()
+        self.grade(self.recovery, "7", FINAL_RECOVERY).save()
+
+        response = self.client.get(self.url, {"enrollment": self.enrollment.pk})
+
+        [row] = response.context["rows"]
+        self.assertEqual(row.average, Decimal("5.00"))
+        self.assertEqual(row.recovery, Decimal("7.00"))
+        self.assertEqual(row.final, Decimal("6.00"))
+        self.assertContains(response, "Aprovado")
+
+    def test_inactive_enrollment_is_not_listed(self):
+        self.enrollment.status = next(
+            value
+            for value in EnrollmentStatus.values
+            if value != EnrollmentStatus.ACTIVE
+        )
+        self.enrollment.save()
+        response = self.client.get(self.url, {"enrollment": self.enrollment.pk})
+        self.assertIsNone(response.context["enrollment"])
+
+
+class StudentGradesEditViewTests(GradeTestData):
+    def edit_url(self, subject=None):
+        return reverse(
+            "grades:student_grades_edit",
+            args=[self.enrollment.pk, (subject or self.math).pk],
+        )
+
+    def post(self, data):
+        return self.client.post(self.edit_url(), data, **{"HTTP_HX_REQUEST": "true"})
+
+    def test_edit_shows_inputs_with_the_saved_scores(self):
+        self.grade(self.pb, "5", 2).save()
+        response = self.client.get(self.edit_url(), **{"HTTP_HX_REQUEST": "true"})
+        self.assertTemplateUsed(
+            response, "student_grades/partials/student_grades_row_form.html"
+        )
+        form = response.context["form"]
+        self.assertEqual(form[f"score_2_{self.pb.pk}"].initial, Decimal("5.00"))
+        self.assertIn(f"score_5_{self.recovery.pk}", form.fields)
+        self.assertNotIn(f"score_5_{self.pb.pk}", form.fields)
+
+    def test_save_creates_updates_and_deletes_grades(self):
+        self.grade(self.pb, "5", 1).save()
+        self.grade(self.ps, "2", 1).save()
+
+        response = self.post(
+            {
+                f"score_1_{self.pb.pk}": "5,5",
+                f"score_1_{self.ps.pk}": "",
+                f"score_3_{self.extra.pk}": "1",
+                f"score_5_{self.recovery.pk}": "7",
+            }
+        )
+
+        self.assertTemplateUsed(
+            response, "student_grades/partials/student_grades_row.html"
+        )
+        self.assertContains(response, "Registro atualizado com sucesso")
+        scores = {
+            (grade.bimester, grade.exam_type_id): grade.score
+            for grade in Grade.objects.filter(enrollment=self.enrollment)
+        }
+        self.assertEqual(
+            scores,
+            {
+                (1, self.pb.pk): Decimal("5.50"),
+                (3, self.extra.pk): Decimal("1.00"),
+                (FINAL_RECOVERY, self.recovery.pk): Decimal("7.00"),
+            },
+        )
+        self.assertEqual(response.context["row"].bimesters[0], Decimal("5.50"))
+
+    def test_invalid_score_saves_nothing(self):
+        response = self.post(
+            {f"score_1_{self.pb.pk}": "5", f"score_2_{self.ps.pk}": "4"}
+        )
+        self.assertTemplateUsed(
+            response, "student_grades/partials/student_grades_row_form.html"
+        )
+        self.assertTrue(response.context["form"].errors)
+        self.assertFalse(Grade.objects.exists())
+
+    def test_subject_outside_the_grade_level_is_not_found(self):
+        response = self.client.get(self.edit_url(self.physics))
+        self.assertEqual(response.status_code, 404)
+
+    def test_inactive_enrollment_is_not_found(self):
+        self.enrollment.status = next(
+            value
+            for value in EnrollmentStatus.values
+            if value != EnrollmentStatus.ACTIVE
+        )
+        self.enrollment.save()
+        response = self.client.get(self.edit_url())
+        self.assertEqual(response.status_code, 404)
+
+    def test_cancel_shows_the_read_only_row(self):
+        response = self.client.get(
+            reverse(
+                "grades:student_grades_row", args=[self.enrollment.pk, self.math.pk]
+            ),
+            **{"HTTP_HX_REQUEST": "true"},
+        )
+        self.assertTemplateUsed(
+            response, "student_grades/partials/student_grades_row.html"
+        )
+        self.assertContains(response, self.edit_url())

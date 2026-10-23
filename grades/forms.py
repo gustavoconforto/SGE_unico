@@ -3,8 +3,10 @@ from django.db import transaction
 from django.urls import reverse
 
 from employees.models import Employee
+from enrollments.models import Enrollment
 from grades.models import (
     FINAL_RECOVERY,
+    Bimester,
     ExamType,
     Grade,
     GradeLevel,
@@ -18,6 +20,7 @@ from grades.services import (
     needs_recovery,
     recovery_score,
 )
+from incidents.forms import active_enrollments
 
 
 class SubjectForm(forms.ModelForm):
@@ -133,6 +136,38 @@ class GradeLevelSubjectFilterForm(forms.Form):
     )
 
 
+def score_field(label, exam_type, grade, width="w-20"):
+    """Optional score input up to the exam's maximum, starting at `grade`'s score."""
+    return forms.DecimalField(
+        label=label,
+        required=False,
+        min_value=0,
+        max_value=exam_type.max_score,
+        max_digits=4,
+        decimal_places=2,
+        localize=True,
+        initial=grade.score if grade else None,
+        widget=forms.TextInput(
+            attrs={
+                "class": f"input input-neutral input-sm {width} text-right",
+                "inputmode": "decimal",
+            }
+        ),
+    )
+
+
+def save_score(grade, score, **fields):
+    """Create, update or (for a blank score) delete one grade."""
+    if score is None:
+        if grade:
+            grade.delete()
+    elif grade is None:
+        Grade.objects.create(score=score, **fields)
+    elif grade.score != score:
+        grade.score = score
+        grade.save(update_fields=["score", "updated_at"])
+
+
 class GradeSheetForm(forms.Form):
     """Every score of one subject and bimester for a class: a row per enrollment
     and a column per exam type. Blank cells delete the grade.
@@ -165,23 +200,8 @@ class GradeSheetForm(forms.Form):
         for enrollment in self.enrollments:
             for exam_type in self.exam_types:
                 grade = self.existing.get((enrollment.pk, exam_type.pk))
-                self.fields[self.field_name(enrollment, exam_type)] = (
-                    forms.DecimalField(
-                        label=f"{enrollment.student} - {exam_type.code}",
-                        required=False,
-                        min_value=0,
-                        max_value=exam_type.max_score,
-                        max_digits=4,
-                        decimal_places=2,
-                        localize=True,
-                        initial=grade.score if grade else None,
-                        widget=forms.TextInput(
-                            attrs={
-                                "class": "input input-neutral input-sm w-20 text-right",
-                                "inputmode": "decimal",
-                            }
-                        ),
-                    )
+                self.fields[self.field_name(enrollment, exam_type)] = score_field(
+                    f"{enrollment.student} - {exam_type.code}", exam_type, grade
                 )
 
     @staticmethod
@@ -216,18 +236,81 @@ class GradeSheetForm(forms.Form):
         for enrollment in self.enrollments:
             for exam_type in self.exam_types:
                 score = self.cleaned_data[self.field_name(enrollment, exam_type)]
-                grade = self.existing.get((enrollment.pk, exam_type.pk))
-                if score is None:
-                    if grade:
-                        grade.delete()
-                elif grade is None:
-                    Grade.objects.create(
-                        enrollment=enrollment,
-                        subject=self.subject,
-                        exam_type=exam_type,
-                        bimester=self.bimester,
-                        score=score,
-                    )
-                elif grade.score != score:
-                    grade.score = score
-                    grade.save(update_fields=["score", "updated_at"])
+                save_score(
+                    self.existing.get((enrollment.pk, exam_type.pk)),
+                    score,
+                    enrollment=enrollment,
+                    subject=self.subject,
+                    exam_type=exam_type,
+                    bimester=self.bimester,
+                )
+
+
+class StudentGradesForm(forms.Form):
+    """Pick an active enrollment to see all of its grades."""
+
+    enrollment = forms.ModelChoiceField(
+        label="Aluno",
+        required=False,
+        queryset=Enrollment.objects.none(),
+        empty_label="Selecione um aluno",
+        widget=forms.Select(attrs={"class": "select select-neutral w-full"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["enrollment"].queryset = active_enrollments()
+
+
+class StudentSubjectGradesForm(forms.Form):
+    """Every score of one enrollment in one subject: a field per bimester and
+    exam type, and one per recovery exam in the final recovery. Blank fields
+    delete the grade."""
+
+    def __init__(
+        self, *args, enrollment, subject, exam_types, recovery_types, **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        self.enrollment = enrollment
+        self.subject = subject
+        self.periods = [
+            *((bimester, list(exam_types)) for bimester in Bimester.values),
+            (FINAL_RECOVERY, list(recovery_types)),
+        ]
+        self.existing = {
+            (grade.bimester, grade.exam_type_id): grade
+            for grade in Grade.objects.filter(enrollment=enrollment, subject=subject)
+        }
+        for bimester, period_exam_types in self.periods:
+            for exam_type in period_exam_types:
+                self.fields[self.field_name(bimester, exam_type)] = score_field(
+                    exam_type.code,
+                    exam_type,
+                    self.existing.get((bimester, exam_type.pk)),
+                    width="w-16",
+                )
+
+    @staticmethod
+    def field_name(bimester, exam_type):
+        return f"score_{bimester}_{exam_type.pk}"
+
+    def period_fields(self):
+        """Bound fields in exam type order, one list per bimester and a last
+        one for the final recovery."""
+        return [
+            [self[self.field_name(bimester, exam_type)] for exam_type in exam_types]
+            for bimester, exam_types in self.periods
+        ]
+
+    @transaction.atomic
+    def save(self):
+        for bimester, exam_types in self.periods:
+            for exam_type in exam_types:
+                save_score(
+                    self.existing.get((bimester, exam_type.pk)),
+                    self.cleaned_data[self.field_name(bimester, exam_type)],
+                    enrollment=self.enrollment,
+                    subject=self.subject,
+                    exam_type=exam_type,
+                    bimester=bimester,
+                )

@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, ListView, UpdateView
 
+from accounts.views import SuccessMessageMixin
 from base.search import HtmxSearchMixin
 from students.forms import GuardianForm, GuardianFormSet, StudentForm
 from students.models import Guardian, Student
@@ -21,18 +22,20 @@ class GuardianListView(HtmxSearchMixin, ListView):
     search_fields = ("name", "cpf")
 
 
-class GuardianCreateView(CreateView):
+class GuardianCreateView(SuccessMessageMixin, CreateView):
     model = Guardian
     template_name = "guardians/guardian_add.html"
     form_class = GuardianForm
     success_url = reverse_lazy("students:guardian_list")
+    success_message = "Registro cadastrado com sucesso"
 
 
-class GuardianUpdateView(UpdateView):
+class GuardianUpdateView(SuccessMessageMixin, UpdateView):
     model = Guardian
     template_name = "guardians/guardian_edit.html"
     form_class = GuardianForm
     success_url = reverse_lazy("students:guardian_list")
+    success_message = "Registro atualizado com sucesso"
 
 
 # STUDENT VIEWS
@@ -90,7 +93,7 @@ def student_edit_view(request, pk):
             with transaction.atomic():
                 form.save()
                 formset.save()
-            messages.success(request, "Registro cadastrado com sucesso")
+            messages.success(request, "Registro atualizado com sucesso")
             return redirect("students:student_list")
 
     else:

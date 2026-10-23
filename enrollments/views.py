@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from django.contrib import messages
 from django.contrib.staticfiles import finders
 from django.db import transaction
 from django.http import HttpResponse
@@ -18,6 +19,7 @@ from django.views.generic import (
 from weasyprint import HTML
 
 from accounts.models import Account
+from accounts.views import ProtectedDeleteMixin, SuccessMessageMixin
 from base.search import HtmxSearchMixin
 from enrollments.forms import (
     DiscountTypeForm,
@@ -52,21 +54,23 @@ class SchoolYearListView(HtmxSearchMixin, ListView):
     search_fields = ("begins", "ends")
 
 
-class SchoolYearCreateView(CreateView):
+class SchoolYearCreateView(SuccessMessageMixin, CreateView):
     model = SchoolYear
     template_name = "school_years/school_year_add.html"
     form_class = SchoolYearForm
     success_url = reverse_lazy("enrollments:school_year_list")
+    success_message = "Registro cadastrado com sucesso"
 
 
-class SchoolYearUpdateView(UpdateView):
+class SchoolYearUpdateView(SuccessMessageMixin, UpdateView):
     model = SchoolYear
     template_name = "school_years/school_year_edit.html"
     form_class = SchoolYearForm
     success_url = reverse_lazy("enrollments:school_year_list")
+    success_message = "Registro atualizado com sucesso"
 
 
-class SchoolYearDeleteView(DeleteView):
+class SchoolYearDeleteView(ProtectedDeleteMixin, DeleteView):
     model = SchoolYear
     template_name = "school_years/school_year_delete.html"
     success_url = reverse_lazy("enrollments:school_year_list")
@@ -85,21 +89,23 @@ class NeededDocumentTypeListView(HtmxSearchMixin, ListView):
     search_fields = ("description",)
 
 
-class NeededDocumentTypeCreateView(CreateView):
+class NeededDocumentTypeCreateView(SuccessMessageMixin, CreateView):
     model = NeededDocumentType
     template_name = "needed_documents/needed_document_add.html"
     form_class = NeededDocumentTypeForm
     success_url = reverse_lazy("enrollments:needed_document_list")
+    success_message = "Registro cadastrado com sucesso"
 
 
-class NeededDocumentTypeUpdateView(UpdateView):
+class NeededDocumentTypeUpdateView(SuccessMessageMixin, UpdateView):
     model = NeededDocumentType
     template_name = "needed_documents/needed_document_edit.html"
     form_class = NeededDocumentTypeForm
     success_url = reverse_lazy("enrollments:needed_document_list")
+    success_message = "Registro atualizado com sucesso"
 
 
-class NeededDocumentTypeDeleteView(DeleteView):
+class NeededDocumentTypeDeleteView(ProtectedDeleteMixin, DeleteView):
     model = NeededDocumentType
     template_name = "needed_documents/needed_document_delete.html"
     success_url = reverse_lazy("enrollments:needed_document_list")
@@ -118,21 +124,23 @@ class EnrollmentTypeListView(HtmxSearchMixin, ListView):
     search_fields = ("program__name", "description", "school_year__begins")
 
 
-class EnrollmentTypeCreateView(CreateView):
+class EnrollmentTypeCreateView(SuccessMessageMixin, CreateView):
     model = EnrollmentType
     template_name = "enrollment_types/enrollment_type_add.html"
     form_class = EnrollmentTypeForm
     success_url = reverse_lazy("enrollments:enrollment_type_list")
+    success_message = "Registro cadastrado com sucesso"
 
 
-class EnrollmentTypeUpdateView(UpdateView):
+class EnrollmentTypeUpdateView(SuccessMessageMixin, UpdateView):
     model = EnrollmentType
     template_name = "enrollment_types/enrollment_type_edit.html"
     form_class = EnrollmentTypeForm
     success_url = reverse_lazy("enrollments:enrollment_type_list")
+    success_message = "Registro atualizado com sucesso"
 
 
-class EnrollmentTypeDeleteView(DeleteView):
+class EnrollmentTypeDeleteView(ProtectedDeleteMixin, DeleteView):
     model = EnrollmentType
     template_name = "enrollment_types/enrollment_type_delete.html"
     success_url = reverse_lazy("enrollments:enrollment_type_list")
@@ -151,21 +159,23 @@ class DiscountTypeListView(HtmxSearchMixin, ListView):
     search_fields = ("description",)
 
 
-class DiscountTypeCreateView(CreateView):
+class DiscountTypeCreateView(SuccessMessageMixin, CreateView):
     model = DiscountType
     template_name = "discount_types/discount_type_add.html"
     form_class = DiscountTypeForm
     success_url = reverse_lazy("enrollments:discount_type_list")
+    success_message = "Registro cadastrado com sucesso"
 
 
-class DiscountTypeUpdateView(UpdateView):
+class DiscountTypeUpdateView(SuccessMessageMixin, UpdateView):
     model = DiscountType
     template_name = "discount_types/discount_type_edit.html"
     form_class = DiscountTypeForm
     success_url = reverse_lazy("enrollments:discount_type_list")
+    success_message = "Registro atualizado com sucesso"
 
 
-class DiscountTypeDeleteView(DeleteView):
+class DiscountTypeDeleteView(ProtectedDeleteMixin, DeleteView):
     model = DiscountType
     template_name = "discount_types/discount_type_delete.html"
     success_url = reverse_lazy("enrollments:discount_type_list")
@@ -196,10 +206,11 @@ class EnrollmentListView(HtmxSearchMixin, ListView):
     )
 
 
-class EnrollmentCreateView(CreateView):
+class EnrollmentCreateView(SuccessMessageMixin, CreateView):
     model = Enrollment
     template_name = "enrollments/enrollment_add.html"
     form_class = EnrollmentForm
+    success_message = "Registro cadastrado com sucesso"
 
     def get_success_url(self):
         return reverse("enrollments:enrollment_edit", kwargs={"pk": self.object.pk})
@@ -253,6 +264,7 @@ class EnrollmentUpdateView(UpdateView):
                 self.object = form.save()
                 for fs in active:
                     fs.save()
+            messages.success(request, "Registro atualizado com sucesso")
             return redirect(self.get_success_url())
         return self.render_to_response(self.get_context_data(form=form, **formsets))
 

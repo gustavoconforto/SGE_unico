@@ -3,8 +3,8 @@
 {% block page_title %}Departamentos{% endblock page_title %}
 
 {% block header %}
-  <div class="flex justify-between px-2 pb-4">
-    <h1></h1>
+  <div class="flex items-center justify-between px-2 pb-4">
+    {% include 'components/page/heading.html' with title='Departamentos' %}
     <a href={% url 'departments:department_add' %}>
     {% include 'components/button/button_select.html' with label='Adicionar registro'%}
     </a>

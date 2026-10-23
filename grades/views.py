@@ -1,5 +1,6 @@
 from django.contrib import messages
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
+from django.template.response import TemplateResponse
 from django.urls import reverse, reverse_lazy
 from django.views.generic import (
     CreateView,
@@ -19,6 +20,8 @@ from grades.forms import (
     GradeLevelSubjectFilterForm,
     GradeLevelSubjectForm,
     GradeSheetForm,
+    StudentGradesForm,
+    StudentSubjectGradesForm,
     SubjectForm,
 )
 from grades.models import (
@@ -31,6 +34,7 @@ from grades.models import (
     Subject,
 )
 from grades.services import report_card
+from incidents.forms import active_enrollments
 
 
 class SubjectListView(HtmxSearchMixin, ListView):
@@ -43,21 +47,23 @@ class SubjectListView(HtmxSearchMixin, ListView):
     search_fields = ("name", "department__name")
 
 
-class SubjectCreateView(CreateView):
+class SubjectCreateView(SuccessMessageMixin, CreateView):
     model = Subject
     template_name = "subjects/subject_add.html"
     form_class = SubjectForm
     success_url = reverse_lazy("grades:subject_list")
+    success_message = "Registro cadastrado com sucesso"
 
 
-class SubjectUpdateView(UpdateView):
+class SubjectUpdateView(SuccessMessageMixin, UpdateView):
     model = Subject
     template_name = "subjects/subject_edit.html"
     form_class = SubjectForm
     success_url = reverse_lazy("grades:subject_list")
+    success_message = "Registro atualizado com sucesso"
 
 
-class SubjectDeleteView(DeleteView):
+class SubjectDeleteView(ProtectedDeleteMixin, DeleteView):
     model = Subject
     template_name = "subjects/subject_delete.html"
     success_url = reverse_lazy("grades:subject_list")
@@ -263,6 +269,118 @@ class GradeEntryView(TemplateView):
             return redirect(request.get_full_path())
         messages.error(request, "Corrija as notas destacadas. Nenhuma nota foi salva.")
         return self.render_to_response(self.get_context_data(form=form))
+
+
+class GradeEntrySpecific(TemplateView):
+    """Every grade of the active enrollment picked in the query string: each
+    exam's score per bimester, the bimester grades, the annual average, the
+    recovery and the final grade of every subject."""
+
+    template_name = "student_grades/student_grades.html"
+    partial_template_name = "student_grades/partials/student_grades_table.html"
+
+    def get_template_names(self):
+        if is_htmx_partial(self.request):
+            return [self.partial_template_name]
+        return [self.template_name]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = StudentGradesForm(self.request.GET or None)
+        enrollment = form.cleaned_data["enrollment"] if form.is_valid() else None
+        context.update(form=form, enrollment=enrollment)
+        if enrollment is None:
+            return context
+        # Recovery isn't taken in the bimesters: it has its own column.
+        exam_types = list(ExamType.objects.exclude(kind=ExamKind.RECOVERY))
+        context.update(
+            exam_types=exam_types,
+            rows=report_card(enrollment, exam_types),
+            bimesters=Bimester.choices,
+            # Subject, each bimester's exams and grade, the 4 final columns and
+            # the actions.
+            column_count=1 + len(Bimester) * (len(exam_types) + 1) + 5,
+        )
+        return context
+
+
+class StudentGradesRowView(TemplateView):
+    """htmx endpoint: one subject's row of the student grades page, read-only."""
+
+    template_name = "student_grades/partials/student_grades_row.html"
+
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        self.enrollment = get_object_or_404(
+            active_enrollments(), pk=kwargs["enrollment_pk"]
+        )
+        school_class = self.enrollment.school_class
+        self.subject = get_object_or_404(
+            GradeLevelSubject.objects.select_related("subject"),
+            grade_level=school_class.grade_level if school_class else None,
+            subject_id=kwargs["subject_pk"],
+        ).subject
+        self.exam_types = list(ExamType.objects.exclude(kind=ExamKind.RECOVERY))
+
+    def get_context_data(self, **kwargs):
+        row = next(
+            item
+            for item in report_card(self.enrollment, self.exam_types)
+            if item.subject.pk == self.subject.pk
+        )
+        return super().get_context_data(
+            enrollment=self.enrollment,
+            exam_types=self.exam_types,
+            row=row,
+            # Only the htmx row answers carry the flash messages; the full page
+            # shows them in base.html.
+            oob_messages=True,
+            **kwargs,
+        )
+
+
+class StudentGradesEditView(StudentGradesRowView):
+    """htmx endpoint: one subject's row of the student grades page as score
+    inputs; POST saves them and answers with the read-only row."""
+
+    template_name = "student_grades/partials/student_grades_row_form.html"
+
+    def get_form(self, data=None):
+        return StudentSubjectGradesForm(
+            data,
+            enrollment=self.enrollment,
+            subject=self.subject,
+            exam_types=self.exam_types,
+            recovery_types=ExamType.objects.filter(kind=ExamKind.RECOVERY),
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = context.setdefault("form", self.get_form())
+        *bimester_fields, recovery_fields = form.period_fields()
+        context.update(
+            bimester_cells=list(
+                zip(bimester_fields, context["row"].bimesters, strict=True)
+            ),
+            recovery_fields=recovery_fields,
+        )
+        return context
+
+    def post(self, request, *args, **kwargs):
+        form = self.get_form(request.POST)
+        if not form.is_valid():
+            messages.error(
+                request, "Corrija as notas destacadas. Nenhuma nota foi salva."
+            )
+            return self.render_to_response(self.get_context_data(form=form))
+        form.save()
+        messages.success(request, "Registro atualizado com sucesso")
+        # Back to the read-only row, with the grades just saved.
+        return TemplateResponse(
+            request,
+            StudentGradesRowView.template_name,
+            StudentGradesRowView.get_context_data(self),
+        )
 
 
 class GradeEntryOptionsView(TemplateView):

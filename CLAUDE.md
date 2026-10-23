@@ -64,6 +64,10 @@ all migration files.
   sucesso" (`warning`). Reuse `SuccessMessageMixin` / `ProtectedDeleteMixin`
   in `accounts/views.py` for new CRUDs.
 - Multi-model writes go in `transaction.atomic()`.
+- Student records tied to a school year (grades, incidents, delays, bathroom
+  permissions) point at `Enrollment`, not `Student`. Their forms use
+  `ActiveEnrollmentFormMixin` from `incidents/forms.py` to list only active
+  enrollments.
 - Prefill from a query param (`?installment=<pk>`, `?account=<pk>`) via
   `get_initial()`, for links from other pages.
 - "Pick A, then B filtered by A" screens: copy the class roster
@@ -92,12 +96,12 @@ all migration files.
   `components/button/*` buttons. Don't hand-roll buttons or fields.
 - Money `R$ {{ v|floatformat:2 }}` right-aligned with `whitespace-nowrap`;
   dates `|date:"d/m/Y"`; badge colors as in ARCHITECTURE.md.
-- New screens get a link in the sidebar under the right section. The sidebar
-  is `base/templates/base/sidebar/sidebar.html`. Sections already extracted to
-  `sidebar/menu/<section>/menu.html` (Recursos Humanos) use
+- New screens get a link in the sidebar under the right section. Each section
+  is a file in `base/templates/base/sidebar/menu/` (`academico.html`,
+  `financeiro.html`, …) included by `sidebar/sidebar.html`; add
   `{% include 'base/sidebar/items/menu_item.html' with path=… label=… icon=… %}`
-  with a Material Symbols icon name. Inline sections use a Heroicons outline
-  SVG. Don't edit `base/templates/base/sidebar.html`: it's the old, unused copy.
+  with a Material Symbols icon name. Don't edit
+  `base/templates/base/sidebar.html`: it's the old, unused copy.
 
 ### Finance rules (don't break)
 - Use `AccountReceivable` / `AccountPayable` proxies, not raw `Account`, in

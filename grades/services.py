@@ -120,8 +120,15 @@ def annual_averages(enrollments, subject):
 class ReportCardRow:
     subject: object
     bimesters: list = field(default_factory=list)  # one grade or None per bimester
+    # Per bimester, the score (or None) of each exam passed to report_card().
+    exam_scores: list = field(default_factory=list)
     average: Decimal | None = None
     recovery: Decimal | None = None
+
+    @property
+    def bimester_details(self):
+        """(exam scores, bimester grade) per bimester."""
+        return list(zip(self.exam_scores, self.bimesters, strict=True))
 
     @property
     def needs_recovery(self):
@@ -139,8 +146,12 @@ class ReportCardRow:
         return self.final >= PASSING_GRADE
 
 
-def report_card(enrollment):
-    """One row per subject of the enrollment's series, in two queries."""
+def report_card(enrollment, exam_types=()):
+    """One row per subject of the enrollment's series, in two queries.
+
+    With `exam_types`, each row's `exam_scores` also holds, per bimester, the
+    score of each of those exams in their order.
+    """
     school_class = enrollment.school_class
     level_subjects = GradeLevelSubject.objects.filter(
         grade_level=school_class.grade_level if school_class else None
@@ -154,14 +165,22 @@ def report_card(enrollment):
 
     rows = []
     for level_subject in level_subjects:
-        grades = [
-            bimester_grade(grouped.get((level_subject.subject_id, bimester), []))
+        periods = [
+            grouped.get((level_subject.subject_id, bimester), [])
             for bimester in Bimester.values
+        ]
+        grades = [bimester_grade(period) for period in periods]
+        scores = [
+            {grade.exam_type_id: grade.score for grade in period} for period in periods
         ]
         rows.append(
             ReportCardRow(
                 subject=level_subject.subject,
                 bimesters=grades,
+                exam_scores=[
+                    [by_exam.get(exam_type.pk) for exam_type in exam_types]
+                    for by_exam in scores
+                ],
                 average=final_average(grades),
                 recovery=recovery_score(
                     grouped.get((level_subject.subject_id, FINAL_RECOVERY), [])

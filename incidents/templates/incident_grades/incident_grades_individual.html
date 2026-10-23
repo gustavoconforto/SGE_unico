@@ -1,0 +1,32 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Notas de conceito{% endblock page_title %}
+
+{% block header %}
+
+{% endblock header %}
+
+{% block content %}
+<div class="bg-white py-12 px-4">
+  <div class="w-full">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl font-semibold text-gray-900 ">Notas de conceito individuais</h2>
+      <p class="mt-4 text-lg text-gray-600 ">
+        Selecione o aluno e o bimestre
+      </p>
+    </div>
+    <form hx-get="{{ request.path }}"
+          hx-trigger="change"
+          hx-target="#search-results"
+          hx-push-url="true"
+          class="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+      {% include 'components/form/field.html' with field=form.enrollment %}
+      {% include 'components/form/field.html' with field=form.bimester %}
+    </form>
+
+    <div id="search-results" class="mt-6">
+      {% include 'incident_grades/partials/incident_grades_subjects.html' %}
+    </div>
+  </div>
+</div>
+{% endblock content %}
