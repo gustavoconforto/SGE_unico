@@ -1,0 +1,13 @@
+{# Out-of-band: htmx row saves don't reload the page, so base.html can't show their message. #}
+<template>
+<div id="student-grades-messages" hx-swap-oob="true" class="space-y-2 pb-4 empty:hidden">
+  {% for message in messages %}
+    <div class="rounded-lg px-4 py-3 text-sm
+                {% if message.level_tag == 'alert-success' %}bg-lime-100 text-lime-800
+                {% elif message.level_tag == 'alert-danger' %}bg-red-100 text-red-800
+                {% else %}bg-gray-100 text-gray-800{% endif %}">
+      {{ message }}
+    </div>
+  {% endfor %}
+</div>
+</template>
