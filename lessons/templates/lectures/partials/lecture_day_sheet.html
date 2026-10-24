@@ -1,0 +1,53 @@
+{% for error in select_form.date.errors %}
+<p class="px-2 pb-3 text-sm text-red-600">{{ error }}</p>
+{% endfor %}
+{% if form %}
+<form method="POST" action="{{ request.get_full_path }}">
+  {% csrf_token %}
+  <p class="px-2 pb-3 text-sm text-slate-500">
+    Matéria e professor vêm da grade horária; ajuste em caso de substituição ou troca. Só as aulas com conteúdo são salvas, e apagar o conteúdo remove a aula.
+  </p>
+  {% for error in form.non_field_errors %}
+  <p class="px-2 pb-3 text-sm text-red-600">{{ error }}</p>
+  {% endfor %}
+  <div class="overflow-x-auto">
+  <div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Aula</th>
+        <th>Matéria</th>
+        <th>Professor</th>
+        <th>Conteúdo</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for label, subject, teacher, topic, saved in form.rows %}
+      <tr class="hover:bg-slate-50">
+        <td class="font-semibold whitespace-nowrap align-top">
+          {{ label }}
+          {% if saved %}<span class="badge badge-success badge-sm">Lançada</span>{% endif %}
+        </td>
+        <td class="align-top min-w-40">
+          {{ subject }}
+          {% for error in subject.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </td>
+        <td class="align-top min-w-40">
+          {{ teacher }}
+          {% for error in teacher.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </td>
+        <td class="align-top min-w-64">
+          {{ topic }}
+          {% for error in topic.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  </div>
+  <div class="flex flex-row gap-4 pt-6">
+    {% include 'components/button/button_submit_form.html' with label='Salvar aulas' %}
+  </div>
+</form>
+{% endif %}

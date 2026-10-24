@@ -1,18 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block header %}
+{% block page_title %}Novo documento{% endblock page_title %}
 
-{% endblock header %}
   
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de documentos necessários</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Adicione um ano documento necessário
-      </p>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Documentos' parent_url_name='enrollments:needed_document_list' current='Novo' %}
+    {% include 'components/page/heading.html' with title='Novo documento' %}
   {% include 'needed_documents/needed_document_form.html' %}
   </div>
 </div>

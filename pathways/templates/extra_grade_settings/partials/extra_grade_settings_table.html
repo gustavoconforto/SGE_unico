@@ -1,0 +1,43 @@
+  <div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Ano escolar</th>
+        <th class="text-right">Frequência mínima nos itinerários</th>
+        <th class="text-right">Mínimo de plantões</th>
+        <th class="text-right">Pontos pelos plantões</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for school_year in school_years %}
+      {% with settings=school_year.extra_grade_settings|default:defaults %}
+      <tr class="hover:bg-slate-50">
+        <td>
+            {{ school_year }}
+        </td>
+        <td class="text-right whitespace-nowrap">
+            {{ settings.min_pathway_attendance|floatformat:0 }}%
+        </td>
+        <td class="text-right">
+            {{ settings.q_and_a_min_sessions }}
+        </td>
+        <td class="text-right whitespace-nowrap">
+            {{ settings.q_and_a_points|floatformat:2 }}
+        </td>
+        <td class="text-right">
+          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
+          <a href={% url 'pathways:extra_grade_settings_edit' school_year.pk %}>
+            {% include 'components/button/button_select.html' with label="Editar"%}
+          </a>
+          </div>
+        </td>
+      </tr>
+      {% endwith %}
+      {% empty %}
+      {% include 'components/table/empty_table.html' with collspan=5%}
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+{% include 'components/table/pagination.html' %}

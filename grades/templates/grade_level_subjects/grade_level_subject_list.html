@@ -3,10 +3,10 @@
 {% block page_title %}Matérias por série{% endblock page_title %}
 
 {% block header %}
-  <div class="flex items-center justify-between px-2 pb-4">
-    {% include 'components/page/heading.html' with title='Matérias por série' %}
+  <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
+    {% include 'components/page/heading.html' with section='Acadêmico' title='Matérias por série' %}
     <a href="{% url 'grades:grade_level_subject_add' %}{% if request.GET.grade_level %}?grade_level={{ request.GET.grade_level }}{% endif %}">
-    {% include 'components/button/button_select.html' with label='Adicionar registro'%}
+    {% include 'components/button/button_primary.html' with label='Nova matéria na série' icon='add' %}
     </a>
   </div>
   {% include 'components/search/filter_form.html' with placeholder='Pesquisar por matéria ou professor...' %}

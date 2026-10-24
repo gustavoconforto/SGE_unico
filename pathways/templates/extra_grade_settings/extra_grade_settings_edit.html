@@ -1,0 +1,14 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Editar regra da nota extra{% endblock page_title %}
+
+
+{% block content %}
+<div class="page-form">
+  <div class="w-full">
+    {% include 'components/page/breadcrumb.html' with parent_label='Regras da nota extra' parent_url_name='pathways:extra_grade_settings_list' current=object %}
+    {% include 'components/page/heading.html' with title='Editar regra da nota extra' %}
+  {% include 'extra_grade_settings/extra_grade_settings_form.html' %}
+  </div>
+</div>
+{% endblock content %}

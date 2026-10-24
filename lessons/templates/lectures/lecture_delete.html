@@ -1,0 +1,33 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Deletar aula?{% endblock page_title %}
+
+
+{% block content %}
+<div class="page-form">
+  <div class="w-full">
+    {% include 'components/page/breadcrumb.html' with parent_label='Diário de classe' parent_url_name='lessons:lecture_list' current=object %}
+    {% include 'components/page/heading.html' with title='Deletar aula?' %}
+
+    <div class="form-card mt-6 max-w-xl">
+      <form class="space-y-6" method="POST">
+        {% csrf_token %}
+        <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
+          <dt class="text-slate-500">Turma</dt><dd class="font-medium text-slate-900">{{ object.school_class }}</dd>
+        <dt class="text-slate-500">Data</dt><dd class="font-medium text-slate-900">{{ object.date|date:"d/m/Y" }}, {{ object.get_period_display }}</dd>
+        <dt class="text-slate-500">Matéria</dt><dd class="font-medium text-slate-900">{{ object.subject.subject.name }}</dd>
+        <dt class="text-slate-500">Conteúdo</dt><dd class="font-medium text-slate-900">{{ object.topic }}</dd>
+        </dl>
+        <p class="mt-4 text-slate-600">Esta ação não pode ser desfeita.</p>
+
+        <div class="mt-6 flex flex-wrap justify-end gap-2">
+          <a href="{% url 'lessons:lecture_list' %}">
+            {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+          </a>
+          {% include 'components/button/button_delete_form.html' with label=submit_label|default:'Deletar' %}
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock content %}

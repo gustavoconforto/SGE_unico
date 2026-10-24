@@ -1,21 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block page_title %}Fornecedores{% endblock page_title %}
-
-{% block header %}
-
-{% endblock header %}
+{% block page_title %}Novo fornecedor{% endblock page_title %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
-  <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de fornecedores</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Adicione um fornecedor
-      </p>
-    </div>
-  {% include 'suppliers/supplier_form.html' %}
+<div class="page-form">
+  {% include 'components/page/breadcrumb.html' with parent_label='Fornecedores' parent_url_name='accounts:supplier_list' current='Novo' %}
+  {% include 'components/page/heading.html' with title='Novo fornecedor' subtitle='Depois de salvo, ele aparece na escolha de fornecedor dos contratos a pagar.' %}
+  <div class="mt-6">
+    {% include 'suppliers/supplier_form.html' %}
   </div>
 </div>
 {% endblock content %}

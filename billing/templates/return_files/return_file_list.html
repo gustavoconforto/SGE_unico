@@ -3,10 +3,10 @@
 {% block page_title %}Retornos{% endblock page_title %}
 
 {% block header %}
-  <div class="flex items-center justify-between px-2 pb-4">
-    {% include 'components/page/heading.html' with title='Retornos' %}
+  <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
+    {% include 'components/page/heading.html' with section='Financeiro' title='Retornos' %}
     <a href={% url 'billing:return_file_add' %}>
-    {% include 'components/button/button_select.html' with label='Importar retorno'%}
+    {% include 'components/button/button_primary.html' with label='Importar retorno' icon='download' %}
     </a>
   </div>
   {% include 'components/search/filter_form.html' with placeholder='Pesquisar por nome do arquivo...' %}

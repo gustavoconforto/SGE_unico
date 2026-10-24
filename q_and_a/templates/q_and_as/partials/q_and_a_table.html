@@ -1,0 +1,42 @@
+  <div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Aluno</th>
+        <th>Turma</th>
+        <th>Disciplina</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for q_and_a in q_and_as %}
+      <tr class="hover:bg-slate-50">
+        <td class="whitespace-nowrap">
+            {{ q_and_a.q_and_a_date|date:"d/m/Y" }}
+        </td>
+        <td>
+            {{ q_and_a.enrollment.student }}
+        </td>
+        <td>
+            {{ q_and_a.enrollment.school_class|default:"-" }}
+        </td>
+        <td>
+            {{ q_and_a.subject }}
+        </td>
+        <td class="text-right">
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+          {% url 'q_and_a:q_and_a_edit' q_and_a.pk as edit_url %}
+          {% url 'q_and_a:q_and_a_delete' q_and_a.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=q_and_a.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar plantão?' name=q_and_a %}
+          
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      {% include 'components/table/empty_table.html' with collspan=5%}
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+{% include 'components/table/pagination.html' %}

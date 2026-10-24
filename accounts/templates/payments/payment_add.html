@@ -1,20 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block page_title %}Baixas{% endblock page_title %}
+{% block page_title %}Nova baixa{% endblock page_title %}
 
-{% block header %}
-
-{% endblock header %}
   
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de baixas</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Registre uma baixa de parcela
-      </p>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Baixas' parent_url_name='accounts:payment_list' current='Nova' %}
+    {% include 'components/page/heading.html' with title='Nova baixa' %}
   {% include 'payments/payment_form.html' %}
   </div>
 </div>

@@ -3,13 +3,13 @@
 {% block page_title %}Fornecedores{% endblock page_title %}
 
 {% block header %}
-  <div class="flex items-center justify-between px-2 pb-4">
-    {% include 'components/page/heading.html' with title='Fornecedores' %}
-    <a href={% url 'accounts:supplier_add' %}>
-    {% include 'components/button/button_select.html' with label='Adicionar registro'%}
+  <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
+    {% include 'components/page/heading.html' with section='Financeiro' title='Fornecedores' subtitle='Empresas e pessoas de quem a escola compra produtos ou serviços.' %}
+    <a href="{% url 'accounts:supplier_add' %}">
+      {% include 'components/button/button_primary.html' with label='Novo fornecedor' icon='add' %}
     </a>
   </div>
-  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por nome, CPF/CNPJ, telefone, email ou observações...' %}
+  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por nome, CPF/CNPJ, telefone, e-mail ou observações' %}
 {% endblock header %}
 
 {% block content %}

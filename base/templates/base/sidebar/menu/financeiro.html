@@ -1,19 +1,15 @@
-<ul class="menu bg-base-200 rounded-box w-56">
-    <li>
-        <details >
-            <summary class="font-semibold">Financeiro</summary>
-            <ul>
-                {% include 'base/sidebar/items/menu_item.html' with path="accounts:account_type_list" label="Categoria financeira" icon="category" %}
-                {% include 'base/sidebar/items/menu_item.html' with path="accounts:supplier_list" label="Fornecedores" icon="storefront" %}
-                {% include 'base/sidebar/items/menu_item.html' with path="accounts:receivable_list" label="Contratos a receber" icon="attach_money" %}
-                {% include 'base/sidebar/items/menu_item.html' with path="accounts:payable_list" label="Contratos a pagar" icon="money_off" %}
-                {% include 'base/sidebar/items/menu_item.html' with path="accounts:payment_add" label="Baixa de matrícula" icon="price_check" %}
-                {% include 'base/sidebar/items/menu_item.html' with path="accounts:payable_payment_add" label="Pagamento de contas" icon="payments" %}
-                {% include 'base/sidebar/items/menu_item.html' with path="accounts:installment_list" label="Parcelas" icon="balance" %}
-                {% include 'base/sidebar/items/menu_item.html' with path="billing:remittance_list" label="Remessas" icon="upload_file" %}
-                {% include 'base/sidebar/items/menu_item.html' with path="billing:return_file_list" label="Retornos" icon="download" %}
-                {% include 'base/sidebar/items/menu_item.html' with path="billing:bank_slip_list" label="Boletos" icon="barcode" %}
-            </ul>
-        </details>
-    </li>
-</ul>
+<details class="nav-group">
+    <summary><span class="material-symbols-outlined text-slate-500">account_balance</span>Financeiro<span class="material-symbols-outlined nav-chevron">expand_more</span></summary>
+    <ul class="nav-list">
+        {% include 'base/sidebar/items/menu_item.html' with path="accounts:account_type_list" label="Categoria financeira" icon="category" %}
+        {% include 'base/sidebar/items/menu_item.html' with path="accounts:supplier_list" label="Fornecedores" icon="storefront" %}
+        {% include 'base/sidebar/items/menu_item.html' with path="accounts:receivable_list" label="Contratos a receber" icon="attach_money" %}
+        {% include 'base/sidebar/items/menu_item.html' with path="accounts:payable_list" label="Contratos a pagar" icon="money_off" %}
+        {% include 'base/sidebar/items/menu_item.html' with path="accounts:payment_add" label="Baixa de matrícula" icon="price_check" %}
+        {% include 'base/sidebar/items/menu_item.html' with path="accounts:payable_payment_add" label="Pagamento de contas" icon="payments" %}
+        {% include 'base/sidebar/items/menu_item.html' with path="accounts:installment_list" label="Parcelas" icon="balance" %}
+        {% include 'base/sidebar/items/menu_item.html' with path="billing:remittance_list" label="Remessas" icon="upload_file" %}
+        {% include 'base/sidebar/items/menu_item.html' with path="billing:return_file_list" label="Retornos" icon="download" %}
+        {% include 'base/sidebar/items/menu_item.html' with path="billing:bank_slip_list" label="Boletos" icon="barcode" %}
+    </ul>
+</details>

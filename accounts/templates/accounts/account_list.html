@@ -3,10 +3,10 @@
 {% block page_title %}{{ title }}{% endblock page_title %}
 
 {% block header %}
-  <div class="flex items-center justify-between px-2 pb-4">
-    {% include 'components/page/heading.html' %}
+  <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
+    {% include 'components/page/heading.html' with section='Financeiro' %}
     <a href={% url urls.add %}>
-    {% include 'components/button/button_select.html' with label='Adicionar registro'%}
+    {% include 'components/button/button_primary.html' with label='Nova '|add:noun icon='add' %}
     </a>
   </div>
   {% include 'components/search/filter_form.html' with placeholder='Pesquisar por descrição, '|add:counterpart_label|lower|add:' ou observações...' %}

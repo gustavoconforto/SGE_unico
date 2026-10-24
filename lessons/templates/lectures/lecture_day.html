@@ -1,0 +1,29 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Diário de classe{% endblock page_title %}
+
+{% block header %}
+
+{% endblock header %}
+
+{% block content %}
+<div class="page-form-wide">
+  <div class="w-full">
+    {% include 'components/page/breadcrumb.html' with parent_label='Diário de classe' parent_url_name='lessons:lecture_list' current='Lançar dia' %}
+    {% include 'components/page/heading.html' with subtitle='Selecione a turma e a data.' title='Lançamento do dia' %}
+    <div class="mb-6"></div>
+    <form hx-get="{{ request.path }}"
+          hx-trigger="change"
+          hx-target="#search-results"
+          hx-push-url="true"
+          class="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+      {% include 'components/form/field.html' with field=select_form.school_class %}
+      {% include 'components/form/field.html' with field=select_form.date %}
+    </form>
+
+    <div id="search-results" class="mt-6">
+      {% include 'lectures/partials/lecture_day_sheet.html' %}
+    </div>
+  </div>
+</div>
+{% endblock content %}

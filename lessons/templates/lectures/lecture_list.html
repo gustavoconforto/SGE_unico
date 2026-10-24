@@ -1,0 +1,21 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Diário de classe{% endblock page_title %}
+
+{% block header %}
+  <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
+    {% include 'components/page/heading.html' with section='Acadêmico' title='Diário de classe' %}
+    <div class="flex gap-3">
+    <a href="{% url 'lessons:lecture_day' %}{% if request.GET.school_class %}?school_class={{ request.GET.school_class }}{% endif %}">
+    {% include 'components/button/button_primary.html' with label='Lançar dia' icon='edit_calendar' %}
+    </a>
+    </div>
+  </div>
+  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por conteúdo...' %}
+{% endblock header %}
+
+{% block content %}
+  <div id="search-results">
+    {% include 'lectures/partials/lecture_table.html' %}
+  </div>
+{% endblock content %}

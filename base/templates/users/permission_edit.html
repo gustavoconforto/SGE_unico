@@ -1,13 +1,11 @@
-{% extends 'base/base.html' %} {% block header %} {""} {% endblock header %} {"
+{% extends 'base/base.html' %}
+
+{% block page_title %}Editar permissão{% endblock page_title %} {% block header %} {""} {% endblock header %} {"
 "} {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900">
-        Gerenciamento de permissões
-      </h2>
-      <p class="mt-4 text-lg text-gray-600">Edite uma permissão</p>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Permissões' parent_url_name='base:permission_list' current=form.instance %}
+    {% include 'components/page/heading.html' with title='Editar permissão' %}
     {% include 'users/permission_form.html' %}
   </div>
 </div>

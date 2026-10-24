@@ -50,6 +50,9 @@ INSTALLED_APPS = [
     "departments",
     "grades",
     "incidents",
+    "q_and_a",
+    "pathways",
+    "lessons",
 ]
 
 MIDDLEWARE = [

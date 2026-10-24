@@ -1,20 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block page_title %}Cobrança bancária{% endblock page_title %}
+{% block page_title %}Editar configuração bancária{% endblock page_title %}
 
-{% block header %}
-
-{% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de cobrança bancária</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Dados do beneficiário no Bradesco (CNAB 400)
-      </p>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Remessas' parent_url_name='billing:remittance_list' current=object %}
+    {% include 'components/page/heading.html' with title='Editar configuração bancária' %}
   {% include 'bank_settings/bank_settings_form.html' %}
   </div>
 </div>

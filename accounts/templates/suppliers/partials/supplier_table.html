@@ -1,42 +1,36 @@
-  <table class=" overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
-    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+{% load ui %}
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
       <tr>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Nome</th>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">CPF/CNPJ</th>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Telefone</th>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Email</th>
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Opções</th>
+        <th>Nome</th>
+        <th>CPF/CNPJ</th>
+        <th>Contato</th>
+        <th class="w-12"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
-    <tbody class="bg-white divide-y divide-slate-100">
+    <tbody>
     {% for supplier in suppliers %}
-      <tr class="hover:bg-slate-50">
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
-            {{ supplier.name }}
+      <tr>
+        <td>
+          <a href="{% url 'accounts:supplier_edit' supplier.pk %}" class="font-semibold hover:underline">{{ supplier.name }}</a>
+          {% if supplier.document %}<span class="block text-xs font-normal text-slate-500">{{ supplier.document|person_kind }}</span>{% endif %}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
-            {{ supplier.document|default:"-" }}
+        <td class="whitespace-nowrap">{{ supplier.document|document|default:"-" }}</td>
+        <td>
+          <span class="block whitespace-nowrap">{{ supplier.phone|default:"-" }}</span>
+          {% if supplier.email %}<span class="block text-xs text-slate-500">{{ supplier.email }}</span>{% endif %}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
-            {{ supplier.phone|default:"-" }}
-        </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
-            {{ supplier.email|default:"-" }}
-        </td>
-        <td class="px-2 py-2 text-right sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
-          <a href={% url 'accounts:supplier_edit' supplier.pk %}>
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          <a href={% url 'accounts:supplier_delete' supplier.pk %}>
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
-          </div>
+        <td class="text-right">
+          {% url 'accounts:supplier_edit' supplier.pk as edit_url %}
+          {% url 'accounts:supplier_delete' supplier.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=supplier.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar fornecedor?' name=supplier.name detail=supplier.document|document %}
         </td>
       </tr>
       {% empty %}
-      {% include 'components/table/empty_table.html' with collspan=5%}
+      {% include 'components/table/empty_table.html' with collspan=4 %}
       {% endfor %}
     </tbody>
   </table>
+</div>
 {% include 'components/table/pagination.html' %}

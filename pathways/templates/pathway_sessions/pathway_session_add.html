@@ -1,0 +1,14 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Nova aula{% endblock page_title %}
+
+
+{% block content %}
+<div class="page-form">
+  <div class="w-full">
+    {% include 'components/page/breadcrumb.html' with parent_label='Aulas e chamadas' parent_url_name='pathways:pathway_session_list' current='Nova' %}
+    {% include 'components/page/heading.html' with title='Nova aula' %}
+  {% include 'pathway_sessions/pathway_session_form.html' %}
+  </div>
+</div>
+{% endblock content %}

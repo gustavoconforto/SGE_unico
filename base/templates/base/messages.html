@@ -1,0 +1,31 @@
+{% if messages %}
+<div id="toasts" class="fixed right-4 bottom-4 z-50 flex w-[22rem] max-w-[calc(100%-2rem)] flex-col gap-2" aria-live="polite">
+  {% for message in messages %}
+    <div role="{% if message.level_tag == 'alert-danger' %}alert{% else %}status{% endif %}"
+         class="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-white py-3 pr-2 pl-3.5 text-sm shadow-lg shadow-slate-900/10"
+         {% if message.level_tag != 'alert-danger' %}data-autohide{% endif %}>
+      {% if message.level_tag == 'alert-success' %}
+        <span class="material-symbols-outlined text-[22px] text-green-700">check_circle</span>
+      {% elif message.level_tag == 'alert-danger' %}
+        <span class="material-symbols-outlined text-[22px] text-red-700">error</span>
+      {% elif message.level_tag == 'alert-warning' %}
+        <span class="material-symbols-outlined text-[22px] text-amber-700">info</span>
+      {% else %}
+        <span class="material-symbols-outlined text-[22px] text-slate-500">info</span>
+      {% endif %}
+      <p class="flex-1 pt-0.5 font-medium text-slate-900">{{ message }}</p>
+      <button type="button" class="ui-icon-btn size-7" aria-label="Fechar aviso" data-toast-close>
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+  {% endfor %}
+</div>
+<script>
+  (function () {
+    document.querySelectorAll('#toasts [data-toast-close]').forEach(btn =>
+      btn.addEventListener('click', () => btn.closest('[role]').remove()));
+    // Errors stay until closed; the rest leave after a few seconds.
+    setTimeout(() => document.querySelectorAll('#toasts [data-autohide]').forEach(t => t.remove()), 6000);
+  })();
+</script>
+{% endif %}

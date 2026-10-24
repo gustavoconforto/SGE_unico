@@ -1,18 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block header %}
+{% block page_title %}Editar responsável{% endblock page_title %}
 
-{% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de responsáveis</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Edite um responsável
-      </p>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Responsáveis' parent_url_name='students:guardian_list' current=object %}
+    {% include 'components/page/heading.html' with title='Editar responsável' %}
 
     {% include 'guardians/guardian_form.html' %}
 

@@ -2,19 +2,12 @@
 
 {% block page_title %}{{ title }}{% endblock page_title %}
 
-{% block header %}
 
-{% endblock header %}
-  
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de {{ title|lower }}</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        {{ subtitle_add }}
-      </p>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label=title parent_url_name=urls.list current='Nova' %}
+    {% include 'components/page/heading.html' with title='Nova '|add:noun %}
   {% include 'accounts/account_form.html' %}
   </div>
 </div>

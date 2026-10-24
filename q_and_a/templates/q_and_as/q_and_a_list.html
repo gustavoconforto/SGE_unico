@@ -1,0 +1,19 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Plantões{% endblock page_title %}
+
+{% block header %}
+  <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
+    {% include 'components/page/heading.html' with section='Acadêmico' title='Plantões' %}
+    <a href={% url 'q_and_a:q_and_a_add' %}>
+    {% include 'components/button/button_primary.html' with label='Novo plantão' icon='add' %}
+    </a>
+  </div>
+  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por aluno ou disciplina...' %}
+{% endblock header %}
+
+{% block content %}
+  <div id="search-results">
+    {% include 'q_and_as/partials/q_and_a_table.html' %}
+  </div>
+{% endblock content %}

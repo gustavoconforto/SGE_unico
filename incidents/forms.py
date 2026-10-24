@@ -1,8 +1,9 @@
 from django import forms
 from django.db.models import Q
+from django.utils import timezone
 
 from accounts.forms import date_input
-from enrollments.models import Enrollment, EnrollmentStatus
+from enrollments.models import Enrollment, EnrollmentStatus, SchoolYear
 from grades.models import Bimester
 from incidents.models import BathroomPermission, Incident, IncidentType, StudentDelay
 
@@ -42,6 +43,19 @@ class StudentDelayForm(ActiveEnrollmentFormMixin, forms.ModelForm):
             "delay_type": forms.Select(attrs={"class": "select select-neutral w-full"}),
             "incident_date": date_input(),
         }
+
+
+class StudentDelayFilterForm(forms.Form):
+    date_from = forms.DateField(
+        label="De",
+        required=False,
+        widget=date_input("input input-neutral input-sm w-full"),
+    )
+    date_to = forms.DateField(
+        label="Até",
+        required=False,
+        widget=date_input("input input-neutral input-sm w-full"),
+    )
 
 
 class BathroomPermissionForm(ActiveEnrollmentFormMixin, forms.ModelForm):
@@ -95,6 +109,19 @@ def active_enrollments():
         )
         .order_by("student__name")
     )
+
+
+def current_school_year():
+    """The school year that begins in today's calendar year, or None."""
+    return (
+        SchoolYear.objects.filter(begins__year=timezone.localdate().year)
+        .order_by("begins")
+        .first()
+    )
+
+
+def current_year_enrollments(school_year):
+    return active_enrollments().filter(enrollment_type__school_year=school_year)
 
 
 class ConceptGradeForm(forms.Form):

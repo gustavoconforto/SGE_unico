@@ -1,18 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block header %}
+{% block page_title %}Editar usuário{% endblock page_title %}
 
-{% endblock header %}
   
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de usuários</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Edite um usuário
-      </p>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Usuários' parent_url_name='base:user_list' current=form.instance %}
+    {% include 'components/page/heading.html' with title='Editar usuário' %}
   {% include 'users/user_form.html' %}
   </div>
 </div>

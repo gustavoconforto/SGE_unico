@@ -1,18 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block header %}
+{% block page_title %}Novo funcionário{% endblock page_title %}
 
-{% endblock header %}
   
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de funcionários</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Adicione um funcionário
-      </p>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Funcionários' parent_url_name='employees:employee_list' current='Novo' %}
+    {% include 'components/page/heading.html' with title='Novo funcionário' %}
   {% include 'employees/employee_form.html' %}
   </div>
 </div>

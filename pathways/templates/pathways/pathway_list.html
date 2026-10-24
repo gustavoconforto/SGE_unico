@@ -1,0 +1,21 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Itinerários{% endblock page_title %}
+
+{% block header %}
+  <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
+    {% include 'components/page/heading.html' with section='Itinerários' title='Itinerários' %}
+    <div class="flex gap-3">
+    <a href="{% url 'pathways:pathway_add' %}">
+    {% include 'components/button/button_primary.html' with label='Novo itinerário' icon='add' %}
+    </a>
+    </div>
+  </div>
+  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por nome ou descrição...' %}
+{% endblock header %}
+
+{% block content %}
+  <div id="search-results">
+    {% include 'pathways/partials/pathway_table.html' %}
+  </div>
+{% endblock content %}

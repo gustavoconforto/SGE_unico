@@ -13,26 +13,28 @@
   <p class="px-2 pb-3 text-sm text-slate-500">
     O conceito começa em 1, perde a penalidade de cada ocorrência do bimestre e 0,2 por atraso tolerado além do segundo, sem ficar abaixo de 0. O valor calculado é lançado em todas as matérias.
   </p>
-  <table class="rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
-    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+  <div class="table-wrap">
+  <table class="data-table">
+    <thead>
       <tr>
-        <th class="px-3 py-2.5 text-left font-semibold md:px-4 md:py-3 lg:px-6 lg:py-3.5">Matéria</th>
-        <th class="px-3 py-2.5 text-right font-semibold md:px-4 md:py-3 lg:px-6 lg:py-3.5">Conceito</th>
+        <th>Matéria</th>
+        <th class="text-right">Conceito</th>
       </tr>
     </thead>
-    <tbody class="bg-white divide-y divide-slate-100">
+    <tbody>
     {% for subject, score in rows %}
       <tr class="hover:bg-slate-50">
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+        <td>
           {{ subject }}
         </td>
-        <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+        <td class="text-right whitespace-nowrap">
           {{ score|floatformat:2|default:"-" }}
         </td>
       </tr>
     {% endfor %}
     </tbody>
   </table>
+  </div>
   {% if has_dates %}
   <form method="POST" action="{{ request.get_full_path }}" class="flex flex-row gap-4 pt-6">
     {% csrf_token %}

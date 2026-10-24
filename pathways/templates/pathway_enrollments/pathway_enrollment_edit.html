@@ -1,0 +1,14 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Editar inscrição{% endblock page_title %}
+
+
+{% block content %}
+<div class="page-form">
+  <div class="w-full">
+    {% include 'components/page/breadcrumb.html' with parent_label='Inscrições' parent_url_name='pathways:pathway_enrollment_list' current=object %}
+    {% include 'components/page/heading.html' with title='Editar inscrição' %}
+  {% include 'pathway_enrollments/pathway_enrollment_form.html' %}
+  </div>
+</div>
+{% endblock content %}

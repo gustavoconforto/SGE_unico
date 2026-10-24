@@ -4,31 +4,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Gestão Escolar{% endblock %}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    <title>{% block title %}{% block page_title %}Gestão Escolar{% endblock page_title %}{% endblock title %}</title>
+    <link rel="icon" href="{% static 'img/favicon.ico' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,300..400,0,0" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.11/dist/htmx.min.js" 
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.11/dist/htmx.min.js"
         integrity="sha384-2OatzQy1H+Zd/IIrjr1TcuDGqLXeHhbooAyJY1KdQMKnr4LZ22k31GBLdYKHmVjg"
         crossorigin="anonymous"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style type="text/tailwindcss">
         @theme inline {
-            --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+            --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
         }
         @layer components {
-            .nav-section { @apply border-t border-gray-200 pt-5 pb-2; }
-            .nav-title { @apply px-2 mb-2 text-sm font-semibold text-gray-900; }
-            .nav-link { @apply flex items-center gap-3 rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-gray-200/70 hover:text-gray-900 transition-colors; }
-            .nav-link.active { @apply bg-gray-200/70 font-medium text-gray-900; }
-            .nav-link svg { @apply size-4 shrink-0 text-gray-600; }
+            /* Sidebar */
+            .nav-group > summary { @apply flex cursor-pointer list-none items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-100; }
+            .nav-group > summary::-webkit-details-marker { display: none; }
+            .nav-group > summary .nav-chevron { @apply ml-auto text-[18px] text-slate-400 transition-transform; }
+            .nav-group[open] > summary .nav-chevron { transform: rotate(180deg); }
+            .nav-group .nav-group { @apply mt-0.5; }
+            .nav-group .nav-group > summary { @apply font-medium text-slate-600; }
+            .nav-list { @apply flex flex-col gap-px pb-2 pl-3; }
+            .nav-link { @apply flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900; }
+            .nav-link .material-symbols-outlined { @apply text-[18px] text-slate-400; }
+            .nav-link.active { @apply bg-slate-100 font-semibold text-slate-900; }
+            .nav-link.active .material-symbols-outlined { @apply text-red-700; }
+
+            /* Buttons: one base, a variant and an optional size */
+            .ui-btn { @apply inline-flex h-10 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-4 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700 disabled:pointer-events-none disabled:opacity-50; }
+            .ui-btn .material-symbols-outlined { @apply -ml-1 text-[20px]; }
+            .ui-btn-primary { @apply bg-slate-800 font-semibold text-white hover:bg-slate-900; }
+            .ui-btn-secondary { @apply border border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50; }
+            .ui-btn-danger { @apply bg-red-700 font-semibold text-white hover:bg-red-800; }
+            .ui-btn-danger-text { @apply border border-slate-200 bg-white text-red-700 hover:border-red-200 hover:bg-red-50; }
+            .ui-btn-sm { @apply h-8 rounded-md px-3 text-[13px]; }
+            .ui-icon-btn { @apply inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900; }
+
+            /* Page headers */
+            .page-title { @apply text-[28px] leading-tight font-semibold tracking-tight text-slate-900; }
+            .page-context { @apply text-sm text-slate-500; }
+
+            /* Add / edit / delete pages */
+            .page-form { @apply max-w-5xl px-2; }
+            .page-form-wide { @apply px-2; }
+            .form-card { @apply rounded-xl border border-slate-200 bg-white p-6; }
+
+            /* Sectioned forms: a short intro on the left, the fields in a card. */
+            .form-section { @apply flex flex-wrap gap-x-10 gap-y-4 border-t border-slate-200 py-6; }
+            .form-section-intro { @apply max-w-72 flex-[1_1_14rem]; }
+            .form-section-intro h2 { @apply text-[15px] font-semibold text-slate-900; }
+            .form-section-intro p { @apply mt-1 text-[13px] text-slate-500; }
+            .form-section-body { @apply min-w-0 flex-[999_1_26rem] rounded-xl border border-slate-200 bg-white px-6 py-4; }
+            .form-actions { @apply sticky bottom-0 -mx-2 mt-2 flex flex-wrap items-center gap-3 border-t border-slate-200 bg-slate-50/95 px-2 py-4 backdrop-blur; }
+
+            /* Form fields */
+            .ui-field { @apply flex flex-col gap-1.5 py-2; }
+            .ui-label { @apply text-[13px] font-semibold text-slate-700; }
+            .ui-optional { @apply font-normal text-slate-500; }
+            .ui-help { @apply text-[13px] text-slate-500; }
+            .ui-error { @apply flex items-center gap-1 text-[13px] text-red-700; }
+
+            /* Tables */
+            .table-wrap { @apply overflow-x-auto rounded-xl border border-slate-200 bg-white; }
+            .data-table { @apply min-w-full text-sm tabular-nums; }
+            .data-table thead { @apply border-b border-slate-200; }
+            .data-table th { @apply px-4 py-3 text-left text-[13px] font-medium whitespace-nowrap text-slate-500; }
+            .data-table td { @apply px-4 py-3 text-slate-700; }
+            .data-table td:first-child, .data-table th:first-child { @apply pl-5; }
+            .data-table td:last-child, .data-table th:last-child { @apply pr-5; }
+            .data-table td:first-child { @apply font-medium text-slate-900; }
+            .data-table tbody tr { @apply border-b border-slate-100 last:border-b-0 hover:bg-slate-50; }
+            .data-table .ui-btn { @apply h-8 rounded-md px-3 text-[13px]; }
         }
+    </style>
+    <style>
+        /* daisyUI theme: the app's slate palette, flat surfaces. */
+        :root:root {
+            --color-base-100: #ffffff;
+            --color-base-200: #f8fafc;
+            --color-base-300: #e2e8f0;
+            --color-base-content: #0f172a;
+            --color-primary: #1e293b;
+            --color-primary-content: #ffffff;
+            --color-neutral: #1e293b;
+            --color-neutral-content: #ffffff;
+            --color-success: #15803d;
+            --color-success-content: #ffffff;
+            --color-warning: #b45309;
+            --color-warning-content: #ffffff;
+            --color-error: #b91c1c;
+            --color-error-content: #ffffff;
+            --color-info: #334155;
+            --color-info-content: #ffffff;
+            --radius-field: 0.5rem;
+            --radius-box: 0.75rem;
+            --radius-selector: 0.375rem;
+            --depth: 0;
+            --noise: 0;
+            color-scheme: light;
+        }
+        .material-symbols-outlined { font-size: 20px; font-variation-settings: "wght" 300, "opsz" 20; line-height: 1; }
+        a:focus-visible, summary:focus-visible { outline: 2px solid #334155; outline-offset: 2px; border-radius: 6px; }
+
+        /* Inputs: light border, dark border and soft ring on focus, red when invalid. */
+        body .input, body .select, body .textarea {
+            border-color: #cbd5e1;
+            background-color: #ffffff;
+            box-shadow: none;
+            color: #0f172a;
+            font-size: 0.875rem;
+        }
+        body .input:focus, body .input:focus-within, body .select:focus, body .select:focus-within, body .textarea:focus {
+            outline: none;
+            border-color: #334155;
+            box-shadow: 0 0 0 3px rgb(51 65 85 / 0.14);
+        }
+        body .input[aria-invalid="true"], body .select[aria-invalid="true"], body .textarea[aria-invalid="true"] { border-color: #dc2626; }
+
+        /* Badges: soft fills, readable text. */
+        body .badge { border-radius: 9999px; font-weight: 600; font-size: 0.75rem; }
+        body .badge-success:not(.badge-outline) { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+        body .badge-warning:not(.badge-outline) { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+        body .badge-error:not(.badge-outline) { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+        body .badge-ghost { background: #f8fafc; color: #64748b; border-color: #e2e8f0; }
+        body .badge-outline.badge-success { background: transparent; color: #15803d; border-color: #86efac; }
+        body .badge-outline.badge-error { background: transparent; color: #b91c1c; border-color: #fca5a5; }
+        body .badge-outline.badge-neutral { background: #ffffff; color: #334155; border-color: #cbd5e1; }
     </style>
 
     {% block extra_head %}{% endblock %}
 </head>
-<body class="h-full bg-white font-sans text-gray-800 antialiased">
+<body class="h-full bg-slate-50 font-sans text-slate-800 antialiased">
 <div class="flex h-full">
 
     {% include "base/sidebar/sidebar.html" %}
@@ -37,30 +145,44 @@
     <div class="flex min-w-0 flex-1 flex-col">
 
         <!-- Navbar -->
-    {% include "base/navbar/navbar.html"%}
+        {% include "base/navbar/navbar.html" %}
 
         <!-- Content -->
-        <main class="flex-1 overflow-y-auto p-4">
-
-            {% if messages %}
-              <div class="space-y-2 px-2 pb-4">
-                {% for message in messages %}
-                  <div class="rounded-lg px-4 py-3 text-sm
-                              {% if message.level_tag == 'alert-success' %}bg-lime-100 text-lime-800
-                              {% elif message.level_tag == 'alert-danger' %}bg-red-100 text-red-800
-                              {% elif message.level_tag == 'alert-warning' %}bg-yellow-100 text-yellow-800
-                              {% else %}bg-gray-100 text-gray-800{% endif %}">
-                    {{ message }}
-                  </div>
-                {% endfor %}
-              </div>
-            {% endif %}
-            {% block header %}{% endblock header %}
-            {% block content %}{% endblock content %}
+        <main class="flex-1 overflow-y-auto px-4 py-6 lg:px-8">
+            <div class="mx-auto max-w-7xl">
+                {% block header %}{% endblock header %}
+                {% block content %}{% endblock content %}
+            </div>
         </main>
     </div>
 </div>
 
+{% include "base/messages.html" %}
+<script>
+    // Row menus are popovers (top layer, so the table's scroll box can't clip
+    // them); place each one under its button, right-aligned, flipping up near
+    // the bottom of the window.
+    function rowMenuButton(menu) {
+        return document.querySelector(`[popovertarget="${menu.id}"]`);
+    }
+    document.addEventListener('beforetoggle', e => {
+        const menu = e.target;
+        if (!menu.matches || !menu.matches('[data-row-menu]') || e.newState !== 'open') return;
+        const r = rowMenuButton(menu).getBoundingClientRect();
+        Object.assign(menu.style, {
+            position: 'fixed', inset: 'auto',
+            right: `${window.innerWidth - r.right}px`, top: `${r.bottom + 4}px`,
+        });
+    }, true);
+    document.addEventListener('toggle', e => {
+        const menu = e.target;
+        if (!menu.matches || !menu.matches('[data-row-menu]') || e.newState !== 'open') return;
+        const r = rowMenuButton(menu).getBoundingClientRect();
+        if (r.bottom + 4 + menu.offsetHeight > window.innerHeight) {
+            menu.style.top = `${r.top - 4 - menu.offsetHeight}px`;
+        }
+    }, true);
+</script>
 {% include 'base/sidebar/js/sidebar_js.html' %}
 {% block extra_js %}{% endblock %}
 </body>

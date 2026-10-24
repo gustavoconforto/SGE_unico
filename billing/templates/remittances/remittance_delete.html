@@ -1,44 +1,34 @@
 {% extends 'base/base.html' %}
 
-{% block page_title %}Remessas{% endblock page_title %}
+{% block page_title %}Deletar remessa?{% endblock page_title %}
 
 {% block header %}
 
 {% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de remessas</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Deseja, realmente, deletar este registro?
-      </p>
-    </div>
-  <div class="bg-slate-50 rounded-2xl p-6 md:p-8">
+    {% include 'components/page/breadcrumb.html' with parent_label='Remessas' parent_url_name='billing:remittance_list' current=object %}
+    {% include 'components/page/heading.html' with title='Deletar remessa?' %}
+    <div class="mb-6"></div>
+  <div class="form-card">
       <form class="space-y-6" method="POST">
         {% csrf_token %}
-        <p>
-        Número: {{ object.number }}
-        </p>
-        <p>
-        Data de geração: {{ object.generated_at|date:"d/m/Y" }}
-        </p>
-        <p>
-        Boletos: {{ object.slips.count }}
-        </p>
-        <p>
-        Pedidos de baixa: {{ object.write_off_slips.count }}
-        </p>
-        <p class="text-sm text-slate-500">
-        Só é possível deletar remessas que ainda não foram processadas pelo banco. Os pedidos de baixa voltam a ficar pendentes.
+        <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
+          <dt class="text-slate-500">Número</dt><dd class="font-medium text-slate-900">{{ object.number }}</dd>
+        <dt class="text-slate-500">Data de geração</dt><dd class="font-medium text-slate-900">{{ object.generated_at|date:"d/m/Y" }}</dd>
+        <dt class="text-slate-500">Boletos</dt><dd class="font-medium text-slate-900">{{ object.slips.count }}</dd>
+        <dt class="text-slate-500">Pedidos de baixa</dt><dd class="font-medium text-slate-900">{{ object.write_off_slips.count }}</dd>
+        </dl>
+        <p class="mt-4 text-slate-600">Só é possível deletar remessas que ainda não foram processadas pelo banco. Os pedidos de baixa voltam a ficar pendentes.
         </p>
 
-        <div class="flex flex-row gap-4 pt-4">
-          {% include 'components/button/button_delete_form.html' with label=submit_label|default:'Deletar' %}
+        <div class="mt-6 flex flex-wrap justify-end gap-2">
           <a href={% url 'billing:remittance_list' %}>
             {% include 'components/button/button_cancel.html' with label='Cancelar' %}
           </a>
+          {% include 'components/button/button_delete_form.html' with label=submit_label|default:'Deletar' %}
         </div>
       </form>
     </div>

@@ -1,0 +1,22 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Nota extra{% endblock page_title %}
+
+{% block header %}
+  <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
+    {% include 'components/page/heading.html' with section='Itinerários' title='Nota extra coletiva' %}
+    <div class="flex gap-3 items-center">
+    {% if school_year %}<span class="badge badge-neutral badge-outline">Ano letivo {{ school_year }}</span>{% endif %}
+    <a href="{% url 'pathways:extra_grades_individual' %}">
+    {% include 'components/button/button_select.html' with label='Nota extra individual'%}
+    </a>
+    </div>
+  </div>
+  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por aluno ou turma...' %}
+{% endblock header %}
+
+{% block content %}
+  <div id="search-results">
+    {% include 'extra_grades/partials/extra_grades_table.html' %}
+  </div>
+{% endblock content %}

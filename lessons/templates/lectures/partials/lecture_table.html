@@ -1,0 +1,55 @@
+  <div class="overflow-x-auto">
+  <div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Aula</th>
+        <th>Turma</th>
+        <th>Matéria</th>
+        <th>Professor</th>
+        <th>Conteúdo</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for lecture in lectures %}
+      <tr class="hover:bg-slate-50">
+        <td class="whitespace-nowrap">
+            {{ lecture.date|date:"d/m/Y" }}
+        </td>
+        <td class="whitespace-nowrap">
+            {{ lecture.get_period_display }}
+        </td>
+        <td>
+            {{ lecture.school_class }}
+        </td>
+        <td>
+            {{ lecture.subject.subject.name }}
+        </td>
+        <td>
+            {{ lecture.teacher.name }}
+        </td>
+        <td>
+            {{ lecture.topic }}
+        </td>
+        <td class="text-right">
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+          <a href="{% url 'lessons:lecture_day' %}?school_class={{ lecture.school_class_id }}&date={{ lecture.date|date:'Y-m-d' }}">
+            {% include 'components/button/button_select.html' with label="Dia"%}
+          </a>
+          {% url 'lessons:lecture_edit' lecture.pk as edit_url %}
+          {% url 'lessons:lecture_delete' lecture.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=lecture.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar aula?' name=lecture %}
+          
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      {% include 'components/table/empty_table.html' with collspan=7%}
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  </div>
+{% include 'components/table/pagination.html' %}

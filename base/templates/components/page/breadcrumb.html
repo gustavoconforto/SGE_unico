@@ -1,0 +1,6 @@
+{# Trail above a page title: parent_label links to parent_url_name; current is plain text. #}
+<nav aria-label="Trilha" class="mb-2 flex items-center gap-1 text-sm text-slate-500">
+  <a href="{% url parent_url_name %}" class="hover:text-slate-900 hover:underline">{{ parent_label }}</a>
+  <span class="material-symbols-outlined text-[16px] text-slate-400" aria-hidden="true">chevron_right</span>
+  <span class="truncate text-slate-700" {% if current %}aria-current="page"{% endif %}>{{ current }}</span>
+</nav>

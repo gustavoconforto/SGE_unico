@@ -1,18 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block header %}
+{% block page_title %}Editar turma{% endblock page_title %}
 
-{% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de turmas</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Edite uma turma
-      </p>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Turmas' parent_url_name='classes:class_list' current=object %}
+    {% include 'components/page/heading.html' with title='Editar turma' %}
 
     {% include 'classes/class_form.html' %}
 

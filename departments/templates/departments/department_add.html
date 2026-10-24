@@ -1,20 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block page_title %}Departamentos{% endblock page_title %}
+{% block page_title %}Novo departamento{% endblock page_title %}
 
-{% block header %}
-
-{% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de departamentos</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Adicione um departamento
-      </p>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Departamentos' parent_url_name='departments:department_list' current='Novo' %}
+    {% include 'components/page/heading.html' with title='Novo departamento' %}
   {% include 'departments/department_form.html' %}
   </div>
 </div>

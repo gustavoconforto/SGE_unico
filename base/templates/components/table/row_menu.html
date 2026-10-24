@@ -1,0 +1,41 @@
+{% comment %}
+"⋯" menu for a table row: Editar, plus Deletar confirmed in a dialog that
+posts to the delete view.
+Params: menu_id (the record pk; unique per page), edit_url, delete_url,
+delete_title ("Deletar fornecedor?"), name (the record), detail (optional,
+shown after the name).
+{% endcomment %}
+<button type="button" class="ui-icon-btn" popovertarget="row-menu-{{ menu_id }}" aria-label="Ações de {{ name }}">
+  <span class="material-symbols-outlined">more_horiz</span>
+</button>
+<div id="row-menu-{{ menu_id }}" popover data-row-menu
+     class="m-0 w-44 rounded-lg border border-slate-200 bg-white p-1 text-left text-sm shadow-lg shadow-slate-900/10">
+  {% if edit_url %}
+  <a href="{{ edit_url }}" class="nav-link">
+    <span class="material-symbols-outlined">edit</span>Editar
+  </a>
+  {% endif %}
+  {% if delete_url %}
+  <button type="button" class="nav-link w-full cursor-pointer !text-red-700"
+          onclick="this.closest('[popover]').hidePopover(); document.getElementById('row-delete-{{ menu_id }}').showModal()">
+    <span class="material-symbols-outlined !text-red-700">delete</span>Deletar
+  </button>
+  {% endif %}
+</div>
+{% if delete_url %}
+<dialog id="row-delete-{{ menu_id }}" class="modal" aria-labelledby="row-delete-{{ menu_id }}-title">
+  <form method="post" action="{{ delete_url }}" class="modal-box max-w-md rounded-xl p-6 text-left whitespace-normal">
+    {% csrf_token %}
+    <h2 id="row-delete-{{ menu_id }}-title" class="text-xl font-semibold text-slate-900">{{ delete_title|default:"Deletar registro?" }}</h2>
+    <p class="mt-2 font-normal text-slate-600">
+      <strong class="font-semibold text-slate-900">{{ name }}</strong>{% if detail %} ({{ detail }}){% endif %}
+      será removido. Esta ação não pode ser desfeita.
+    </p>
+    <div class="mt-6 flex flex-wrap justify-end gap-2">
+      <button type="submit" formmethod="dialog" formnovalidate class="ui-btn ui-btn-secondary">Cancelar</button>
+      <button type="submit" class="ui-btn ui-btn-danger">Deletar</button>
+    </div>
+  </form>
+  <form method="dialog" class="modal-backdrop"><button>Fechar</button></form>
+</dialog>
+{% endif %}

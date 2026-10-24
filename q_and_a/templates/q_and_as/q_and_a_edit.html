@@ -1,0 +1,14 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Editar plantão{% endblock page_title %}
+
+
+{% block content %}
+<div class="page-form">
+  <div class="w-full">
+    {% include 'components/page/breadcrumb.html' with parent_label='Plantões' parent_url_name='q_and_a:q_and_a_list' current=object %}
+    {% include 'components/page/heading.html' with title='Editar plantão' %}
+  {% include 'q_and_as/q_and_a_form.html' %}
+  </div>
+</div>
+{% endblock content %}

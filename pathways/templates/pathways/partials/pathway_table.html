@@ -1,0 +1,40 @@
+  <div class="overflow-x-auto">
+  <div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Descrição</th>
+        <th class="text-right">Pontos extras</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for pathway in pathways %}
+      <tr class="hover:bg-slate-50">
+        <td>
+            <a href="{% url 'pathways:pathway_edit' pathway.pk %}" class="hover:underline">{{ pathway.name }}</a>
+        </td>
+        <td>
+            {{ pathway.description|truncatechars:80|default:"-" }}
+        </td>
+        <td class="text-right whitespace-nowrap">
+            {{ pathway.extra_points|floatformat:2 }}
+        </td>
+        <td class="text-right">
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+          {% url 'pathways:pathway_edit' pathway.pk as edit_url %}
+          {% url 'pathways:pathway_delete' pathway.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=pathway.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar itinerário?' name=pathway %}
+          
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      {% include 'components/table/empty_table.html' with collspan=4%}
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  </div>
+{% include 'components/table/pagination.html' %}

@@ -1,67 +1,68 @@
-  <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">A receber</p>
-      <p class="mt-1 text-xl font-semibold text-green-700">R$ {{ totals.receivable_outstanding|default:0|floatformat:2 }}</p>
-      <p class="text-xs text-slate-500">em aberto de R$ {{ totals.receivable_amount|default:0|floatformat:2 }} filtrados</p>
+  <section aria-label="Totais das parcelas filtradas" class="mb-4 grid grid-cols-1 rounded-xl border border-slate-200 bg-white tabular-nums sm:grid-cols-2 lg:grid-cols-4">
+    <div class="p-4 sm:px-5 border-b border-slate-200 sm:border-r lg:border-b-0">
+      <p class="flex items-center gap-2 text-[13px] text-slate-600"><span class="size-2 rounded-full bg-green-700"></span>A receber</p>
+      <p class="mt-1 text-2xl font-semibold whitespace-nowrap text-slate-900">R$ {{ totals.receivable_outstanding|default:0|floatformat:"2g" }}</p>
+      <p class="text-xs text-slate-500">em aberto de R$ {{ totals.receivable_amount|default:0|floatformat:"2g" }} filtrados</p>
     </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">A pagar</p>
-      <p class="mt-1 text-xl font-semibold text-red-700">R$ {{ totals.payable_outstanding|default:0|floatformat:2 }}</p>
-      <p class="text-xs text-slate-500">em aberto de R$ {{ totals.payable_amount|default:0|floatformat:2 }} filtrados</p>
+    <div class="p-4 sm:px-5 border-b border-slate-200 lg:border-r lg:border-b-0">
+      <p class="flex items-center gap-2 text-[13px] text-slate-600"><span class="size-2 rounded-full bg-red-700"></span>A pagar</p>
+      <p class="mt-1 text-2xl font-semibold whitespace-nowrap text-slate-900">R$ {{ totals.payable_outstanding|default:0|floatformat:"2g" }}</p>
+      <p class="text-xs text-slate-500">em aberto de R$ {{ totals.payable_amount|default:0|floatformat:"2g" }} filtrados</p>
     </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Recebido</p>
-      <p class="mt-1 text-xl font-semibold text-green-700">R$ {{ totals.receivable_paid|default:0|floatformat:2 }}</p>
-      <p class="text-xs text-slate-500">parcelas quitadas de R$ {{ totals.receivable_amount|default:0|floatformat:2 }} filtrados</p>
+    <div class="p-4 sm:px-5 border-b border-slate-200 sm:border-b-0 sm:border-r">
+      <p class="flex items-center gap-2 text-[13px] text-slate-600"><span class="size-2 rounded-full bg-green-700"></span>Recebido</p>
+      <p class="mt-1 text-2xl font-semibold whitespace-nowrap text-slate-900">R$ {{ totals.receivable_paid|default:0|floatformat:"2g" }}</p>
+      <p class="text-xs text-slate-500">parcelas quitadas de R$ {{ totals.receivable_amount|default:0|floatformat:"2g" }} filtrados</p>
     </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Pago</p>
-      <p class="mt-1 text-xl font-semibold text-red-700">R$ {{ totals.payable_paid|default:0|floatformat:2 }}</p>
-      <p class="text-xs text-slate-500">parcelas quitadas de R$ {{ totals.payable_amount|default:0|floatformat:2 }} filtrados</p>
+    <div class="p-4 sm:px-5">
+      <p class="flex items-center gap-2 text-[13px] text-slate-600"><span class="size-2 rounded-full bg-red-700"></span>Pago</p>
+      <p class="mt-1 text-2xl font-semibold whitespace-nowrap text-slate-900">R$ {{ totals.payable_paid|default:0|floatformat:"2g" }}</p>
+      <p class="text-xs text-slate-500">parcelas quitadas de R$ {{ totals.payable_amount|default:0|floatformat:"2g" }} filtrados</p>
     </div>
-  </div>
-  <table class=" overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
-    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+  </section>
+  <div class="table-wrap">
+  <table class="data-table">
+    <thead>
       <tr>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Vencimento</th>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Natureza</th>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Conta</th>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Parcela</th>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Responsável / Fornecedor</th>
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Valor</th>
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Faltante</th>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Situação</th>
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Opções</th>
+        <th>Vencimento</th>
+        <th>Natureza</th>
+        <th>Conta</th>
+        <th>Parcela</th>
+        <th>Responsável / Fornecedor</th>
+        <th class="text-right">Valor</th>
+        <th class="text-right">Faltante</th>
+        <th>Situação</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
-    <tbody class="bg-white divide-y divide-slate-100">
+    <tbody>
     {% for installment in installments %}
-      <tr class="hover:bg-slate-50{% if installment.is_overdue %} bg-red-50{% endif %}">
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 whitespace-nowrap" >
+      <tr>
+        <td class="whitespace-nowrap" >
             {{ installment.due_date|date:"d/m/Y" }}
             {% if installment.is_overdue %}<span class="block text-xs font-medium text-red-600">Vencida</span>{% endif %}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+        <td>
             <span class="badge badge-sm whitespace-nowrap {% if installment.account.direction == 'R' %}badge-success badge-outline{% else %}badge-error badge-outline{% endif %}">
                 {{ installment.account.get_direction_display }}
             </span>
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+        <td>
             {{ installment.account }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+        <td>
             {{ installment.number }}ª
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+        <td>
             {{ installment.account.counterpart|default:"-" }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 text-right whitespace-nowrap" >
-            R$ {{ installment.amount|floatformat:2 }}
+        <td class="text-right whitespace-nowrap" >
+            R$ {{ installment.amount|floatformat:"2g" }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 text-right whitespace-nowrap" >
-            R$ {{ installment.outstanding|floatformat:2 }}
+        <td class="text-right whitespace-nowrap" >
+            R$ {{ installment.outstanding|floatformat:"2g" }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+        <td>
             <span class="badge badge-sm whitespace-nowrap
                 {% if installment.status == 'Q' %}badge-success
                 {% elif installment.status == 'P' %}badge-warning
@@ -71,7 +72,7 @@
                 {{ installment.get_status_display }}
             </span>
         </td>
-        <td class="px-2 py-2 text-right sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5">
+        <td class="text-right">
           <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
           {% if installment.status == 'A' or installment.status == 'P' or installment.status == 'E' %}
           <a href="{% if installment.account.direction == 'R' %}{% url 'accounts:payment_add' %}{% else %}{% url 'accounts:payable_payment_add' %}{% endif %}?installment={{ installment.pk }}">
@@ -89,4 +90,5 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 {% include 'components/table/pagination.html' %}

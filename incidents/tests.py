@@ -1,5 +1,6 @@
 from datetime import date
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.urls import reverse
 
@@ -209,6 +210,31 @@ class StudentDelayViewsTests(LoggedInTestCase):
         self.assertTemplateUsed(response, "student_delays/student_delay_list.html")
         self.assertContains(response, "Atrasos")
 
+    def test_list_filters_by_date_range(self):
+        for day in (1, 10, 20):
+            StudentDelay.objects.create(
+                enrollment=self.enrollment,
+                delay_type=StudentDelayType.ACCEPTABLE,
+                incident_date=date(2027, 3, day),
+            )
+        url = reverse("incidents:student_delay_list")
+
+        def listed(params):
+            response = self.client.get(url, params, **HTMX)
+            self.assertTemplateUsed(
+                response, "student_delays/partials/student_delay_table.html"
+            )
+            return [
+                delay.incident_date.day for delay in response.context["student_delays"]
+            ]
+
+        both_ends = {"date_from": "2027-03-01", "date_to": "2027-03-10"}
+        self.assertEqual(listed(both_ends), [10, 1])
+        self.assertEqual(listed({"date_from": "2027-03-10"}), [20, 10])
+        self.assertEqual(listed({"date_to": "2027-03-09"}), [1])
+        self.assertEqual(listed({"q": "ana", **both_ends}), [10, 1])
+        self.assertEqual(listed({"q": "bruno", **both_ends}), [])
+
 
 class BathroomPermissionViewsTests(LoggedInTestCase):
     @classmethod
@@ -300,6 +326,36 @@ class ConceptGradeTests(LoggedInTestCase):
         )
         cls.light = IncidentType.objects.create(type="Conversa", penalty=Decimal("0.3"))
 
+    def setUp(self):
+        super().setUp()
+        # The fixtures' school year is 2027
+        today = patch("django.utils.timezone.localdate", return_value=date(2027, 3, 1))
+        today.start()
+        self.addCleanup(today.stop)
+
+    def enrollment_in_year(self, year, name, cpf, rg, **kwargs):
+        school_year = SchoolYear.objects.create(
+            begins=date(year, 1, 10),
+            ends=date(year, 12, 15),
+            bi_1_begins=date(year, 2, 1),
+            bi_1_ends=date(year, 4, 15),
+        )
+        program = self.enrollment.enrollment_type.program
+        return Enrollment.objects.create(
+            student=Student.objects.create(
+                name=name, cpf=cpf, rg=rg, issuing_authority="SSP"
+            ),
+            enrollment_type=EnrollmentType.objects.create(
+                program=program,
+                school_year=school_year,
+                total_price=Decimal("1000.00"),
+            ),
+            school_class=Class.objects.create(
+                program=program, year=school_year, name="A", grade_level=1
+            ),
+            **kwargs,
+        )
+
     def incident(self, day, enrollment=None):
         Incident.objects.create(
             incident_type=self.light,
@@ -368,7 +424,7 @@ class ConceptGradeTests(LoggedInTestCase):
         )
         self.assertEqual(self.concept_scores(self.other), [])
 
-    def test_all_calculates_active_enrollments(self):
+    def test_all_calculates_only_the_current_year(self):
         url = reverse("incidents:incident_grades_all")
         self.incident(date(2027, 3, 1), enrollment=self.other)
         dropped = Enrollment.objects.create(
@@ -382,12 +438,30 @@ class ConceptGradeTests(LoggedInTestCase):
             school_class=self.enrollment.school_class,
             status=EnrollmentStatus.DROPPED,
         )
+        next_year = self.enrollment_in_year(
+            2028, "Davi Rocha", "12345678904", "7654323"
+        )
+        last_year = self.enrollment_in_year(
+            2026,
+            "Eva Melo",
+            "12345678905",
+            "7654324",
+            status=EnrollmentStatus.COMPLETED,
+        )
+
+        response = self.client.get(url, {"bimester": 1})
+        self.assertContains(response, "Ano letivo 2027")
+        self.assertContains(response, "Ana Souza")
+        self.assertNotContains(response, "Davi Rocha")
+        self.assertNotContains(response, "Eva Melo")
 
         response = self.client.post(url, {"bimester": 1})
         self.assertRedirects(response, f"{url}?bimester=1")
         self.assertEqual(self.concept_scores(self.enrollment), [Decimal(1)] * 2)
         self.assertEqual(self.concept_scores(self.other), [Decimal("0.7")] * 2)
         self.assertEqual(self.concept_scores(dropped), [])
+        self.assertEqual(self.concept_scores(next_year), [])
+        self.assertEqual(self.concept_scores(last_year), [])
 
         response = self.client.get(url, {"bimester": 1, "q": "bruno"}, **HTMX)
         self.assertTemplateUsed(
@@ -395,3 +469,15 @@ class ConceptGradeTests(LoggedInTestCase):
         )
         self.assertContains(response, "0,70")
         self.assertNotContains(response, "Ana Souza")
+
+    def test_all_without_a_school_year_for_today(self):
+        url = reverse("incidents:incident_grades_all")
+        with patch("django.utils.timezone.localdate", return_value=date(2029, 3, 1)):
+            response = self.client.get(url, {"bimester": 1})
+            self.assertContains(response, "Cadastre o ano letivo de 2029")
+            self.assertNotContains(response, "Ana Souza")
+            self.assertNotContains(response, "Calcular")
+
+            response = self.client.post(url, {"bimester": 1}, follow=True)
+        self.assertContains(response, "Cadastre o ano letivo de 2029")
+        self.assertEqual(self.concept_scores(self.enrollment), [])

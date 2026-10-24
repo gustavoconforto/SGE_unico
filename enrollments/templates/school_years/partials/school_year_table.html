@@ -1,28 +1,27 @@
-  <table class=" overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
-    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+  <div class="table-wrap">
+  <table class="data-table">
+    <thead>
       <tr>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Começo</th>        
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Término</th>        
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Opções</th>
+        <th>Começo</th>        
+        <th>Término</th>        
+        <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
-    <tbody class="bg-white divide-y divide-slate-100">
+    <tbody>
     {% for school_year in school_years %}
       <tr class="hover:bg-slate-50">
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
-            {{ school_year.begins }}
+        <td>
+            <a href="{% url 'enrollments:school_year_edit' school_year.pk %}" class="hover:underline">{{ school_year.begins }}</a>
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+        <td>
             {{ school_year.ends }}
         </td>
-        <td class="px-2 py-2 text-right sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
-          <a href={% url 'enrollments:school_year_edit' school_year.pk %}>
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          <a href={% url 'enrollments:school_year_delete' school_year.pk %}>
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
+        <td class="text-right">
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+          {% url 'enrollments:school_year_edit' school_year.pk as edit_url %}
+          {% url 'enrollments:school_year_delete' school_year.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=school_year.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar ano escolar?' name=school_year %}
+          
           </div>
         </td>
       </tr>
@@ -31,4 +30,5 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 {% include 'components/table/pagination.html' %}

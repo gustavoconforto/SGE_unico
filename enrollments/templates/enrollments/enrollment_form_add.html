@@ -1,46 +1,40 @@
-<div class="bg-slate-50 rounded-2xl p-6 md:p-8">
-    <form class="space-y-6" method="POST">
-    {% csrf_token %}
-    <div>
-        <div class="flex flex-col w-full justify-around">
-            <div class="flex w-full gap-4">
-                <div class="flex flex-col w-full">
-                    {% include 'components/form/field.html' with field=form.student %}
-                </div>
-                <div class="flex flex-col w-full">
-                    {% include 'components/form/field.html' with field=form.enrollment_type %}
-                </div>
-            </div>
-            <div class="flex w-full gap-4">
-                <div id="school-class-field" class="flex flex-col w-full">
-                    {% include 'enrollments/partials/school_class_field.html' %}
-                </div>
-                <div class="flex flex-col w-full">
-                    {% include 'components/form/field.html' with field=form.status %}
-                </div>
-            </div>
-            <div class="flex w-full gap-4">
-                <div class="flex flex-col w-full">
-                    {% include 'components/form/field.html' with field=form.discount %}
-                </div>
-                <div class="flex flex-col w-full">
-                    {% include 'components/form/field.html' with field=form.due_day %}
-                </div>
-            </div>
-    </div>
+<form class="mt-6" method="POST">
+  {% csrf_token %}
+  {% include 'components/form/non_field_errors.html' %}
 
-    <div class="flex flex-row gap-4 pt-4">
-        {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar' %}
-        <a href={% url 'classes:class_list' %}>
-        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
-        </a>
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Matrícula</h2>
+      <p>Aluno, contrato e turma do ano letivo.</p>
     </div>
-    {% if form.non_field_errors %}
-        <div class="text-sm text-red-600 space-y-1 mt-2">
-        {% for error in form.non_field_errors %}
-            <p>{{ error }}</p>
-        {% endfor %}
-        </div>
-    {% endif %}
-    </form>
-</div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
+      {% include 'components/form/field.html' with field=form.student %}
+      {% include 'components/form/field.html' with field=form.enrollment_type %}
+      <div id="school-class-field">
+        {% include 'enrollments/partials/school_class_field.html' %}
+      </div>
+      {% include 'components/form/field.html' with field=form.status %}
+    </div>
+  </section>
+
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Cobrança</h2>
+      <p>A conta e as parcelas são geradas ao salvar, com vencimento no dia escolhido.</p>
+    </div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
+      {% include 'components/form/field.html' with field=form.discount %}
+      {% include 'components/form/field.html' with field=form.due_day %}
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <p class="text-[13px] text-slate-500">Campos sem “opcional” são obrigatórios.</p>
+    <div class="ml-auto flex gap-2">
+      <a href="{% url 'classes:class_list' %}">
+        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+      </a>
+      {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar matrícula' %}
+    </div>
+  </div>
+</form>

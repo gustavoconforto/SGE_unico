@@ -1,10 +1,12 @@
 {% extends 'base/base.html' %}
 
+{% block page_title %}Documentos necessários{% endblock page_title %}
+
 {% block header %}
-  <div class="flex items-center justify-between px-2 pb-4">
-    {% include 'components/page/heading.html' with title='Documentos necessários' %}
+  <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
+    {% include 'components/page/heading.html' with section='Configuração de matrícula' title='Documentos necessários' %}
     <a href={% url 'enrollments:needed_document_add' %}>
-    {% include 'components/button/button_select.html' with label='Adicionar registro'%}
+    {% include 'components/button/button_primary.html' with label='Novo documento' icon='add' %}
     </a>
   </div>
   {% include 'components/search/search_input.html' with placeholder='Pesquisar documento...' %}

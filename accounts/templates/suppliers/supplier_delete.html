@@ -1,39 +1,25 @@
 {% extends 'base/base.html' %}
+{% load ui %}
 
-{% block page_title %}Fornecedores{% endblock page_title %}
-
-{% block header %}
-
-{% endblock header %}
+{% block page_title %}Deletar fornecedor{% endblock page_title %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
-  <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de fornecedores</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Deseja, realmente, deletar este registro?
-      </p>
-    </div>
+<div class="page-form max-w-xl">
+  {% include 'components/page/breadcrumb.html' with parent_label='Fornecedores' parent_url_name='accounts:supplier_list' current=object.name %}
+  {% include 'components/page/heading.html' with title='Deletar fornecedor?' %}
 
-    <div class="bg-slate-50 rounded-2xl p-6 md:p-8">
-      <form class="space-y-6" method="POST">
-        {% csrf_token %}
-        <p>
-        Nome: {{ object.name }}
-        </p>
-        <p>
-        CPF/CNPJ: {{ object.document|default:"-" }}
-        </p>
-
-        <div class="flex flex-row gap-4 pt-4">
-          {% include 'components/button/button_delete_form.html' with label=submit_label|default:'Deletar' %}
-          <a href={% url 'accounts:supplier_list' %}>
-            {% include 'components/button/button_cancel.html' with label='Cancelar' %}
-          </a>
-        </div>
-      </form>
+  <form method="POST" class="form-card mt-6">
+    {% csrf_token %}
+    <p class="text-slate-600">
+      <strong class="font-semibold text-slate-900">{{ object.name }}</strong>{% if object.document %} ({{ object.document|document }}){% endif %}
+      será removido. Esta ação não pode ser desfeita.
+    </p>
+    <div class="mt-6 flex flex-wrap justify-end gap-2">
+      <a href="{% url 'accounts:supplier_list' %}">
+        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+      </a>
+      {% include 'components/button/button_delete_form.html' with label=submit_label|default:'Deletar' %}
     </div>
-  </div>
+  </form>
 </div>
 {% endblock content %}

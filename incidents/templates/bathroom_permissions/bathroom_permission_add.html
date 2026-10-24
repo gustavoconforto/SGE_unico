@@ -1,20 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block page_title %}Saídas para banheiro{% endblock page_title %}
+{% block page_title %}Nova saída para banheiro{% endblock page_title %}
 
-{% block header %}
-
-{% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de saídas para banheiro</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Adicione uma saída para banheiro
-      </p>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Saídas para banheiro' parent_url_name='incidents:bathroom_permission_list' current='Nova' %}
+    {% include 'components/page/heading.html' with title='Nova saída para banheiro' %}
   {% include 'bathroom_permissions/bathroom_permission_form.html' %}
   </div>
 </div>

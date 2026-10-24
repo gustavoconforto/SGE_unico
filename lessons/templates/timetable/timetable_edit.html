@@ -1,0 +1,53 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Grade horária{% endblock page_title %}
+
+{% block header %}
+
+{% endblock header %}
+
+{% block content %}
+<div class="page-form-wide">
+  <div class="w-full">
+    {% include 'components/page/breadcrumb.html' with parent_label='Grade horária' parent_url_name='lessons:timetable' current=school_class %}
+    {% include 'components/page/heading.html' with subtitle='Escolha a matéria e o professor de cada aula; deixe em branco os horários sem aula.' title='Editar grade horária' %}
+    <div class="mb-6"></div>
+    <form method="POST">
+      {% csrf_token %}
+      <div class="overflow-x-auto">
+      <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Aula</th>
+            {% for weekday in weekdays %}
+            <th>{{ weekday }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+        {% for label, fields in form.rows %}
+          <tr>
+            <td class="font-semibold whitespace-nowrap">{{ label }}</td>
+            {% for field in fields %}
+            <td class="min-w-48 align-top">
+              {{ field }}
+              {% for error in field.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
+            </td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      </div>
+      <div class="flex flex-row gap-4 pt-6">
+        {% include 'components/button/button_submit_form.html' with label='Salvar grade' %}
+        <a href="{% url 'lessons:timetable' %}?school_class={{ school_class.pk }}">
+          {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock content %}

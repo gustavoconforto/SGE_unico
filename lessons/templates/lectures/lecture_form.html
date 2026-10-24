@@ -1,0 +1,36 @@
+<form class="mt-6" method="POST">
+  {% csrf_token %}
+  {% include 'components/form/non_field_errors.html' %}
+
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Aula</h2>
+    </div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-3">
+      {% include 'components/form/field.html' with field=form.school_class %}
+      {% include 'components/form/field.html' with field=form.date %}
+      {% include 'components/form/field.html' with field=form.period %}
+      {% include 'components/form/field.html' with field=form.subject %}
+      <div class="sm:col-span-2">{% include 'components/form/field.html' with field=form.teacher %}</div>
+    </div>
+  </section>
+
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Conteúdo</h2>
+    </div>
+    <div class="form-section-body grid grid-cols-1">
+      {% include 'components/form/field.html' with field=form.topic %}
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <p class="text-[13px] text-slate-500">Campos sem “opcional” são obrigatórios.</p>
+    <div class="ml-auto flex gap-2">
+      <a href="{% url 'lessons:lecture_list' %}">
+        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+      </a>
+      {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar aula' %}
+    </div>
+  </div>
+</form>

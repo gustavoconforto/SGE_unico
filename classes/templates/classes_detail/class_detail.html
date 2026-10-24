@@ -1,18 +1,17 @@
 {% extends 'base/base.html' %}
 
+{% block page_title %}Alunos da turma{% endblock page_title %}
+
 {% block header %}
 
 {% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form-wide">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de turmas</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Selecione o ano letivo e a turma
-      </p>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Turmas' parent_url_name='classes:class_list' current='Alunos da turma' %}
+    {% include 'components/page/heading.html' with subtitle='Selecione o ano letivo e a turma.' title='Alunos da turma' %}
+    <div class="mb-6"></div>
     <fieldset class="fieldset">
     <legend class="fieldset-legend">Ano letivo:</legend>
     <select class="select select-neutral w-full"

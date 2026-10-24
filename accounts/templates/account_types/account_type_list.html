@@ -3,10 +3,10 @@
 {% block page_title %}Categorias financeiras{% endblock page_title %}
 
 {% block header %}
-  <div class="flex items-center justify-between px-2 pb-4">
-    {% include 'components/page/heading.html' with title='Categorias financeiras' %}
+  <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
+    {% include 'components/page/heading.html' with section='Financeiro' title='Categorias financeiras' %}
     <a href={% url 'accounts:account_type_add' %}>
-    {% include 'components/button/button_select.html' with label='Adicionar registro'%}
+    {% include 'components/button/button_primary.html' with label='Nova categoria financeira' icon='add' %}
     </a>
   </div>
   {% include 'components/search/filter_form.html' with placeholder='Pesquisar por nome...' %}

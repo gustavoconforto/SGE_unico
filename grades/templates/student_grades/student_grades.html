@@ -7,14 +7,10 @@
 {% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form-wide">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Notas do aluno</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Selecione o aluno
-      </p>
-    </div>
+    {% include 'components/page/heading.html' with section='Acadêmico' subtitle='Selecione o aluno.' title='Notas do aluno' %}
+    <div class="mb-6"></div>
     <form hx-get="{{ request.path }}"
           hx-trigger="change"
           hx-target="#search-results"

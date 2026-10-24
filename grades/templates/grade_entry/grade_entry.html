@@ -7,14 +7,10 @@
 {% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form-wide">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Lançamento de notas</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Selecione o ano letivo, a turma, a matéria e o bimestre
-      </p>
-    </div>
+    {% include 'components/page/heading.html' with section='Acadêmico' subtitle='Selecione o ano letivo, a turma, a matéria e o bimestre.' title='Lançamento de notas' %}
+    <div class="mb-6"></div>
     <fieldset class="fieldset">
     <legend class="fieldset-legend">Ano letivo:</legend>
     <select class="select select-neutral w-full"

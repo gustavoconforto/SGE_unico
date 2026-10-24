@@ -1,25 +1,21 @@
-<fieldset class="fieldset">
-    <legend class="label text-lg">
-    {{ field.label }}
+<fieldset class="ui-field">
+    <legend class="ui-label mb-1.5">
+        {{ field.label }}{% if not field.field.required and field.form.instance %} <span class="ui-optional">(opcional)</span>{% endif %}
     </legend>
     <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {% for choice in field %}
-        <label for="{{ choice.id_for_label }}" class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+        <label for="{{ choice.id_for_label }}" class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
             {{ choice.tag }}
             {{ choice.choice_label }}
         </label>
         {% empty %}
-        <p class="text-sm text-slate-500">Nenhuma opção cadastrada</p>
+        <p class="ui-help">Nenhuma opção cadastrada</p>
         {% endfor %}
     </div>
     {% if field.help_text %}
-    <p class="label">{{ field.help_text }}</p>
+    <p class="ui-help">{{ field.help_text }}</p>
     {% endif %}
-    {% if field.errors %}
-    <div class="text-sm text-red-600 space-y-1 mt-2">
-        {% for error in field.errors %}
-        <p>{{ error }}</p>
-        {% endfor %}
-    </div>
-    {% endif %}
+    {% for error in field.errors %}
+    <p class="ui-error"><span class="material-symbols-outlined text-[16px]">error</span>{{ error }}</p>
+    {% endfor %}
 </fieldset>

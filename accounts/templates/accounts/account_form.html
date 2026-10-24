@@ -1,68 +1,61 @@
-<div class="bg-slate-50 rounded-2xl p-6 md:p-8">
-    <form class="space-y-6" method="POST">
-    {% csrf_token %}
-    <div>
-        <div class="flex flex-col w-full justify-around">
-            <div class="flex w-full gap-4">
-                <div class="flex flex-col w-full">
-                    {% include 'components/form/field.html' with field=form.description %}
-                </div>
-                <div class="flex flex-col w-full">
-                    {% include 'components/form/field.html' with field=form.category %}
-                </div>
-            </div>
-            <div class="flex w-full gap-4">
-                <div class="flex flex-col w-full">
-                    {% if form.guardian %}
-                    {% include 'components/form/field.html' with field=form.guardian %}
-                    {% else %}
-                    {% include 'components/form/field.html' with field=form.supplier %}
-                    {% endif %}
-                </div>
-                <div class="flex flex-col w-full">
-                    {% include 'components/form/field.html' with field=form.issue_date %}
-                </div>
-            </div>
-            <div class="flex w-full gap-4">
-                <div class="flex flex-col w-full">
-                    {% include 'components/form/field.html' with field=form.gross_value %}
-                </div>
-                <div class="flex flex-col w-full">
-                    {% include 'components/form/field.html' with field=form.discount_value %}
-                </div>
-            </div>
-            {% if form.installments_count %}
-            <div class="flex w-full gap-4">
-                <div class="flex flex-col w-full">
-                    {% include 'components/form/field.html' with field=form.installments_count %}
-                </div>
-                <div class="flex flex-col w-full">
-                    {% include 'components/form/field.html' with field=form.first_due_date %}
-                </div>
-            </div>
-            {% endif %}
-            {% if object.enrollment %}
-            <fieldset class="fieldset">
-                <label class="label text-lg">Matrícula</label>
-                <p class="text-slate-700">{{ object.enrollment }}</p>
-            </fieldset>
-            {% endif %}
-            {% include 'components/form/field.html' with field=form.notes %}
-        </div>
-    </div>
+<form class="mt-6" method="POST">
+  {% csrf_token %}
+  {% include 'components/form/non_field_errors.html' %}
 
-    <div class="flex flex-row gap-4 pt-4">
-        {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar' %}
-        <a href={% url urls.list %}>
-        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
-        </a>
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Conta</h2>
+      <p>O que está sendo cobrado ou pago, e de quem.</p>
     </div>
-    {% if form.non_field_errors %}
-        <div class="text-sm text-red-600 space-y-1 mt-2">
-        {% for error in form.non_field_errors %}
-            <p>{{ error }}</p>
-        {% endfor %}
-        </div>
-    {% endif %}
-    </form>
-</div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
+      <div class="sm:col-span-full">{% include 'components/form/field.html' with field=form.description %}</div>
+      {% include 'components/form/field.html' with field=form.category %}
+      {% if form.guardian %}
+      {% include 'components/form/field.html' with field=form.guardian %}
+      {% else %}
+      {% include 'components/form/field.html' with field=form.supplier %}
+      {% endif %}
+      {% include 'components/form/field.html' with field=form.issue_date %}
+      {% if object.enrollment %}
+      <div class="ui-field">
+        <span class="ui-label">Matrícula</span>
+        <p class="flex h-10 items-center text-slate-700">{{ object.enrollment }}</p>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Valores</h2>
+      <p>{% if form.installments_count %}O valor líquido é dividido em parcelas iguais a partir do primeiro vencimento.{% else %}Mudar os valores não altera as parcelas já geradas.{% endif %}</p>
+    </div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
+      {% include 'components/form/field.html' with field=form.gross_value %}
+      {% include 'components/form/field.html' with field=form.discount_value %}
+      {% if form.installments_count %}
+      {% include 'components/form/field.html' with field=form.installments_count %}
+      {% include 'components/form/field.html' with field=form.first_due_date %}
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Observações</h2>
+    </div>
+    <div class="form-section-body grid grid-cols-1">
+      {% include 'components/form/field.html' with field=form.notes %}
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <p class="text-[13px] text-slate-500">Campos sem “opcional” são obrigatórios.</p>
+    <div class="ml-auto flex gap-2">
+      <a href="{% url urls.list %}">
+        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+      </a>
+      {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar conta' %}
+    </div>
+  </div>
+</form>

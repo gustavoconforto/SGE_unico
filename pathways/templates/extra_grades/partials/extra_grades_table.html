@@ -1,0 +1,53 @@
+{% if not school_year %}
+  <p class="px-2 pb-3 text-sm text-slate-600">
+    {{ school_year_missing }}
+    <a href="{% url 'enrollments:school_year_add' %}" class="underline hover:text-slate-900">Cadastre um ano letivo</a>.
+  </p>
+{% elif bimester and exam_type %}
+  {% include 'extra_grades/partials/extra_grades_rule.html' %}
+{% elif not exam_type %}
+  <p class="px-2 pb-3 text-sm text-slate-600">
+    Nenhum tipo de avaliação Nota extra (sigla EX) cadastrado.
+    <a href="{% url 'grades:exam_type_add' %}" class="underline hover:text-slate-900">Cadastre um tipo de avaliação</a>.
+  </p>
+{% else %}
+  <p class="px-2 pb-3 text-sm text-slate-500">Selecione um bimestre para ver e calcular as notas extras.</p>
+{% endif %}
+  <div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Aluno</th>
+        <th>Turma</th>
+        <th class="text-right">Nota extra</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for enrollment in enrollments %}
+      <tr class="hover:bg-slate-50">
+        <td>
+            {{ enrollment.student }}
+        </td>
+        <td>
+            {{ enrollment.school_class|default:"-" }}
+        </td>
+        <td class="text-right whitespace-nowrap">
+          {% with low=enrollment.grade_range.0 high=enrollment.grade_range.1 %}
+            {% if enrollment.grade_range is None %}-{% elif low == high %}{{ low|floatformat:2 }}{% else %}{{ low|floatformat:2 }} a {{ high|floatformat:2 }}{% endif %}
+          {% endwith %}
+        </td>
+      </tr>
+      {% empty %}
+      {% include 'components/table/empty_table.html' with collspan=3%}
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+{% include 'components/table/pagination.html' %}
+{% if bimester and exam_type and school_year %}
+<form method="POST" action="{{ request.path }}" class="flex flex-row gap-4 pt-6">
+  {% csrf_token %}
+  <input type="hidden" name="bimester" value="{{ bimester }}">
+  {% include 'components/button/button_submit_form.html' with label='Calcular' %}
+</form>
+{% endif %}

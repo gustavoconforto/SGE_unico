@@ -1,0 +1,27 @@
+<form class="mt-6" method="POST">
+  {% csrf_token %}
+  {% include 'components/form/non_field_errors.html' %}
+
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Inscrição</h2>
+      <p>Deixe a saída em branco enquanto o aluno participa.</p>
+    </div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
+      {% include 'components/form/field.html' with field=form.offering %}
+      {% include 'components/form/field.html' with field=form.enrollment %}
+      {% include 'components/form/field.html' with field=form.joined_at %}
+      {% include 'components/form/field.html' with field=form.left_at %}
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <p class="text-[13px] text-slate-500">Campos sem “opcional” são obrigatórios.</p>
+    <div class="ml-auto flex gap-2">
+      <a href="{% url 'pathways:pathway_enrollment_list' %}{% if object.offering_id %}?offering={{ object.offering_id }}{% elif request.GET.offering %}?offering={{ request.GET.offering }}{% endif %}">
+        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+      </a>
+      {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar inscrição' %}
+    </div>
+  </div>
+</form>

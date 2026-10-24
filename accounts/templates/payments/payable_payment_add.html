@@ -1,21 +1,14 @@
 {% extends 'base/base.html' %}
 
-{% block page_title %}Pagamentos{% endblock page_title %}
+{% block page_title %}Novo pagamento{% endblock page_title %}
 
-{% block header %}
 
-{% endblock header %}
-  
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Pagamento de contas</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Registre o pagamento de uma parcela a fornecedor
-      </p>
-    </div>
-  {% include 'payments/payment_form.html' %}
+    {% include 'components/page/breadcrumb.html' with parent_label='Baixas' parent_url_name='accounts:payment_list' current='Novo' %}
+    {% include 'components/page/heading.html' with title='Novo pagamento' subtitle='Pagamento de uma parcela a fornecedor.' %}
+  {% include 'payments/payment_form.html' with submit_label='Salvar pagamento' %}
   </div>
 </div>
 {% endblock content %}

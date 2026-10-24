@@ -1,20 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block page_title %}Retornos{% endblock page_title %}
+{% block page_title %}Importar retorno{% endblock page_title %}
 
-{% block header %}
-
-{% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de retornos</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Importe o arquivo de retorno enviado pelo Bradesco
-      </p>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Retornos' parent_url_name='billing:return_file_list' current='Importar' %}
+    {% include 'components/page/heading.html' with title='Importar retorno' %}
   {% include 'return_files/return_file_form.html' %}
   </div>
 </div>

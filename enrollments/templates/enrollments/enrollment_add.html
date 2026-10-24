@@ -1,20 +1,11 @@
 {% extends 'base/base.html' %}
 
-{% block header %}
+{% block page_title %}Nova matrícula{% endblock page_title %}
 
-{% endblock header %}
-  
 {% block content %}
-<div class="bg-white py-12 px-4">
-  <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de Matrículas</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Adicione uma matrícula
-      </p>
-    </div>
+<div class="page-form">
+  {% include 'components/page/breadcrumb.html' with parent_label='Matrículas' parent_url_name='enrollments:enrollment_list' current='Nova' %}
+  {% include 'components/page/heading.html' with title='Nova matrícula' %}
   {% include 'enrollments/enrollment_form_add.html' %}
-  </div>
 </div>
 {% endblock content %}
-    

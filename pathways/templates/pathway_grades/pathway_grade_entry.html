@@ -1,0 +1,28 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Notas de itinerário{% endblock page_title %}
+
+{% block header %}
+
+{% endblock header %}
+
+{% block content %}
+<div class="page-form-wide">
+  <div class="w-full">
+    {% include 'components/page/heading.html' with section='Itinerários' subtitle='Selecione a turma de itinerário e o bimestre.' title='Notas de itinerário' %}
+    <div class="mb-6"></div>
+    <form hx-get="{{ request.path }}"
+          hx-trigger="change"
+          hx-target="#search-results"
+          hx-push-url="true"
+          class="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+      {% include 'components/form/field.html' with field=select_form.offering %}
+      {% include 'components/form/field.html' with field=select_form.bimester %}
+    </form>
+
+    <div id="search-results" class="mt-6">
+      {% include 'pathway_grades/partials/pathway_grade_sheet.html' %}
+    </div>
+  </div>
+</div>
+{% endblock content %}

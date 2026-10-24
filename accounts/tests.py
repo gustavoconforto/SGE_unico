@@ -449,6 +449,19 @@ class SupplierViewsTests(LoggedInTestCase):
         self.assertRedirects(response, reverse("accounts:supplier_list"))
         self.assertTrue(Supplier.objects.filter(pk=supplier.pk).exists())
 
+    def test_list_formats_document_and_confirms_delete_in_a_dialog(self):
+        supplier = Supplier.objects.create(name="Papelaria", document="12345678000190")
+        response = self.client.get(reverse("accounts:supplier_list"))
+        self.assertContains(response, "12.345.678/0001-90")
+        self.assertContains(response, "Pessoa jurídica")
+        delete_url = reverse("accounts:supplier_delete", args=[supplier.pk])
+        self.assertContains(response, f'<dialog id="row-delete-{supplier.pk}"')
+        self.assertContains(response, f'action="{delete_url}"')
+
+    def test_form_marks_optional_fields(self):
+        response = self.client.get(reverse("accounts:supplier_add"))
+        self.assertContains(response, "(opcional)", count=4)
+
 
 class AccountTypeViewsTests(LoggedInTestCase):
     def test_crud_and_filter(self):

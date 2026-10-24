@@ -15,8 +15,11 @@ the recovery score, rounded the same way. The student passes with a final
 grade of at least PASSING_GRADE.
 """
 
+from collections import defaultdict
 from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
+
+from django.db import transaction
 
 from grades.models import (
     FINAL_RECOVERY,
@@ -188,3 +191,47 @@ def report_card(enrollment, exam_types=()):
             )
         )
     return rows
+
+
+def save_series_grades(enrollments, bimester, exam_type, scores):
+    """Give every subject of each enrollment's series its score in `scores`
+    ({enrollment pk: score}), replacing what the exam type already had.
+
+    For grades worth the same in every subject (concept, extra points).
+    Returns the number of enrollments graded; those missing from `scores` or
+    without subjects (no class or series) are skipped.
+    """
+    subjects_by_level = defaultdict(list)
+    for level, subject_id in GradeLevelSubject.objects.values_list(
+        "grade_level", "subject_id"
+    ):
+        subjects_by_level[level].append(subject_id)
+
+    rows = []
+    graded = 0
+    for enrollment in enrollments:
+        school_class = enrollment.school_class
+        subject_ids = (
+            subjects_by_level[school_class.grade_level] if school_class else []
+        )
+        if enrollment.pk not in scores or not subject_ids:
+            continue
+        graded += 1
+        rows += [
+            Grade(
+                enrollment=enrollment,
+                subject_id=subject_id,
+                exam_type=exam_type,
+                bimester=bimester,
+                score=scores[enrollment.pk],
+            )
+            for subject_id in subject_ids
+        ]
+    with transaction.atomic():
+        Grade.objects.bulk_create(
+            rows,
+            update_conflicts=True,
+            unique_fields=["enrollment", "subject", "exam_type", "bimester"],
+            update_fields=["score", "updated_at"],
+        )
+    return graded

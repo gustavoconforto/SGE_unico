@@ -1,44 +1,32 @@
 {% extends 'base/base.html' %}
 
-{% block header %}
+{% block page_title %}Deletar turma?{% endblock page_title %}
 
-{% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de turmas</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Deseja, realmente, deletar este registro?
-      </p>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Turmas' parent_url_name='classes:class_list' current=object %}
+    {% include 'components/page/heading.html' with title='Deletar turma?' %}
 
 
-    <div class="bg-slate-50 rounded-2xl p-6 md:p-8">
+    <div class="form-card mt-6 max-w-xl">
       <form class="space-y-6" method="POST">
         {% csrf_token %}
-        <p>
-        Curso: {{ object.name }}
-        </p>
-        <p>
-        Ano letivo: {{ object.year }}
-        </p>
-        <p>
-        Série: {{ object.grade_level }}
-        </p>
-        <p>
-        Curso: {{ object.program }}
-        </p>
-        <p>
-        Capacidade: {{ object.capacity }}
-        </p>
+        <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
+          <dt class="text-slate-500">Curso</dt><dd class="font-medium text-slate-900">{{ object.name }}</dd>
+        <dt class="text-slate-500">Ano letivo</dt><dd class="font-medium text-slate-900">{{ object.year }}</dd>
+        <dt class="text-slate-500">Série</dt><dd class="font-medium text-slate-900">{{ object.grade_level }}</dd>
+        <dt class="text-slate-500">Curso</dt><dd class="font-medium text-slate-900">{{ object.program }}</dd>
+        <dt class="text-slate-500">Capacidade</dt><dd class="font-medium text-slate-900">{{ object.capacity }}</dd>
+        </dl>
+        <p class="mt-4 text-slate-600">Esta ação não pode ser desfeita.</p>
 
-        <div class="flex flex-row gap-4 pt-4">
-          {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Deletar' %}
+        <div class="mt-6 flex flex-wrap justify-end gap-2">
           <a href={% url 'classes:class_list' %}>
             {% include 'components/button/button_cancel.html' with label='Cancelar' %}
           </a>
+          {% include 'components/button/button_delete_form.html' with label=submit_label|default:'Deletar' %}
         </div>
       </form>
     </div>

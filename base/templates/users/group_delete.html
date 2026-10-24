@@ -1,22 +1,25 @@
 {% extends 'base/base.html' %}
 
-{% block header %}
-
-{% endblock header %}
+{% block page_title %}Deletar grupo?{% endblock page_title %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
-  <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de grupos</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Deseja, realmente, deletar este registro?
-      </p>
+<div class="page-form max-w-xl">
+  {% include 'components/page/breadcrumb.html' with parent_label='Grupos' parent_url_name='base:group_list' current=form.instance %}
+  {% include 'components/page/heading.html' with title='Deletar grupo?' %}
+
+  <form method="POST" class="form-card mt-6">
+    {% csrf_token %}
+    <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
+          <dt class="text-slate-500">Nome</dt><dd class="font-medium text-slate-900">{{ form.instance.name }}</dd>
+          <dt class="text-slate-500">Permissões</dt><dd class="font-medium text-slate-900">{{ form.instance.permissions.count }}</dd>
+    </dl>
+    <p class="mt-4 text-slate-600">Esta ação não pode ser desfeita.</p>
+    <div class="mt-6 flex flex-wrap justify-end gap-2">
+      <a href="{% url 'base:group_list' %}">
+        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+      </a>
+      {% include 'components/button/button_delete_form.html' with label='Deletar' %}
     </div>
-
-    {% include 'users/group_form.html' with submit_label='Deletar' %}
-
-  </div>
+  </form>
 </div>
 {% endblock content %}
-    

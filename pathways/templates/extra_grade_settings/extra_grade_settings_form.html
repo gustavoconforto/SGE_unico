@@ -1,0 +1,26 @@
+<form class="mt-6" method="POST">
+  {% csrf_token %}
+  {% include 'components/form/non_field_errors.html' %}
+
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Regras</h2>
+      <p>Alterações valem para os próximos cálculos; recalcule bimestres anteriores se necessário.</p>
+    </div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-3">
+      {% include 'components/form/field.html' with field=form.min_pathway_attendance %}
+      {% include 'components/form/field.html' with field=form.q_and_a_min_sessions %}
+      {% include 'components/form/field.html' with field=form.q_and_a_points %}
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <p class="text-[13px] text-slate-500">Campos sem “opcional” são obrigatórios.</p>
+    <div class="ml-auto flex gap-2">
+      <a href="{% url 'pathways:extra_grade_settings_list' %}">
+        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+      </a>
+      {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar regra da nota extra' %}
+    </div>
+  </div>
+</form>

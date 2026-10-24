@@ -1,10 +1,12 @@
 {% extends 'base/base.html' %}
 
+{% block page_title %}Cursos oferecidos{% endblock page_title %}
+
 {% block header %}
-  <div class="flex items-center justify-between px-2 pb-4">
-    {% include 'components/page/heading.html' with title='Cursos oferecidos' %}
+  <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
+    {% include 'components/page/heading.html' with section='Configuração de matrícula' title='Cursos oferecidos' %}
     <a href={% url 'programs:program_add' %}>
-    {% include 'components/button/button_select.html' with label='Adicionar registro'%}
+    {% include 'components/button/button_primary.html' with label='Novo curso' icon='add' %}
     </a>
   </div>
   {% include 'components/search/search_input.html' with placeholder='Pesquisar curso...' %}

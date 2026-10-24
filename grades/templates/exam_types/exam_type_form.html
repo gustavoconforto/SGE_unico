@@ -1,42 +1,28 @@
-<div class="bg-slate-50 rounded-2xl p-6 md:p-8">
-    <form class="space-y-6" method="POST">
-    {% csrf_token %}
-    <div>
-        <div class="flex flex-col w-full justify-around">
-            <div class="flex w-full gap-4">
-                <div class="flex flex-col w-full">
-                    {% include 'components/form/field.html' with field=form.name %}
-                </div>
-                <div class="flex flex-col w-full">
-                    {% include 'components/form/field.html' with field=form.code %}
-                </div>
-            </div>
-            <div class="flex w-full gap-4">
-                <div class="flex flex-col w-full">
-                    {% include 'components/form/field.html' with field=form.kind %}
-                </div>
-                <div class="flex flex-col w-full">
-                    {% include 'components/form/field.html' with field=form.max_score %}
-                </div>
-                <div class="flex flex-col w-full">
-                    {% include 'components/form/field.html' with field=form.order %}
-                </div>
-            </div>
-        </div>
-    </div>
+<form class="mt-6" method="POST">
+  {% csrf_token %}
+  {% include 'components/form/non_field_errors.html' %}
 
-    <div class="flex flex-row gap-4 pt-4">
-        {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar' %}
-        <a href={% url 'grades:exam_type_list' %}>
-        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
-        </a>
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Avaliação</h2>
+      <p>A sigla aparece no lançamento de notas e no boletim.</p>
     </div>
-    {% if form.non_field_errors %}
-        <div class="text-sm text-red-600 space-y-1 mt-2">
-        {% for error in form.non_field_errors %}
-            <p>{{ error }}</p>
-        {% endfor %}
-        </div>
-    {% endif %}
-    </form>
-</div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-3">
+      <div class="sm:col-span-2">{% include 'components/form/field.html' with field=form.name %}</div>
+      {% include 'components/form/field.html' with field=form.code %}
+      {% include 'components/form/field.html' with field=form.kind %}
+      {% include 'components/form/field.html' with field=form.max_score %}
+      {% include 'components/form/field.html' with field=form.order %}
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <p class="text-[13px] text-slate-500">Campos sem “opcional” são obrigatórios.</p>
+    <div class="ml-auto flex gap-2">
+      <a href="{% url 'grades:exam_type_list' %}">
+        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+      </a>
+      {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar tipo de avaliação' %}
+    </div>
+  </div>
+</form>

@@ -1,0 +1,65 @@
+{% if school_class %}
+<div class="flex justify-end pb-4">
+  <a href="{% url 'lessons:timetable_edit' school_class.pk %}">
+    {% include 'components/button/button_select.html' with label='Editar grade' %}
+  </a>
+</div>
+<div class="overflow-x-auto">
+<div class="table-wrap">
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Aula</th>
+      {% for weekday in weekdays %}
+      <th>{{ weekday }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+  {% for label, slots in grid %}
+    <tr class="hover:bg-slate-50">
+      <td class="font-semibold whitespace-nowrap">{{ label }}</td>
+      {% for slot in slots %}
+      <td>
+        {% if slot %}
+        <p class="font-medium">{{ slot.subject.subject.name }}</p>
+        <p class="text-xs text-slate-500">{{ slot.teacher.name }}</p>
+        {% else %}-{% endif %}
+      </td>
+      {% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+</div>
+
+<h3 class="px-2 pt-8 pb-3 text-lg font-semibold text-gray-900">Aulas por semana</h3>
+<div class="overflow-x-auto">
+<div class="table-wrap">
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Matéria</th>
+      <th class="text-right">Agendadas</th>
+      <th class="text-right">Previstas</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for load in weekly_load %}
+    <tr class="{% if load.matches %}hover:bg-slate-50{% else %}bg-warning/10{% endif %}">
+      <td>
+        {{ load.subject.subject.name }}
+        {% if not load.matches %}<span class="badge badge-warning badge-sm">Diferente do previsto</span>{% endif %}
+      </td>
+      <td class="text-right whitespace-nowrap">{{ load.scheduled }}</td>
+      <td class="text-right whitespace-nowrap">{{ load.expected|floatformat:"-2"|default:"-" }}</td>
+    </tr>
+  {% empty %}
+    {% include 'components/table/empty_table.html' with collspan=3 %}
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+</div>
+{% endif %}

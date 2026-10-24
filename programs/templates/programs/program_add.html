@@ -1,18 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block header %}
+{% block page_title %}Novo curso{% endblock page_title %}
 
-{% endblock header %}
   
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de cursos</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Adicione um curso
-      </p>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Cursos oferecidos' parent_url_name='programs:program_list' current='Novo' %}
+    {% include 'components/page/heading.html' with title='Novo curso' %}
   {% include 'programs/program_form.html' %}
   </div>
 </div>

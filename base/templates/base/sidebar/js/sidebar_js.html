@@ -21,5 +21,20 @@
         document.querySelectorAll('[data-sidebar-close]').forEach(el => el.addEventListener('click', () => setMobileOpen(false)));
         document.addEventListener('keydown', e => { if (e.key === 'Escape') setMobileOpen(false); });
         desktop.addEventListener('change', () => setMobileOpen(false));
+
+        // Open every section that holds the current page.
+        sidebar.querySelectorAll('.nav-link.active').forEach(link => {
+            for (let group = link.closest('details'); group; group = group.parentElement.closest('details')) {
+                group.open = true;
+            }
+        });
+
+        // Ctrl K / Cmd K jumps to the student search.
+        document.addEventListener('keydown', e => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                const search = document.getElementById('global-student-search');
+                if (search) { e.preventDefault(); search.focus(); }
+            }
+        });
     })();
 </script>

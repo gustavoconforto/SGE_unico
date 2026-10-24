@@ -1,0 +1,14 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Nova turma de itinerário{% endblock page_title %}
+
+
+{% block content %}
+<div class="page-form">
+  <div class="w-full">
+    {% include 'components/page/breadcrumb.html' with parent_label='Turmas de itinerário' parent_url_name='pathways:pathway_offering_list' current='Nova' %}
+    {% include 'components/page/heading.html' with title='Nova turma de itinerário' %}
+  {% include 'pathway_offerings/pathway_offering_form.html' %}
+  </div>
+</div>
+{% endblock content %}

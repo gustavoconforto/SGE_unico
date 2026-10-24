@@ -1,32 +1,31 @@
-  <table class=" overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
-    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+  <div class="table-wrap">
+  <table class="data-table">
+    <thead>
       <tr>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Curso</th>        
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Série</th>        
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Ano</th>
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Opções</th>
+        <th>Curso</th>        
+        <th>Série</th>        
+        <th>Ano</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
-    <tbody class="bg-white divide-y divide-slate-100">
+    <tbody>
     {% for enrollment_type in enrollment_types %}
       <tr class="hover:bg-slate-50">
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
-            {{ enrollment_type.program }}
+        <td>
+            <a href="{% url 'enrollments:enrollment_type_edit' enrollment_type.pk %}" class="hover:underline">{{ enrollment_type.program }}</a>
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+        <td>
             {{ enrollment_type.level }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+        <td>
             {{ enrollment_type.school_year }}
         </td>
-        <td class="px-2 py-2 text-right sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
-          <a href={% url 'enrollments:enrollment_type_edit' enrollment_type.pk %}>
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          <a href={% url 'enrollments:enrollment_type_delete' enrollment_type.pk %}>
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
+        <td class="text-right">
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+          {% url 'enrollments:enrollment_type_edit' enrollment_type.pk as edit_url %}
+          {% url 'enrollments:enrollment_type_delete' enrollment_type.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=enrollment_type.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar contrato?' name=enrollment_type %}
+          
           </div>
         </td>
       </tr>
@@ -35,4 +34,5 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 {% include 'components/table/pagination.html' %}

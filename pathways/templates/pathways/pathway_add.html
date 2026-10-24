@@ -1,0 +1,14 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Novo itinerário{% endblock page_title %}
+
+
+{% block content %}
+<div class="page-form">
+  <div class="w-full">
+    {% include 'components/page/breadcrumb.html' with parent_label='Itinerários' parent_url_name='pathways:pathway_list' current='Novo' %}
+    {% include 'components/page/heading.html' with title='Novo itinerário' %}
+  {% include 'pathways/pathway_form.html' %}
+  </div>
+</div>
+{% endblock content %}

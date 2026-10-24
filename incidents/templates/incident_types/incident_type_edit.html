@@ -1,20 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block page_title %}Tipos de ocorrência{% endblock page_title %}
+{% block page_title %}Editar tipo de ocorrência{% endblock page_title %}
 
-{% block header %}
-
-{% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de tipos de ocorrência</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Edite um tipo de ocorrência
-      </p>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Tipos de ocorrência' parent_url_name='incidents:incident_type_list' current=object %}
+    {% include 'components/page/heading.html' with title='Editar tipo de ocorrência' %}
   {% include 'incident_types/incident_type_form.html' %}
   </div>
 </div>

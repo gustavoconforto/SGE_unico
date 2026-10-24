@@ -1,5 +1,6 @@
+{% load ui %}{% url path as item_url %}{% nav_active item_url as active %}
 <li>
-    <a href={% url  path  %} class="nav-link">
+    <a href="{{ item_url }}" class="nav-link{% if active %} active{% endif %}"{% if active %} aria-current="page"{% endif %}>
         <span class="material-symbols-outlined">{{ icon }}</span>{{ label }}
     </a>
 </li>
