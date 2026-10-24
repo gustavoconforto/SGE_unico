@@ -1,0 +1,16 @@
+<ul class="menu bg-base-200 rounded-box w-56">
+    <li>
+        <details >
+            <summary class="font-semibold">Itinerários</summary>
+            <ul>
+                {% include 'base/sidebar/items/menu_item.html' with path="pathways:pathway_offering_list" label="Turmas de itinerário" icon="groups_3" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="pathways:pathway_enrollment_list" label="Inscrições" icon="person_add" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="pathways:pathway_session_list" label="Aulas e chamadas" icon="fact_check" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="pathways:pathway_grade_entry" label="Notas de itinerário" icon="edit_note" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="pathways:extra_grades_all" label="Nota extra" icon="calculate" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="pathways:pathway_list" label="Itinerários" icon="explore" %}
+                {% include 'base/sidebar/items/menu_item.html' with path="pathways:extra_grade_settings_list" label="Regras da nota extra" icon="tune" %}
+            </ul>
+        </details>
+    </li>
+</ul>

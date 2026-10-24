@@ -1,0 +1,21 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Aulas de itinerário{% endblock page_title %}
+
+{% block header %}
+
+{% endblock header %}
+
+{% block content %}
+<div class="bg-white py-12 px-4">
+  <div class="w-full">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de aulas de itinerário</h2>
+      <p class="mt-4 text-lg text-gray-600 ">
+        Cadastre a aula; em seguida, faça a chamada
+      </p>
+    </div>
+  {% include 'pathway_sessions/pathway_session_form.html' %}
+  </div>
+</div>
+{% endblock content %}

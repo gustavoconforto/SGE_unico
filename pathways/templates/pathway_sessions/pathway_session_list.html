@@ -1,0 +1,21 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Aulas de itinerário{% endblock page_title %}
+
+{% block header %}
+  <div class="flex items-center justify-between px-2 pb-4">
+    {% include 'components/page/heading.html' with title='Aulas de itinerário' %}
+    <div class="flex gap-3">
+    <a href="{% url 'pathways:pathway_session_add' %}{% if request.GET.offering %}?offering={{ request.GET.offering }}{% endif %}">
+    {% include 'components/button/button_select.html' with label='Nova aula'%}
+    </a>
+    </div>
+  </div>
+  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por itinerário, turma ou conteúdo...' %}
+{% endblock header %}
+
+{% block content %}
+  <div id="search-results">
+    {% include 'pathway_sessions/partials/pathway_session_table.html' %}
+  </div>
+{% endblock content %}

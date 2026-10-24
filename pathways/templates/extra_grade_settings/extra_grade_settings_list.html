@@ -1,0 +1,16 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Nota extra{% endblock page_title %}
+
+{% block header %}
+  <div class="flex items-center justify-between px-2 pb-4">
+    {% include 'components/page/heading.html' with title='Configuração da nota extra' %}
+  </div>
+  {% include 'components/search/search_input.html' with placeholder='Pesquisar por data (ex: 2026)...' %}
+{% endblock header %}
+
+{% block content %}
+  <div id="search-results">
+    {% include 'extra_grade_settings/partials/extra_grade_settings_table.html' %}
+  </div>
+{% endblock content %}

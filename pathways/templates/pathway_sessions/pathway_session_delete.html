@@ -1,0 +1,42 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Aulas de itinerário{% endblock page_title %}
+
+{% block header %}
+
+{% endblock header %}
+
+{% block content %}
+<div class="bg-white py-12 px-4">
+  <div class="w-full">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de aulas de itinerário</h2>
+      <p class="mt-4 text-lg text-gray-600 ">
+        Deseja, realmente, deletar este registro?
+      </p>
+    </div>
+
+    <div class="bg-slate-50 rounded-2xl p-6 md:p-8">
+      <form class="space-y-6" method="POST">
+        {% csrf_token %}
+        <p>
+        Turma de itinerário: {{ object.offering }}
+        </p>
+        <p>
+        Data: {{ object.date|date:"d/m/Y" }}
+        </p>
+        <p class="text-sm text-slate-600">
+        A chamada desta aula também será deletada.
+        </p>
+
+        <div class="flex flex-row gap-4 pt-4">
+          {% include 'components/button/button_delete_form.html' with label=submit_label|default:'Deletar' %}
+          <a href="{% url 'pathways:pathway_session_list' %}{% if object.offering_id %}?offering={{ object.offering_id }}{% elif request.GET.offering %}?offering={{ request.GET.offering }}{% endif %}">
+            {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock content %}

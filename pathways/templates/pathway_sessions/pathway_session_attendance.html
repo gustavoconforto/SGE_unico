@@ -1,0 +1,63 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Chamada{% endblock page_title %}
+
+{% block header %}
+
+{% endblock header %}
+
+{% block content %}
+<div class="bg-white py-12 px-4">
+  <div class="w-full">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl font-semibold text-gray-900 ">Chamada</h2>
+      <p class="mt-4 text-lg text-gray-600 ">
+        {{ session.offering }} - {{ session.date|date:"d/m/Y" }}{% if session.topic %} - {{ session.topic }}{% endif %}
+      </p>
+    </div>
+    <form method="POST">
+      {% csrf_token %}
+      <p class="px-2 pb-3 text-sm text-slate-500">
+        Todos começam presentes; marque as faltas. Faltas justificadas não contam na frequência.
+      </p>
+      <div class="overflow-x-auto">
+      <table class="rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
+        <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+          <tr>
+            <th class="px-3 py-2.5 text-left font-semibold md:px-4 md:py-3 lg:px-6 lg:py-3.5">Aluno</th>
+            <th class="px-3 py-2.5 text-left font-semibold md:px-4 md:py-3 lg:px-6 lg:py-3.5">Turma</th>
+            <th class="px-3 py-2.5 text-right font-semibold md:px-4 md:py-3 lg:px-6 lg:py-3.5">Presença</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-slate-100">
+        {% for member, field in form.rows %}
+          <tr class="hover:bg-slate-50">
+            <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+              {{ member.enrollment.student }}
+            </td>
+            <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+              {{ member.enrollment.school_class|default:"-" }}
+            </td>
+            <td class="px-2 py-2 text-right sm:px-3 md:px-4">
+              {{ field }}
+              {% for error in field.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
+            </td>
+          </tr>
+        {% empty %}
+          {% include 'components/table/empty_table.html' with collspan=3 %}
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      <div class="flex flex-row gap-4 pt-6">
+        {% if form.members %}
+        {% include 'components/button/button_submit_form.html' with label='Salvar chamada' %}
+        {% endif %}
+        <a href="{% url 'pathways:pathway_session_list' %}?offering={{ session.offering_id }}">
+        {% include 'components/button/button_cancel.html' with label='Voltar' %}
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock content %}

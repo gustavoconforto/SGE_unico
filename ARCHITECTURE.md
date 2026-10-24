@@ -34,6 +34,7 @@ Browser ──HTTP──▶ config/urls.py ──▶ <app>/urls.py ──▶ cla
 | `accounts` | `/accounts/` | `AccountType`, `Supplier`, `Account` (+ receivable/payable proxies), `Installment`, `Payment` |
 | `incidents` | `/incidents/` | Student conduct records, all per enrollment: `IncidentType` (with a penalty), `Incident`, `StudentDelay` (atraso), `BathroomPermission` (saída para banheiro) |
 | `q_and_a` | `/q_and_a/` | `QandA` (plantão de dúvidas): a student's attendance at a subject's Q&A session, per enrollment |
+| `pathways` | `/pathways/` | Extra-curricular pathways (itinerários): `Pathway`, `PathwayOffering`, `PathwayEnrollment`, `PathwaySession`, `PathwayAttendance`, `PathwayGrade`, and `ExtraGradeSettings`; the extra grade calculation (`pathways/services.py`) |
 | `billing` | `/billing/` | Bradesco CNAB 400 bank slips: `BankSettings`, `Remittance` (.REM), `BankSlip`, `ReturnFile` (.RET), `ReturnEvent` |
 
 Dependencies point one way, from the general to the specific:
@@ -48,6 +49,7 @@ base ◀── students ◀── enrollments ──▶ classes ──▶ progra
 employees ◀── departments ◀── grades ──▶ enrollments, classes, employees
                                 incidents ──▶ enrollments
                                   q_and_a ──▶ enrollments, grades, incidents (forms)
+                                 pathways ──▶ enrollments, employees, grades, incidents, q_and_a (services)
 ```
 
 `accounts` imports `Enrollment` and `Guardian`. `enrollments` reaches
@@ -169,6 +171,57 @@ enrollment (`related_name="q_and_as"`), subject (`grades.Subject`,
 points at an enrollment and its form reuses `ActiveEnrollmentFormMixin`. The
 list searches by student or subject name and filters by subject and date range
 (`QandAFilterForm`).
+
+### Pathway models (`pathways/models.py`)
+
+Extra-curricular courses. A student picks pathways every year, with no
+contract or installments; what they earn is extra points in the bimester.
+
+| Model | Key fields and rules |
+|---|---|
+| `Pathway` | catalog: `name` unique, `description`, `extra_points` (≥ 0, the most it adds in a bimester) |
+| `PathwayOffering` | a pathway running in a `SchoolYear`: optional `name` (to tell groups apart), `teachers` (many-to-many to `Employee`), optional `capacity`, `schedule` (free text). Unique per (pathway, year, name) |
+| `PathwayEnrollment` | **enrollment** × offering, `joined_at`, `left_at` (leaving sets it instead of deleting). Unique per pair. `clean()` requires the offering to be in the enrollment's school year and a free seat (members without `left_at`) |
+| `PathwaySession` | a lesson (aula): offering, `date` inside the school year, optional `topic` |
+| `PathwayAttendance` | session × pathway enrollment, `status` (`P` presente, `F` falta, `J` falta justificada). Deleted with its session. `clean()` requires the same offering and membership on the lesson's date |
+| `PathwayGrade` | the pathway teacher's score per pathway enrollment and bimester (1–4), 0–10. Unique per (pathway enrollment, bimester) |
+| `ExtraGradeSettings` | per `SchoolYear` (one-to-one), created with the defaults by `for_school_year()`: `min_pathway_attendance` (75%), `q_and_a_min_sessions` (3), `q_and_a_points` (0.50). Edited at `pathways/extra_grade_settings/` |
+
+**Extra grade** (`pathways/services.py`, like the concept grade): for each
+enrollment and bimester, every pathway adds `score / 10 × extra_points` when
+attendance (`P / (P + F)`, `J` left out) over the bimester's lessons reaches
+`min_pathway_attendance`; no lessons, no grade or low attendance add 0. Q&A
+sessions add `q_and_a_points` with at least `q_and_a_min_sessions` in the
+bimester (`q_and_a/services.py`). The sum is capped at the max score of the
+`EX` exam type and `save_extra_grades()` writes it, zero included, to every
+subject of the series through `grades.services.save_series_grades()` (shared
+with `save_concept_grades()`). `EX` is therefore calculated, not typed. Settings
+changes only affect later calculations.
+
+**Screens** (sidebar section "Itinerários", `base/sidebar/menu/itinerarios.html`):
+standard CRUDs for pathways (`pathways/`), offerings (`pathways/offerings/`,
+filter by year and pathway, with links to the offering's roster, lessons and
+grades) and the roster (`pathways/enrollments/`, filter by offering and
+situation). Roster and lessons take `?offering=<pk>` to prefill the form and
+return to the filtered list; with the offering known, the enrollment select
+lists only that year's active enrollments. Leaving is recorded with `left_at`;
+deleting a member with attendance or grades is blocked.
+
+- **Lessons** (`pathways/sessions/`): "Nova aula" saves the lesson and opens
+  its roll call (`sessions/attendance/<pk>/`, `AttendanceSheetForm`): one status
+  per student in the pathway on that date, present by default. A lesson's
+  offering can't be changed; moving its date removes the attendance of students
+  who weren't in the pathway then. The list shows present and absent counts,
+  or "Sem chamada".
+- **Pathway grades** (`pathways/grades/entry/`): pick offering and bimester;
+  `PathwayGradeSheetForm` has one optional 0–10 score per student in the pathway
+  during the bimester (blank deletes), and shows each one's attendance and the
+  extra points the saved score gives.
+- **Extra grade** (`pathways/extra_grades/all/` and `individual/`): the concept
+  grade screens (`IncidentGradesAll` / `IncidentGradesIndividual`), subclassed
+  through their `get_exam_type()`, `save_grades()`, `exam_type_missing` and
+  `url_name` hooks.
+- **Rules** (`pathways/extra_grade_settings/`): one row per school year.
 
 ### Financial models (`accounts/models.py`)
 
@@ -510,7 +563,8 @@ class roster page and its year → class select, and `grades/tests.py` the
 averages, report card, exam types, series subjects and grade entry, and
 `departments/tests.py` the department screens, and `incidents/tests.py` the
 incident, incident type, delay and bathroom permission screens, and
-`q_and_a/tests.py` the Q&A session screens.
+`q_and_a/tests.py` the Q&A session screens, and `pathways/tests.py` the
+pathway rules, the extra grade and its settings screen.
 `employees`, `programs` and `students` have no tests yet. htmx requests are simulated with
 `HTTP_HX_REQUEST="true"`. New features should come with tests in the same
 style.

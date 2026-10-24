@@ -56,6 +56,13 @@ class IncidentGradesIndividual(TemplateView):
 
     template_name = "incident_grades/incident_grades_individual.html"
     partial_template_name = "incident_grades/partials/incident_grades_subjects.html"
+    exam_type_missing = CONCEPT_MISSING
+
+    def get_exam_type(self):
+        return concept_exam_type()
+
+    def save_grades(self, enrollments, bimester, exam_type):
+        return save_concept_grades(enrollments, bimester, exam_type)
 
     def get_template_names(self):
         if is_htmx_partial(self.request):
@@ -71,7 +78,7 @@ class IncidentGradesIndividual(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         form, enrollment, bimester = self.get_selection()
-        exam_type = concept_exam_type()
+        exam_type = self.get_exam_type()
         context.update(form=form, enrollment=enrollment, exam_type=exam_type)
         if enrollment is None:
             return context
@@ -102,12 +109,12 @@ class IncidentGradesIndividual(TemplateView):
 
     def post(self, request, *args, **kwargs):
         _, enrollment, bimester = self.get_selection()
-        exam_type = concept_exam_type()
+        exam_type = self.get_exam_type()
         if enrollment is None:
             messages.error(request, "Selecione um aluno e um bimestre.")
         elif exam_type is None:
-            messages.error(request, CONCEPT_MISSING)
-        elif save_concept_grades([enrollment], bimester, exam_type):
+            messages.error(request, self.exam_type_missing)
+        elif self.save_grades([enrollment], bimester, exam_type):
             messages.success(request, "Registro atualizado com sucesso")
         else:
             messages.error(
@@ -124,6 +131,8 @@ class IncidentGradesAll(HtmxSearchMixin, ListView):
 
     template_name = "incident_grades/incident_grades_all.html"
     partial_template_name = "incident_grades/partials/incident_grades_table.html"
+    url_name = "incidents:incident_grades_all"
+    exam_type_missing = CONCEPT_MISSING
     context_object_name = "enrollments"
     paginate_by = 10
     search_fields = ("student__name", "student__social_name", "school_class__name")
@@ -138,6 +147,12 @@ class IncidentGradesAll(HtmxSearchMixin, ListView):
             self.search_fields,
         )
 
+    def get_exam_type(self):
+        return concept_exam_type()
+
+    def save_grades(self, enrollments, bimester, exam_type):
+        return save_concept_grades(enrollments, bimester, exam_type)
+
     def get_bimester(self, data):
         form = ConceptBimesterFilterForm(data or None)
         return form, form.cleaned_data["bimester"] if form.is_valid() else None
@@ -145,7 +160,7 @@ class IncidentGradesAll(HtmxSearchMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         form, bimester = self.get_bimester(self.request.GET)
-        exam_type = concept_exam_type()
+        exam_type = self.get_exam_type()
         context.update(
             filter_form=form,
             bimester=bimester,
@@ -156,8 +171,8 @@ class IncidentGradesAll(HtmxSearchMixin, ListView):
         enrollments = context["enrollments"]
         ranges = {}
         if bimester and exam_type and self.school_year:
-            # Lowest and highest concept grade among the subjects: equal unless
-            # some subject was edited by hand.
+            # Lowest and highest grade among the subjects: equal unless some
+            # subject was edited by hand.
             ranges = {
                 pk: (low, high)
                 for pk, low, high in Grade.objects.filter(
@@ -171,24 +186,24 @@ class IncidentGradesAll(HtmxSearchMixin, ListView):
                 .values_list("enrollment", "low", "high")
             }
         for enrollment in enrollments:
-            enrollment.concept_range = ranges.get(enrollment.pk)
+            enrollment.grade_range = ranges.get(enrollment.pk)
         return context
 
     def post(self, request, *args, **kwargs):
         _, bimester = self.get_bimester(request.POST)
-        exam_type = concept_exam_type()
+        exam_type = self.get_exam_type()
         school_year = current_school_year()
-        url = reverse("incidents:incident_grades_all")
+        url = reverse(self.url_name)
         if bimester is None:
             messages.error(request, "Selecione um bimestre.")
             return redirect(url)
         if exam_type is None:
-            messages.error(request, CONCEPT_MISSING)
+            messages.error(request, self.exam_type_missing)
         elif school_year is None:
             messages.error(request, school_year_missing())
         else:
             enrollments = list(current_year_enrollments(school_year))
-            graded = save_concept_grades(enrollments, bimester, exam_type)
+            graded = self.save_grades(enrollments, bimester, exam_type)
             messages.success(request, "Registro atualizado com sucesso")
             if skipped := len(enrollments) - graded:
                 messages.warning(

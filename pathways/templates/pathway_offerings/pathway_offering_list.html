@@ -1,0 +1,21 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Turmas de itinerário{% endblock page_title %}
+
+{% block header %}
+  <div class="flex items-center justify-between px-2 pb-4">
+    {% include 'components/page/heading.html' with title='Turmas de itinerário' %}
+    <div class="flex gap-3">
+    <a href="{% url 'pathways:pathway_offering_add' %}">
+    {% include 'components/button/button_select.html' with label='Adicionar registro'%}
+    </a>
+    </div>
+  </div>
+  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por itinerário, turma, horário ou professor...' %}
+{% endblock header %}
+
+{% block content %}
+  <div id="search-results">
+    {% include 'pathway_offerings/partials/pathway_offering_table.html' %}
+  </div>
+{% endblock content %}

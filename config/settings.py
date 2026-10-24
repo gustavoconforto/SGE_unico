@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "grades",
     "incidents",
     "q_and_a",
+    "pathways",
 ]
 
 MIDDLEWARE = [

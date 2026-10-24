@@ -3,10 +3,10 @@
 from collections import defaultdict
 from decimal import Decimal
 
-from django.db import transaction
 from django.db.models import Count, Sum
 
-from grades.models import ExamType, Grade, GradeLevelSubject
+from grades.models import ExamType
+from grades.services import save_series_grades
 from incidents.models import Incident, StudentDelay, StudentDelayType
 
 ZERO = Decimal(0)
@@ -82,38 +82,6 @@ def save_concept_grades(enrollments, bimester, exam_type):
     Returns the number of enrollments graded; those without bimester dates or
     without subjects (no class or series) are skipped.
     """
-    grades = concept_grades(enrollments, bimester)
-    subjects_by_level = defaultdict(list)
-    for level, subject_id in GradeLevelSubject.objects.values_list(
-        "grade_level", "subject_id"
-    ):
-        subjects_by_level[level].append(subject_id)
-
-    rows = []
-    graded = 0
-    for enrollment in enrollments:
-        school_class = enrollment.school_class
-        subject_ids = (
-            subjects_by_level[school_class.grade_level] if school_class else []
-        )
-        if enrollment.pk not in grades or not subject_ids:
-            continue
-        graded += 1
-        rows += [
-            Grade(
-                enrollment=enrollment,
-                subject_id=subject_id,
-                exam_type=exam_type,
-                bimester=bimester,
-                score=grades[enrollment.pk],
-            )
-            for subject_id in subject_ids
-        ]
-    with transaction.atomic():
-        Grade.objects.bulk_create(
-            rows,
-            update_conflicts=True,
-            unique_fields=["enrollment", "subject", "exam_type", "bimester"],
-            update_fields=["score", "updated_at"],
-        )
-    return graded
+    return save_series_grades(
+        enrollments, bimester, exam_type, concept_grades(enrollments, bimester)
+    )
