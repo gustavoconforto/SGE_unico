@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "incidents",
     "q_and_a",
     "pathways",
+    "lessons",
 ]
 
 MIDDLEWARE = [

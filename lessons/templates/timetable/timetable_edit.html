@@ -1,0 +1,54 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Grade horária{% endblock page_title %}
+
+{% block header %}
+
+{% endblock header %}
+
+{% block content %}
+<div class="bg-white py-12 px-4">
+  <div class="w-full">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl font-semibold text-gray-900 ">Grade horária da turma {{ school_class }}</h2>
+      <p class="mt-4 text-lg text-gray-600 ">
+        Escolha a matéria e o professor de cada aula; deixe em branco os horários sem aula
+      </p>
+    </div>
+    <form method="POST">
+      {% csrf_token %}
+      <div class="overflow-x-auto">
+      <table class="rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
+        <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+          <tr>
+            <th class="px-3 py-2.5 text-left font-semibold md:px-4 md:py-3">Aula</th>
+            {% for weekday in weekdays %}
+            <th class="px-3 py-2.5 text-left font-semibold md:px-4 md:py-3">{{ weekday }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-slate-100">
+        {% for label, fields in form.rows %}
+          <tr>
+            <td class="px-2 py-2 sm:px-3 md:px-4 font-semibold text-slate-700 whitespace-nowrap">{{ label }}</td>
+            {% for field in fields %}
+            <td class="px-2 py-2 sm:px-3 md:px-4 min-w-48 align-top">
+              {{ field }}
+              {% for error in field.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
+            </td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      <div class="flex flex-row gap-4 pt-6">
+        {% include 'components/button/button_submit_form.html' with label='Salvar grade' %}
+        <a href="{% url 'lessons:timetable' %}?school_class={{ school_class.pk }}">
+          {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock content %}

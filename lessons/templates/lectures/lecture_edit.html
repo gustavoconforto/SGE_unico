@@ -1,0 +1,21 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Diário de classe{% endblock page_title %}
+
+{% block header %}
+
+{% endblock header %}
+
+{% block content %}
+<div class="bg-white py-12 px-4">
+  <div class="w-full">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de aulas</h2>
+      <p class="mt-4 text-lg text-gray-600 ">
+        Edite a aula
+      </p>
+    </div>
+  {% include 'lectures/lecture_form.html' %}
+  </div>
+</div>
+{% endblock content %}

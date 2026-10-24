@@ -35,6 +35,7 @@ Browser ──HTTP──▶ config/urls.py ──▶ <app>/urls.py ──▶ cla
 | `incidents` | `/incidents/` | Student conduct records, all per enrollment: `IncidentType` (with a penalty), `Incident`, `StudentDelay` (atraso), `BathroomPermission` (saída para banheiro) |
 | `q_and_a` | `/q_and_a/` | `QandA` (plantão de dúvidas): a student's attendance at a subject's Q&A session, per enrollment |
 | `pathways` | `/pathways/` | Extra-curricular pathways (itinerários): `Pathway`, `PathwayOffering`, `PathwayEnrollment`, `PathwaySession`, `PathwayAttendance`, `PathwayGrade`, and `ExtraGradeSettings`; the extra grade calculation (`pathways/services.py`) |
+| `lessons` | `/lessons/` | Weekly timetable (grade horária) and class diary (diário de classe): `TimetableSlot`, `Lecture` |
 | `billing` | `/billing/` | Bradesco CNAB 400 bank slips: `BankSettings`, `Remittance` (.REM), `BankSlip`, `ReturnFile` (.RET), `ReturnEvent` |
 
 Dependencies point one way, from the general to the specific:
@@ -50,6 +51,7 @@ employees ◀── departments ◀── grades ──▶ enrollments, classes,
                                 incidents ──▶ enrollments
                                   q_and_a ──▶ enrollments, grades, incidents (forms)
                                  pathways ──▶ enrollments, employees, grades, incidents, q_and_a (services)
+                                  lessons ──▶ classes, grades, employees, departments (via grades)
 ```
 
 `accounts` imports `Enrollment` and `Guardian`. `enrollments` reaches
@@ -222,6 +224,38 @@ deleting a member with attendance or grades is blocked.
   through their `get_exam_type()`, `save_grades()`, `exam_type_missing` and
   `url_name` hooks.
 - **Rules** (`pathways/extra_grade_settings/`): one row per school year.
+
+### Lesson models (`lessons/models.py`)
+
+The regular lessons of a class: 7 periods a day, Monday to Friday. Only
+classes with a series (`grade_level`) have them, since only they have subjects.
+
+| Model | Key fields and rules |
+|---|---|
+| `TimetableSlot` | class, `weekday` (1–5, `Weekday`), `period` (1–7, `PERIODS`), `subject` (`GradeLevelSubject`), `teacher`. Unique per (class, weekday, period). One timetable per class, valid for its year; editing it never changes saved lectures. `clean()` requires the subject in the class's series, the teacher among the subject's `teachers`, and no other class of the same year **and shift** with that teacher in that weekday and period |
+| `Lecture` | class, `date`, `period`, `subject`, `teacher`, `topic` (required). Unique per (class, date, period). Subject and teacher are copied from the timetable, so a substitution only changes the lecture. `clean()` requires a weekday inside the class's school year (`lecture_date_error()`), the subject in the class's series and a teacher from `lecture_teachers()`: the subject's teachers or any teacher of its department |
+
+Days without lectures (holidays, events) simply have no rows: there's no
+calendar. `lessons/services.py` builds the timetable grid and `weekly_load()`,
+the periods scheduled per subject against `GradeLevelSubject.weekly_classes`
+(a weekly mean, so a mismatch is only a warning).
+
+**Screens** (sidebar section "Acadêmico"):
+
+- **Timetable** (`lessons/timetable/?school_class=<pk>`): the 5 × 7 grid and
+  the weekly load. `timetable/edit/<pk>/` (`TimetableForm`) has one
+  "Matéria — Professor" select per cell, built from the series' subjects ×
+  their teachers; a blank cell deletes the slot. The whole grid is validated
+  before anything is saved.
+- **Day sheet** (`lessons/lectures/day/?school_class=<pk>&date=<iso>`,
+  `LectureDayForm`): a row per period, prefilled from the saved lecture or the
+  timetable. Rows with a topic are saved, clearing a topic deletes the lecture,
+  and one invalid row saves nothing. This is the only way to add lectures.
+- **Class diary** (`lessons/lectures/list/`): filters by year, class, subject,
+  teacher and date range; search by topic. Edit and delete one lecture.
+
+Attendance per lecture is not built yet; it would be a
+`LectureAttendance(lecture, enrollment, status)` deleted with its lecture.
 
 ### Financial models (`accounts/models.py`)
 

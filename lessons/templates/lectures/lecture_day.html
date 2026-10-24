@@ -1,0 +1,32 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Diário de classe{% endblock page_title %}
+
+{% block header %}
+
+{% endblock header %}
+
+{% block content %}
+<div class="bg-white py-12 px-4">
+  <div class="w-full">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl font-semibold text-gray-900 ">Lançamento do dia</h2>
+      <p class="mt-4 text-lg text-gray-600 ">
+        Selecione a turma e a data
+      </p>
+    </div>
+    <form hx-get="{{ request.path }}"
+          hx-trigger="change"
+          hx-target="#search-results"
+          hx-push-url="true"
+          class="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+      {% include 'components/form/field.html' with field=select_form.school_class %}
+      {% include 'components/form/field.html' with field=select_form.date %}
+    </form>
+
+    <div id="search-results" class="mt-6">
+      {% include 'lectures/partials/lecture_day_sheet.html' %}
+    </div>
+  </div>
+</div>
+{% endblock content %}

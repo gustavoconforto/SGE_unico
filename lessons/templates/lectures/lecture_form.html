@@ -1,0 +1,43 @@
+<div class="bg-slate-50 rounded-2xl p-6 md:p-8">
+    <form class="space-y-6" method="POST">
+    {% csrf_token %}
+    <div>
+        <div class="flex flex-col w-full justify-around">
+            <div class="flex w-full gap-4">
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.school_class %}
+                </div>
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.date %}
+                </div>
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.period %}
+                </div>
+            </div>
+            <div class="flex w-full gap-4">
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.subject %}
+                </div>
+                <div class="flex flex-col w-full">
+                    {% include 'components/form/field.html' with field=form.teacher %}
+                </div>
+            </div>
+            {% include 'components/form/field.html' with field=form.topic %}
+        </div>
+    </div>
+
+    <div class="flex flex-row gap-4 pt-4">
+        {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar' %}
+        <a href="{% url 'lessons:lecture_list' %}">
+        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+        </a>
+    </div>
+    {% if form.non_field_errors %}
+        <div class="text-sm text-red-600 space-y-1 mt-2">
+        {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+        {% endfor %}
+        </div>
+    {% endif %}
+    </form>
+</div>

@@ -1,0 +1,30 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Grade horária{% endblock page_title %}
+
+{% block header %}
+
+{% endblock header %}
+
+{% block content %}
+<div class="bg-white py-12 px-4">
+  <div class="w-full">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl font-semibold text-gray-900 ">Grade horária</h2>
+      <p class="mt-4 text-lg text-gray-600 ">
+        Selecione a turma
+      </p>
+    </div>
+    <form hx-get="{{ request.path }}"
+          hx-trigger="change"
+          hx-target="#search-results"
+          hx-push-url="true">
+      {% include 'components/form/field.html' with field=select_form.school_class %}
+    </form>
+
+    <div id="search-results" class="mt-6">
+      {% include 'timetable/partials/timetable_grid.html' %}
+    </div>
+  </div>
+</div>
+{% endblock content %}
