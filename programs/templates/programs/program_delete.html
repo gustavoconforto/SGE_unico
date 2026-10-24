@@ -5,16 +5,14 @@
 {% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de cursos</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Deseja, realmente, deletar este registro?
-      </p>
+    <div class="mb-6">
+      <p class="page-context">Gerenciamento de cursos</p>
+      <h1 class="page-title mt-1">Deseja, realmente, deletar este registro?</h1>
     </div>
 
-    <div class="bg-slate-50 rounded-2xl p-6 md:p-8">
+    <div class="form-card">
       <form class="space-y-6" method="POST">
         {% csrf_token %}
         <p>

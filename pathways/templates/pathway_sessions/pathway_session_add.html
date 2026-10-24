@@ -7,13 +7,11 @@
 {% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de aulas de itinerário</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Cadastre a aula; em seguida, faça a chamada
-      </p>
+    <div class="mb-6">
+      <p class="page-context">Gerenciamento de aulas de itinerário</p>
+      <h1 class="page-title mt-1">Cadastre a aula; em seguida, faça a chamada</h1>
     </div>
   {% include 'pathway_sessions/pathway_session_form.html' %}
   </div>

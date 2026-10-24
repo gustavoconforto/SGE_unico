@@ -7,7 +7,7 @@
     {% include 'components/page/heading.html' with title='Inscrições em itinerários' %}
     <div class="flex gap-3">
     <a href="{% url 'pathways:pathway_enrollment_add' %}{% if request.GET.offering %}?offering={{ request.GET.offering }}{% endif %}">
-    {% include 'components/button/button_select.html' with label='Adicionar registro'%}
+    {% include 'components/button/button_primary.html' with label='Adicionar registro' icon='add' %}
     </a>
     </div>
   </div>

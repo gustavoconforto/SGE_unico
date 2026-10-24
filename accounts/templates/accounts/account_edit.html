@@ -7,13 +7,11 @@
 {% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form-wide">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de {{ title|lower }}</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        {{ subtitle_edit }}
-      </p>
+    <div class="mb-6">
+      <p class="page-context">Gerenciamento de {{ title|lower }}</p>
+      <h1 class="page-title mt-1">{{ subtitle_edit }}</h1>
     </div>
 
     {% include 'accounts/account_form.html' %}
@@ -25,28 +23,28 @@
                 {% include 'components/button/button_select.html' with label="Adicionar parcela" %}
             </a>
         </div>
-        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table class="min-w-full text-sm">
-            <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+        <div class="table-wrap">
+        <table class="data-table">
+            <thead>
                 <tr>
-                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-left w-20">Parcela</th>
-                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-left">Vencimento</th>
-                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-right">Valor</th>
-                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-left">Situação</th>
-                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-right">Faltante</th>
-                    <th class="px-3 py-2.5 font-semibold md:px-4 md:py-3 text-right">Opções</th>
+                    <th class="w-20">Parcela</th>
+                    <th>Vencimento</th>
+                    <th class="text-right">Valor</th>
+                    <th>Situação</th>
+                    <th class="text-right">Faltante</th>
+                    <th class="text-right">Opções</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody>
                 {% for installment in installments %}
                 <tr class="hover:bg-slate-50{% if installment.is_overdue %} bg-red-50{% endif %}">
-                    <td class="px-3 py-2 md:px-4 md:py-2.5 font-medium text-slate-700">{{ installment.number }}ª</td>
-                    <td class="px-3 py-2 md:px-4 md:py-2.5 text-slate-700 whitespace-nowrap">
+                    <td>{{ installment.number }}ª</td>
+                    <td class="whitespace-nowrap">
                         {{ installment.due_date|date:"d/m/Y" }}
                         {% if installment.is_overdue %}<span class="ml-1 text-xs font-medium text-red-600">Vencida</span>{% endif %}
                     </td>
-                    <td class="px-3 py-2 md:px-4 md:py-2.5 text-right text-slate-700 whitespace-nowrap">R$ {{ installment.amount|floatformat:2 }}</td>
-                    <td class="px-3 py-2 md:px-4 md:py-2.5">
+                    <td class="text-right whitespace-nowrap">R$ {{ installment.amount|floatformat:"2g" }}</td>
+                    <td>
                         <span class="badge badge-sm whitespace-nowrap
                             {% if installment.status == 'Q' %}badge-success
                             {% elif installment.status == 'P' %}badge-warning
@@ -56,10 +54,10 @@
                             {{ installment.get_status_display }}
                         </span>
                     </td>
-                    <td class="px-3 py-2 md:px-4 md:py-2.5 text-right font-medium text-slate-700 whitespace-nowrap">
-                        R$ {{ installment.balance|floatformat:2 }}
+                    <td class="text-right whitespace-nowrap">
+                        R$ {{ installment.balance|floatformat:"2g" }}
                     </td>
-                    <td class="px-3 py-2 md:px-4 md:py-2.5 text-right">
+                    <td class="text-right">
                         {% if installment.status == 'A' or installment.status == 'P' or installment.status == 'E' %}
                         <a href="{% if object.direction == 'R' %}{% url 'accounts:payment_add' %}{% else %}{% url 'accounts:payable_payment_add' %}{% endif %}?installment={{ installment.pk }}" class="inline-block">
                             {% include 'components/button/button_select.html' with label="Baixar" %}
@@ -69,7 +67,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="px-3 py-2 md:px-4 md:py-2.5 text-center text-slate-500">Nenhuma parcela gerada para esta conta.</td>
+                    <td colspan="6" class="text-center text-slate-500">Nenhuma parcela gerada para esta conta.</td>
                 </tr>
                 {% endfor %}
             </tbody>

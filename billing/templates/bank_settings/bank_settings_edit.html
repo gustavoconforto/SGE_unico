@@ -7,13 +7,11 @@
 {% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de cobrança bancária</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Dados do beneficiário no Bradesco (CNAB 400)
-      </p>
+    <div class="mb-6">
+      <p class="page-context">Gerenciamento de cobrança bancária</p>
+      <h1 class="page-title mt-1">Dados do beneficiário no Bradesco (CNAB 400)</h1>
     </div>
   {% include 'bank_settings/bank_settings_form.html' %}
   </div>

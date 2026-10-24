@@ -1,1 +1,5 @@
-<h1 class="text-2xl font-semibold text-gray-900">{{ title }}</h1>
+<div>
+    {% if section %}<p class="page-context">{{ section }}</p>{% endif %}
+    <h1 class="page-title{% if section %} mt-1{% endif %}">{{ title }}</h1>
+    {% if subtitle %}<p class="mt-1.5 text-slate-500">{{ subtitle }}</p>{% endif %}
+</div>

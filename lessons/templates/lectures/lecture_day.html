@@ -7,13 +7,11 @@
 {% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form-wide">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Lançamento do dia</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Selecione a turma e a data
-      </p>
+    <div class="mb-6">
+      <p class="page-context">Lançamento do dia</p>
+      <h1 class="page-title mt-1">Selecione a turma e a data</h1>
     </div>
     <form hx-get="{{ request.path }}"
           hx-trigger="change"

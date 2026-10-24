@@ -15,63 +15,64 @@
   <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
     {% for row in summary %}
     <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ row.occurrence_code }} · {{ row.label }}</p>
+      <p class="text-[13px] font-semibold text-slate-600">{{ row.occurrence_code }} · {{ row.label }}</p>
       <p class="mt-1 text-xl font-semibold text-slate-700">{{ row.count }}</p>
-      {% if row.paid %}<p class="text-xs text-slate-500">R$ {{ row.paid|floatformat:2 }} pagos</p>{% endif %}
+      {% if row.paid %}<p class="text-xs text-slate-500">R$ {{ row.paid|floatformat:"2g" }} pagos</p>{% endif %}
     </div>
     {% endfor %}
   </div>
-  <table class=" overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
-    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+  <div class="table-wrap">
+  <table class="data-table">
+    <thead>
       <tr>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Seq.</th>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Ocorrência</th>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Nosso número</th>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Data</th>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Responsável / Parcela</th>
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Valor título</th>
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Desconto</th>
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Juros/multa</th>
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Valor pago</th>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Resultado</th>
+        <th>Seq.</th>
+        <th>Ocorrência</th>
+        <th>Nosso número</th>
+        <th>Data</th>
+        <th>Responsável / Parcela</th>
+        <th class="text-right">Valor título</th>
+        <th class="text-right">Desconto</th>
+        <th class="text-right">Juros/multa</th>
+        <th class="text-right">Valor pago</th>
+        <th>Resultado</th>
       </tr>
     </thead>
-    <tbody class="bg-white divide-y divide-slate-100">
+    <tbody>
     {% for event in events %}
       <tr class="hover:bg-slate-50{% if event.status == 'E' %} bg-red-50{% endif %}">
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+        <td>
             {{ event.sequence }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+        <td>
             {{ event.occurrence_code }} · {{ event.get_occurrence_code_display }}
             {% if event.reason_codes %}<span class="block text-xs text-slate-500">Motivos: {{ event.reason_codes }}</span>{% endif %}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 whitespace-nowrap">
+        <td class="whitespace-nowrap">
             {{ event.nosso_numero }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 whitespace-nowrap">
+        <td class="whitespace-nowrap">
             {{ event.occurrence_date|date:"d/m/Y"|default:"-" }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+        <td>
             {% if event.bank_slip %}
             <a class="hover:underline" href={% url 'accounts:receivable_edit' event.bank_slip.installment.account_id %}>
               {{ event.bank_slip.installment.account.guardian|default:event.bank_slip.installment.account }} - {{ event.bank_slip.installment.number }}ª
             </a>
             {% else %}-{% endif %}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 text-right whitespace-nowrap">
-            R$ {{ event.title_amount|floatformat:2 }}
+        <td class="text-right whitespace-nowrap">
+            R$ {{ event.title_amount|floatformat:"2g" }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 text-right whitespace-nowrap">
-            R$ {{ event.discount|floatformat:2 }}
+        <td class="text-right whitespace-nowrap">
+            R$ {{ event.discount|floatformat:"2g" }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 text-right whitespace-nowrap">
-            R$ {{ event.interest|floatformat:2 }}
+        <td class="text-right whitespace-nowrap">
+            R$ {{ event.interest|floatformat:"2g" }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 text-right whitespace-nowrap">
-            R$ {{ event.amount_paid|floatformat:2 }}
+        <td class="text-right whitespace-nowrap">
+            R$ {{ event.amount_paid|floatformat:"2g" }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+        <td>
             <span class="badge badge-sm whitespace-nowrap
                 {% if event.status == 'P' %}badge-success
                 {% elif event.status == 'E' %}badge-error
@@ -86,4 +87,5 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 {% endblock content %}

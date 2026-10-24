@@ -1,17 +1,18 @@
-  <table class=" overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
-    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+  <div class="table-wrap">
+  <table class="data-table">
+    <thead>
       <tr>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Nome</th>        
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Opções</th>
+        <th>Nome</th>        
+        <th class="text-right">Opções</th>
       </tr>
     </thead>
-    <tbody class="bg-white divide-y divide-slate-100">
+    <tbody>
     {% for guardian in guardians %}
       <tr class="hover:bg-slate-50">
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700" >
+        <td>
             {{ guardian.name }}
         </td>
-        <td class="px-2 py-2 text-right sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5">
+        <td class="text-right">
           <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
             <a href={% url 'students:guardian_edit' guardian.pk %}>
               {% include 'components/button/button_select.html' with label="Editar"%}
@@ -24,4 +25,5 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 {% include 'components/table/pagination.html' %}

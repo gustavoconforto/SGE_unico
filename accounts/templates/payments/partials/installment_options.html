@@ -11,7 +11,7 @@
         {% if installment.account.counterpart %}{{ installment.account.counterpart }} · {% endif %}venc. {{ installment.due_date|date:"d/m/Y" }}
       </span>
     </span>
-    <span class="whitespace-nowrap text-right">R$ {{ installment.outstanding|floatformat:2 }}</span>
+    <span class="whitespace-nowrap text-right">R$ {{ installment.outstanding|floatformat:"2g" }}</span>
   </button>
 </li>
 {% empty %}

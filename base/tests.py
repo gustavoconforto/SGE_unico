@@ -1,9 +1,11 @@
 from datetime import date
 from io import StringIO
 
+from django import forms
 from django.contrib.auth.models import User
 from django.core.management import call_command
-from django.test import TestCase
+from django.template import Context, Template
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
@@ -12,7 +14,11 @@ from billing.models import BankSlip, ReturnEvent, SlipStatus
 from classes.models import Class
 from enrollments.models import Enrollment
 from grades.models import Grade
+from lessons.models import Lecture, TimetableSlot
+from pathways.models import PathwayAttendance, PathwayEnrollment, PathwayGrade
 from students.models import Student
+
+from .testing import LoggedInTestCase
 
 
 class LoginViewTests(TestCase):
@@ -110,3 +116,74 @@ class FullSeedTests(TestCase):
                 installment__account__supplier__isnull=False
             ).exists()
         )
+        # Every class gets all of its weekly periods, and a diary from them.
+        self.assertEqual(TimetableSlot.objects.count(), 31 * 27)
+        self.assertTrue(Lecture.objects.exists())
+        self.assertTrue(PathwayEnrollment.objects.exists())
+        self.assertTrue(PathwayAttendance.objects.exists())
+        self.assertTrue(PathwayGrade.objects.exists())
+        # The extra grade is calculated for every enrollment, zero included.
+        self.assertTrue(Grade.objects.filter(exam_type__code="EX").exists())
+
+
+class UiTagsTests(TestCase):
+    def render(self, source, path="/", **context):
+        request = RequestFactory().get(path)
+        return Template("{% load ui %}" + source).render(
+            Context({"request": request, **context})
+        )
+
+    def test_nav_active_matches_the_list_and_its_resource_pages(self):
+        source = "{% nav_active url as active %}{{ active }}"
+        url = "/accounts/suppliers/list/"
+        for path, expected in [
+            ("/accounts/suppliers/list/", "True"),
+            ("/accounts/suppliers/edit/3/", "True"),
+            ("/accounts/suppliers/add/", "True"),
+            ("/accounts/categories/list/", "False"),
+        ]:
+            with self.subTest(path=path):
+                self.assertEqual(self.render(source, path, url=url), expected)
+
+    def test_nav_active_ignores_sibling_resources_under_the_same_app(self):
+        # /pathways/list/ must not light up on /pathways/offerings/edit/1/.
+        source = "{% nav_active url as active %}{{ active }}"
+        self.assertEqual(
+            self.render(source, "/pathways/offerings/edit/1/", url="/pathways/list/"),
+            "False",
+        )
+
+    def test_document_formats_cpf_and_cnpj(self):
+        source = "{{ value|document }}|{{ value|person_kind }}"
+        self.assertEqual(
+            self.render(source, value="12345678909"), "123.456.789-09|Pessoa física"
+        )
+        self.assertEqual(
+            self.render(source, value="12345678000190"),
+            "12.345.678/0001-90|Pessoa jurídica",
+        )
+        self.assertEqual(self.render(source, value=""), "|")
+
+    def test_active_filter_count(self):
+        class FilterForm(forms.Form):
+            status = forms.CharField(required=False)
+            year = forms.CharField(required=False)
+
+        source = "{{ form|active_filter_count }}"
+        self.assertEqual(self.render(source, form=FilterForm()), "0")
+        self.assertEqual(
+            self.render(source, form=FilterForm({"status": "A", "year": ""})), "1"
+        )
+
+
+class LayoutTests(LoggedInTestCase):
+    def test_sidebar_marks_the_current_section(self):
+        response = self.client.get(reverse("accounts:supplier_list"))
+        self.assertContains(
+            response,
+            f'href="{reverse("accounts:supplier_list")}" class="nav-link active" aria-current="page"',
+        )
+
+    def test_page_title_names_the_browser_tab(self):
+        response = self.client.get(reverse("accounts:supplier_list"))
+        self.assertContains(response, "<title>Fornecedores</title>")

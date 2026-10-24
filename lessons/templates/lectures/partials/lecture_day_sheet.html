@@ -11,31 +11,32 @@
   <p class="px-2 pb-3 text-sm text-red-600">{{ error }}</p>
   {% endfor %}
   <div class="overflow-x-auto">
-  <table class="rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
-    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+  <div class="table-wrap">
+  <table class="data-table">
+    <thead>
       <tr>
-        <th class="px-3 py-2.5 text-left font-semibold md:px-4 md:py-3">Aula</th>
-        <th class="px-3 py-2.5 text-left font-semibold md:px-4 md:py-3">Matéria</th>
-        <th class="px-3 py-2.5 text-left font-semibold md:px-4 md:py-3">Professor</th>
-        <th class="px-3 py-2.5 text-left font-semibold md:px-4 md:py-3">Conteúdo</th>
+        <th>Aula</th>
+        <th>Matéria</th>
+        <th>Professor</th>
+        <th>Conteúdo</th>
       </tr>
     </thead>
-    <tbody class="bg-white divide-y divide-slate-100">
+    <tbody>
     {% for label, subject, teacher, topic, saved in form.rows %}
       <tr class="hover:bg-slate-50">
-        <td class="px-2 py-2 sm:px-3 md:px-4 font-semibold text-slate-700 whitespace-nowrap align-top">
+        <td class="font-semibold whitespace-nowrap align-top">
           {{ label }}
           {% if saved %}<span class="badge badge-success badge-sm">Lançada</span>{% endif %}
         </td>
-        <td class="px-2 py-2 sm:px-3 md:px-4 align-top min-w-40">
+        <td class="align-top min-w-40">
           {{ subject }}
           {% for error in subject.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
         </td>
-        <td class="px-2 py-2 sm:px-3 md:px-4 align-top min-w-40">
+        <td class="align-top min-w-40">
           {{ teacher }}
           {% for error in teacher.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
         </td>
-        <td class="px-2 py-2 sm:px-3 md:px-4 align-top min-w-64">
+        <td class="align-top min-w-64">
           {{ topic }}
           {% for error in topic.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
         </td>
@@ -43,6 +44,7 @@
     {% endfor %}
     </tbody>
   </table>
+  </div>
   </div>
   <div class="flex flex-row gap-4 pt-6">
     {% include 'components/button/button_submit_form.html' with label='Salvar aulas' %}

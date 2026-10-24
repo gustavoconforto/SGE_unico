@@ -1,10 +1,10 @@
-<div class="bg-slate-50 rounded-2xl p-6 md:p-8">
+<div class="form-card">
     <form class="space-y-6" method="POST">
     {% csrf_token %}
     <div>
         <div class="flex flex-col w-full justify-around">
             {% include 'components/form/field.html' with field=form.account %}
-            <div class="flex w-full gap-4">
+            <div class="flex w-full flex-col gap-x-4 sm:flex-row">
                 <div class="flex flex-col w-full">
                     {% include 'components/form/field.html' with field=form.number %}
                 </div>

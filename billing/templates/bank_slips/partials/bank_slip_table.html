@@ -1,42 +1,43 @@
-  <table class=" overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
-    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+  <div class="table-wrap">
+  <table class="data-table">
+    <thead>
       <tr>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Nosso número</th>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Remessa</th>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Vencimento</th>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Responsável</th>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Conta</th>
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Valor</th>
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Desconto</th>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Situação</th>
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Opções</th>
+        <th>Nosso número</th>
+        <th>Remessa</th>
+        <th>Vencimento</th>
+        <th>Responsável</th>
+        <th>Conta</th>
+        <th class="text-right">Valor</th>
+        <th class="text-right">Desconto</th>
+        <th>Situação</th>
+        <th class="text-right">Opções</th>
       </tr>
     </thead>
-    <tbody class="bg-white divide-y divide-slate-100">
+    <tbody>
     {% for slip in slips %}
       <tr class="hover:bg-slate-50">
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 whitespace-nowrap">
+        <td class="whitespace-nowrap">
             {{ slip }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+        <td>
             {{ slip.remittance.number }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 whitespace-nowrap">
+        <td class="whitespace-nowrap">
             {{ slip.due_date|date:"d/m/Y" }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+        <td>
             {{ slip.installment.account.guardian|default:"-" }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+        <td>
             {{ slip.installment.account }} - {{ slip.installment.number }}ª
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 text-right whitespace-nowrap">
-            R$ {{ slip.amount|floatformat:2 }}
+        <td class="text-right whitespace-nowrap">
+            R$ {{ slip.amount|floatformat:"2g" }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 text-right whitespace-nowrap">
-            R$ {{ slip.discount|floatformat:2 }}
+        <td class="text-right whitespace-nowrap">
+            R$ {{ slip.discount|floatformat:"2g" }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+        <td>
             <span class="badge badge-sm whitespace-nowrap
                 {% if slip.status == 'L' %}badge-success
                 {% elif slip.status == 'R' %}badge-info badge-outline
@@ -47,7 +48,7 @@
                 {{ slip.get_status_display }}
             </span>
         </td>
-        <td class="px-2 py-2 text-right sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5">
+        <td class="text-right">
           <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
           <a href={% url 'accounts:receivable_edit' slip.installment.account_id %}>
             {% include 'components/button/button_select.html' with label="Conta"%}
@@ -60,4 +61,5 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 {% include 'components/table/pagination.html' %}

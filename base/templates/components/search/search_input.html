@@ -1,10 +1,14 @@
-<input type="search"
-       name="q"
-       value="{{ q }}"
-       placeholder="{{ placeholder|default:'Pesquisar...' }}"
-       autocomplete="off"
-       hx-get="{{ request.path }}"
-       hx-trigger="input changed delay:500ms, keyup[key=='Enter'], search"
-       hx-target="#search-results"
-       hx-push-url="true"
-       class="mb-4 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+<div class="relative mb-4 max-w-xl">
+  <span class="material-symbols-outlined pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-slate-400">search</span>
+  <input type="search"
+         name="q"
+         value="{{ q }}"
+         placeholder="{{ placeholder|default:'Pesquisar...' }}"
+         aria-label="{{ placeholder|default:'Pesquisar' }}"
+         autocomplete="off"
+         hx-get="{{ request.path }}"
+         hx-trigger="input changed delay:500ms, keyup[key=='Enter'], search"
+         hx-target="#search-results"
+         hx-push-url="true"
+         class="input w-full pl-10">
+</div>

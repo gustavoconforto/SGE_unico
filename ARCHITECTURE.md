@@ -23,7 +23,7 @@ Browser ──HTTP──▶ config/urls.py ──▶ <app>/urls.py ──▶ cla
 
 | App | URL prefix | Responsibility |
 |---|---|---|
-| `base` | `/` | Abstract models (`TimeStampedModel`, `Person`), htmx search/filter mixins, layout and UI components, login page template, users/groups/permissions screens, `clean` and `seed` commands |
+| `base` | `/` | Abstract models (`TimeStampedModel`, `Person`), htmx search/filter mixins, layout and UI components, login page template, `LoginRequiredMiddleware`, users/groups/permissions screens, `clean`, `seed` and `full_seed` commands |
 | `employees` | `/employees/` | `EmployeeRoleType`, `Employee` |
 | `programs` | `/programs/` | `Program` (course: Ensino Médio, Pré UNB, Pré ENEM) |
 | `classes` | `/classes/` | `Class` (turma), and the class page (the class's subjects and the students actively enrolled in it) |
@@ -379,6 +379,24 @@ match files the bank already accepted (`00000 000000000000 ` in positions
    - other codes are stored as *ignored*.
    Each line runs in a savepoint, so one bad line doesn't stop the file.
 
+## Development data (`base/management/commands/`)
+
+- `clean` seeds reference data (users, programs, school years, classes…)
+  despite its name; `seed` adds a few fake people.
+- `full_seed` **flushes the database** and fills a whole school year sized to
+  stress the UI (31 classes × 45 students by default; `--students-per-class`,
+  `--year`, `--today`, `--random-seed`). It goes through the app's own rules:
+  enrollments are saved one by one so the signal builds their accounts, bank
+  slips go through `billing/services.py`, and the concept and extra (`EX`)
+  grades come from `concept_grades()` and `extra_grades()` over the seeded
+  incidents, Q&A sessions and pathways. Teachers per subject are sized so
+  nobody gives more than 25 periods a week; each class's teacher of a subject
+  is fixed, and the timetables are built with no teacher clash in a shift.
+  The class diary copies the timetable on every school day up to `--today`
+  (national holidays and the breaks between bimesters left out), with a few
+  substitutes and missing days. Extend it when a new app has data worth
+  seeing in the UI.
+
 ## Request handling
 
 ### Views
@@ -403,9 +421,11 @@ name: <resource>_list, _add, _edit, _delete     namespace: the app's app_name
 `logout`) have no namespace. Settings: `LOGIN_URL = "login"`,
 `LOGIN_REDIRECT_URL = "base:main"`, `LOGOUT_REDIRECT_URL = "login"`.
 
-The login page is standalone: it doesn't extend `base/base.html`. No app view
-requires login yet (no `LoginRequiredMixin` or middleware), and the UI has no
-logout button.
+The login page is standalone: it doesn't extend `base/base.html`. Every other
+view requires login through `base.middleware.LoginRequiredMiddleware` (Django's,
+answering htmx requests with `HX-Redirect` instead of a 302); public views are
+marked `@login_not_required`. The logout button (a POST form) is in the user
+menu at the bottom of the sidebar.
 
 ### Search, filters and htmx (`base/search.py`)
 
@@ -497,29 +517,45 @@ Both share templates. Each concrete view only declares its proxy model, form,
 
 ## Design system
 
-The look is set by Tailwind utilities and a few daisyUI classes. Match existing
-pages; don't introduce new colors or components without a reason.
+Sober and institutional: slate neutrals, white surfaces on a light canvas, one
+deep red (`red-700`) for the brand, the current menu entry and destructive
+actions. One typeface, **Public Sans**, for everything; titles stand out by size
+and weight only. One icon set, **Material Symbols Outlined** (weight 300).
+Shared classes live in `base.html` (`@layer components`); daisyUI is themed
+there too, so form widgets, badges and modals follow the palette without extra
+classes. Match the reference set `accounts/templates/suppliers/`; don't
+introduce new colors or components without a reason.
 
 ### Layout (`base/templates/base/`)
 
-- `base.html`: loads the CDNs, the Inter font and the Material Symbols
-  Outlined icon font (Google Fonts), defines the `.nav-*` component classes,
-  and renders flash messages. It includes `sidebar/sidebar.html`,
-  `navbar/navbar.html` and `sidebar/js/sidebar_js.html`. Blocks: `title`,
-  `extra_head`, `page_title` (navbar heading), `header` (above content: action
-  buttons and search), `content`, `extra_js`.
-- `sidebar/sidebar.html`: includes one file per section from
-  `sidebar/menu/`: `recursos_humanos.html`, `configuracao_de_matricula.html`,
-  `financeiro.html`, `academico.html`. Each section is a daisyUI `menu` with a
-  `<details>` toggle. Collapsible on desktop, off-canvas on mobile
-  (`sidebar/js/sidebar_js.html`).
+- `base.html`: loads the CDNs and fonts, defines the shared classes and the
+  daisyUI theme, positions row-menu popovers, and includes
+  `sidebar/sidebar.html`, `navbar/navbar.html`, `messages.html` (toasts) and
+  `sidebar/js/sidebar_js.html`. Blocks: `title`, `page_title` (the browser
+  tab; default "Gestão Escolar"), `extra_head`, `header` (page heading, main
+  action and search), `content`, `extra_js`. Content is capped at `max-w-7xl`
+  on a `bg-slate-50` canvas.
+- `navbar/navbar.html`: menu toggle and the global student search (GET to
+  `students:student_list` with `q`; Ctrl/⌘ K focuses it).
+- `messages.html`: flash messages as toasts, bottom right. Success and warning
+  leave after 6 s; errors stay until closed.
+- `sidebar/sidebar.html`: school logo, one `<details class="nav-group">` file
+  per section from `sidebar/menu/` (`recursos_humanos.html`,
+  `configuracao_de_matricula.html`, `financeiro.html`, `academico.html`,
+  `itinerarios.html`), user menu with "Sair" and the version. Off-canvas
+  below `lg`.
   - Each entry is
     `{% include 'base/sidebar/items/menu_item.html' with path="app:name" label="…" icon="…" %}`,
     where `icon` is a [Material Symbols](https://fonts.google.com/icons) name.
+    The entry is marked `active` (`aria-current="page"`) on its URL and on the
+    `add/`, `edit/`, `delete/`, `detail/` pages next to a `list/` URL
+    (`{% nav_active %}` in `base/templatetags/ui.py`); the sidebar script opens
+    the sections that hold it.
   - **Acadêmico** nests the **Edição** submenu (`academico_edicao.html`:
     Turmas, Departamentos, Matérias, Matérias por série, Tipos de avaliação,
-    Tipos de ocorrência) above Lançamento de notas, Ocorrências, Atrasos,
-    Saídas para banheiro, Plantões, Matrículas, Alunos and Responsáveis.
+    Tipos de ocorrência) above Lançamento de notas, Notas do aluno, Grade
+    horária, Diário de classe, Ocorrências, Atrasos, Saídas para banheiro,
+    Plantões, Matrículas, Alunos and Responsáveis.
 
   Add a new entry in the style of its section. `base/templates/base/sidebar.html`
   (no subfolder) is the old copy and is no longer included anywhere.
@@ -528,53 +564,78 @@ pages; don't introduce new colors or components without a reason.
 
 | Page | Structure |
 |---|---|
-| List | `header`: page name on the left (`components/page/heading.html` with `title=`), right-aligned "Adicionar registro" button + `filter_form.html` with a `placeholder` naming the searchable fields. `content`: `<div id="search-results">{% include partial %}</div>` |
-| Add / edit | centered `h2` "Gerenciamento de <plural lowercase>" + subtitle, then `<thing>_form.html` in a `bg-slate-50 rounded-2xl p-6 md:p-8` card. Fields side by side go in `flex w-full gap-4` rows |
-| Delete | same header, subtitle "Deseja, realmente, deletar este registro?", one `<p>` per key field, red delete button + cancel |
+| List | `header`: `<div class="flex flex-wrap items-end justify-between gap-4 pb-6">` with `components/page/heading.html` (`section=` sidebar section, `title=`, optional `subtitle=`) and the main action as `button/button_primary.html` with `icon='add'` and a label naming the thing ("Novo fornecedor"), then `filter_form.html` with a `placeholder` naming the searchable fields. `content`: `<div id="search-results">{% include partial %}</div>` |
+| List partial | `<div class="table-wrap"><table class="data-table">`, plain `<th>`/`<td>` (add only `text-right`, `whitespace-nowrap`), first column is the record's name and links to its edit page, secondary facts in a muted second line, last column `table/row_menu.html`. Ends with `table/pagination.html` |
+| Add / edit (reference) | `<div class="page-form">`, `page/breadcrumb.html` (list → "Novo" or the record), `heading.html` with an action title ("Novo fornecedor", "Editar fornecedor"), then the form: `.form-section` blocks (intro `h2` + one-line `p` on the left, `.form-section-body` card with a field grid on the right) and a sticky `.form-actions` bar with Cancelar + "Salvar <coisa>" |
+| Add / edit (older pages) | `page-form` (or `page-form-wide` when the form holds a table): `page-context` line "Gerenciamento de …" over a `page-title` h1, then `<thing>_form.html` in a `form-card`. Side-by-side fields go in `flex w-full flex-col gap-x-4 sm:flex-row` rows. Move a set to the reference pattern when you touch it |
+| Delete | normally the row menu's dialog; the delete page stays as a fallback: breadcrumb, "Deletar <coisa>?" title, a `form-card` naming the record, cancel + `button_delete_form.html` |
 
 ### Components (`base/templates/components/`)
 
 | Component | Use |
 |---|---|
-| `form/field.html` | label, widget, help text, errors. Use for every form field |
-| `form/checkbox.html` | inline label + checkbox |
-| `button/button_submit_form.html` | primary action (slate-700) |
+| `page/heading.html` | page h1; `title`, optional `section` (line above) and `subtitle` |
+| `page/breadcrumb.html` | `parent_label`, `parent_url_name`, `current` |
+| `form/field.html` | label (adds "(opcional)" when the field isn't required), widget, help text, errors. Use for every form field |
+| `form/checkbox.html`, `form/checkbox_list.html` | checkbox with label; multiple-choice grid |
+| `button/button_primary.html` | main page action, wrapped in `<a>`; optional `icon` |
+| `button/button_submit_form.html` | primary submit |
 | `button/button_delete_form.html` | destructive submit (red-700) |
-| `button/button_select.html` | secondary/outline button, wrapped in `<a>` for links (Editar, Deletar, Baixar…) |
+| `button/button_select.html` | secondary button wrapped in `<a>` (Editar, Baixar…); label "Deletar" renders red; `size='small'` |
 | `button/button_cancel.html` | cancel, wrapped in `<a>` back to the list |
-| `search/filter_form.html` | search input + the view's `filter_form` grid + "Limpar filtros" |
-| `table/pagination.html` | htmx pagination (uses `{% querystring %}`) |
-| `table/empty_table.html` | "Nenhum registro encontrado" row; pass `collspan` (sic) |
+| `search/search_input.html` | search only |
+| `search/filter_form.html` | search + a "Filtros" button that opens the view's `filter_form` grid (open, with a count, while filters are active) + "Limpar filtros" |
+| `table/row_menu.html` | "⋯" popover with Editar and Deletar; Deletar opens a `<dialog>` that posts to the delete view. Params: `menu_id` (pk), `edit_url`, `delete_url`, `delete_title`, `name`, `detail` |
+| `table/pagination.html` | "Mostrando X–Y de N" + page numbers (htmx, `{% querystring %}`) |
+| `table/empty_table.html` | empty state row; pass `collspan` (sic) |
+
+Buttons in templates outside these components use the classes directly:
+`ui-btn` plus `ui-btn-primary`, `ui-btn-secondary`, `ui-btn-danger` or
+`ui-btn-danger-text`, optionally `ui-btn-sm`; icon-only buttons use
+`ui-icon-btn` with an `aria-label`. Inside `.data-table` buttons shrink
+automatically.
 
 ### Visual rules
 
-- **Palette:** neutral slate/gray. Red is for the brand and destructive actions,
-  green/lime for success and receivables.
-- **Tables:** `rounded-xl border border-slate-200 bg-white shadow-sm`, header
-  `bg-slate-50 text-xs uppercase tracking-wide text-slate-600`, rows
-  `hover:bg-slate-50`, right-aligned "Opções" column last. Money and numbers
-  are right-aligned and `whitespace-nowrap`.
-- **Badges** (daisyUI `badge badge-sm`): receivable = `badge-success
-  badge-outline`, payable = `badge-error badge-outline`; installment status
-  paid = `badge-success`, partial = `badge-warning`, cancelled = `badge-ghost`,
-  expired = `badge-error`, open = `badge-neutral badge-outline`; delay
-  tolerado = `badge-neutral badge-outline`, não tolerado = `badge-error`. Overdue rows get `bg-red-50` and a red
-  "Vencida" label.
+- **Palette:** slate neutrals (`slate-900` text, `slate-500` secondary,
+  `slate-200` lines, `slate-800` primary buttons). `red-700` for the brand,
+  the active menu entry and destructive actions; `green-700` for success and
+  receivables; `amber-700` for warnings.
+- **Type:** Public Sans. Page title 28px semibold (`page-title`), section
+  titles 15px semibold, labels 13px semibold, body 14px. Sentence case
+  everywhere; no all-caps labels.
+- **Tables:** `.data-table` (in `.table-wrap`): 13px muted headers, first
+  column emphasized, `tabular-nums`, hover row. Money and numbers are
+  right-aligned and `whitespace-nowrap`. Overdue installments show a red date
+  with "Vencida" under it; the row itself isn't tinted.
+- **Totals:** one bordered panel split into cells (see
+  `installments/partials/installment_table.html`), numbers in `slate-900`,
+  direction shown by a small colored dot.
+- **Badges** (daisyUI `badge badge-sm`, restyled as soft pills in `base.html`):
+  receivable = `badge-success badge-outline`, payable = `badge-error
+  badge-outline`; installment status paid = `badge-success`, partial =
+  `badge-warning`, cancelled = `badge-ghost`, expired = `badge-error`, open =
+  `badge-neutral badge-outline`; delay tolerado = `badge-neutral
+  badge-outline`, não tolerado = `badge-error`.
 - **Form widgets** (set in the form's `widgets`): `input input-neutral w-full`,
   `select select-neutral w-full`, `textarea textarea-neutral w-full`; add
   `-sm` / `select-sm` in filter forms. Dates use `date_input()` in
-  `accounts/forms.py` (`type="date"`, ISO format).
-- **Formatting:** dates `|date:"d/m/Y"`; money `R$ {{ value|floatformat:2 }}`;
-  ordinals `{{ n }}ª`.
+  `accounts/forms.py` (`type="date"`, ISO format). Fields with errors get a
+  red border from `aria-invalid`.
+- **Formatting:** dates `|date:"d/m/Y"`; money `R$ {{ value|floatformat:"2g" }}`
+  (thousands separator; keep plain `floatformat:2` in attributes and
+  `value=`s); ordinals `{{ n }}ª`; CPF/CNPJ `{{ value|document }}` and
+  `{{ value|person_kind }}` (`{% load ui %}`).
 - **Flash messages** after every create/update/delete:
   "Registro cadastrado com sucesso" (success), "Registro atualizado com
   sucesso" (success), "Registro deletado com sucesso" (warning), errors as
-  `messages.error`.
+  `messages.error`. They render as toasts.
 
 ## Configuration
 
-- `config/settings.py` reads `SECRET_KEY` and `DJANGO_DEBUG` from `.env`
-  (python-dotenv).
+- `config/settings.py` reads `SECRET_KEY`, `DJANGO_DEBUG` and `DATABASE_URL`
+  from `.env` (python-dotenv). With debug on it uses `db.sqlite3`; with debug
+  off, PostgreSQL from `DATABASE_URL` (schema `django_app`).
 - Locale `pt-br`, timezone `America/Sao_Paulo`, `USE_TZ=True`. Accepted date
   input formats include `dd/mm/yyyy` and ISO.
 - Static: `assets/` → `/static/`. Media: `media/` → `/media/`, served by Django
@@ -597,19 +658,21 @@ class roster page and its year → class select, and `grades/tests.py` the
 averages, report card, exam types, series subjects and grade entry, and
 `departments/tests.py` the department screens, and `incidents/tests.py` the
 incident, incident type, delay and bathroom permission screens, and
-`q_and_a/tests.py` the Q&A session screens, and `pathways/tests.py` the
-pathway rules, the extra grade and its settings screen.
-`employees`, `programs` and `students` have no tests yet. htmx requests are simulated with
+`q_and_a/tests.py` the Q&A session screens, `pathways/tests.py` the
+pathway rules, the extra grade and its settings screen, `lessons/tests.py` the
+timetable and class diary rules and screens, and `employees/tests.py` the role
+screens. `base/tests.py` also runs `full_seed` for a past and a future year.
+`programs` and `students` have no tests yet. htmx requests are simulated with
 `HTTP_HX_REQUEST="true"`. New features should come with tests in the same
 style.
 
 ## Known issues and technical debt
 
-- **No authorization, and login isn't enforced.** The login page works, but
-  every app view is public. Users, groups and permissions can be managed, but
-  nothing checks them. There's no logout button.
-- **Production settings are missing:** `DATABASES` is empty without debug,
-  `ALLOWED_HOSTS = []`, CDN assets aren't pinned/self-hosted.
+- **No authorization.** Login is required everywhere, but users, groups and
+  permissions are only managed, never checked: any logged-in user can open
+  every screen (the "Professor" group `full_seed` creates is not enforced).
+- **Production hardening is incomplete:** CDN assets aren't pinned or
+  self-hosted.
 - `Enrollment.installments_count` exists (default 12) but isn't used:
   the number of installments comes from the enrollment date (see
   [workflow](#enrollment--finance-workflow)).

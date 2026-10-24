@@ -7,13 +7,11 @@
 {% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de categorias financeiras</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Edite uma categoria financeira
-      </p>
+    <div class="mb-6">
+      <p class="page-context">Gerenciamento de categorias financeiras</p>
+      <h1 class="page-title mt-1">Edite uma categoria financeira</h1>
     </div>
   {% include 'account_types/account_type_form.html' %}
   </div>

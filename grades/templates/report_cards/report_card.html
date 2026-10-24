@@ -14,16 +14,14 @@
 {% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form-wide">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Boletim escolar</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        {{ enrollment.school_class.year|default:enrollment.enrollment_type.school_year }}
-      </p>
+    <div class="mb-6">
+      <p class="page-context">Boletim escolar</p>
+      <h1 class="page-title mt-1">{{ enrollment.school_class.year|default:enrollment.enrollment_type.school_year }}</h1>
     </div>
 
-    <div class="bg-slate-50 rounded-2xl p-6 md:p-8 mb-6 grid grid-cols-1 gap-2 sm:grid-cols-2 text-slate-700">
+    <div class="form-card mb-6 grid grid-cols-1 gap-2 sm:grid-cols-2 text-slate-700">
       <p><span class="font-semibold">Aluno:</span> {{ enrollment.student.name }}</p>
       <p><span class="font-semibold">Matrícula:</span> {{ enrollment.student.registration }}</p>
       <p><span class="font-semibold">Curso:</span> {{ enrollment.enrollment_type.program }}</p>
@@ -31,40 +29,41 @@
     </div>
 
     <div class="overflow-x-auto">
-    <table class="rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
-      <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+    <div class="table-wrap">
+    <table class="data-table">
+      <thead>
         <tr>
-          <th class="px-3 py-2.5 text-left font-semibold md:px-4 md:py-3 lg:px-6 lg:py-3.5">Matéria</th>
+          <th>Matéria</th>
           {% for value, label in bimesters %}
-          <th class="px-3 py-2.5 text-right font-semibold whitespace-nowrap md:px-4 md:py-3 lg:px-6 lg:py-3.5">{{ value }}º bim.</th>
+          <th class="text-right whitespace-nowrap">{{ value }}º bim.</th>
           {% endfor %}
-          <th class="px-3 py-2.5 text-right font-semibold whitespace-nowrap md:px-4 md:py-3 lg:px-6 lg:py-3.5">Média anual</th>
-          <th class="px-3 py-2.5 text-right font-semibold whitespace-nowrap md:px-4 md:py-3 lg:px-6 lg:py-3.5">Recuperação</th>
-          <th class="px-3 py-2.5 text-right font-semibold whitespace-nowrap md:px-4 md:py-3 lg:px-6 lg:py-3.5">Média final</th>
-          <th class="px-3 py-2.5 text-right font-semibold md:px-4 md:py-3 lg:px-6 lg:py-3.5">Situação</th>
+          <th class="text-right whitespace-nowrap">Média anual</th>
+          <th class="text-right whitespace-nowrap">Recuperação</th>
+          <th class="text-right whitespace-nowrap">Média final</th>
+          <th class="text-right">Situação</th>
         </tr>
       </thead>
-      <tbody class="bg-white divide-y divide-slate-100">
+      <tbody>
       {% for row in rows %}
         <tr class="hover:bg-slate-50">
-          <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+          <td>
             {{ row.subject }}
           </td>
           {% for bimester_grade in row.bimesters %}
-          <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+          <td class="text-right whitespace-nowrap">
             {{ bimester_grade|floatformat:2|default:"-" }}
           </td>
           {% endfor %}
-          <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+          <td class="text-right whitespace-nowrap">
             {{ row.average|floatformat:2|default:"-" }}
           </td>
-          <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+          <td class="text-right whitespace-nowrap">
             {% if row.needs_recovery %}{{ row.recovery|floatformat:2|default:"-" }}{% else %}-{% endif %}
           </td>
-          <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-semibold text-slate-800">
+          <td class="text-right whitespace-nowrap font-semibold text-slate-800">
             {{ row.final|floatformat:2|default:"-" }}
           </td>
-          <td class="px-2 py-2 text-right sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5">
+          <td class="text-right">
             {% if row.passed is None and row.needs_recovery %}
               <span class="badge badge-sm badge-warning">Em recuperação</span>
             {% elif row.passed is None %}
@@ -81,6 +80,7 @@
       {% endfor %}
       </tbody>
     </table>
+    </div>
     </div>
   </div>
 </div>

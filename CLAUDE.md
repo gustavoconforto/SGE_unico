@@ -14,11 +14,13 @@ uv run python manage.py check
 uv run python manage.py makemigrations --check --dry-run   # confirm no missing migration
 uv run ruff check <files> && uv run ruff format <files>    # only files you touched; the repo isn't ruff-clean yet
 uv run python manage.py runserver
+uv run python manage.py full_seed          # FLUSHES the database, then fills a whole school year
 ```
 
-`.env` needs `SECRET_KEY` and `DJANGO_DEBUG=true` (without debug there is no
-database configured). Never run `reset_db.py`: it deletes the database and
-all migration files.
+`.env` needs `SECRET_KEY` and `DJANGO_DEBUG=true` (without debug it connects
+to PostgreSQL through `DATABASE_URL`). Never run `reset_db.py`: it deletes the
+database and all migration files. Ask before running `full_seed` on the dev
+database; to try it, point a settings override at a scratch SQLite file.
 
 ## Language
 
@@ -65,7 +67,8 @@ all migration files.
   in `accounts/views.py` for new CRUDs.
 - Multi-model writes go in `transaction.atomic()`.
 - Student records tied to a school year (grades, incidents, delays, bathroom
-  permissions, Q&A sessions) point at `Enrollment`, not `Student`. Their forms use
+  permissions, Q&A sessions, pathway memberships) point at `Enrollment`, not
+  `Student`. Their forms use
   `ActiveEnrollmentFormMixin` from `incidents/forms.py` to list only active
   enrollments.
 - Prefill from a query param (`?installment=<pk>`, `?account=<pk>`) via
@@ -86,16 +89,23 @@ all migration files.
 ### Templates
 - Per resource, in `<app>/templates/<resource_plural>/`: `<r>_list.html`,
   `partials/<r>_table.html`, `<r>_form.html`, `<r>_add.html`,
-  `<r>_edit.html`, `<r>_delete.html`. Copy an existing set (e.g.
-  `accounts/templates/suppliers/`) rather than inventing a layout.
-- Extend `base/base.html`; fill `page_title`, `header`, `content`.
+  `<r>_edit.html`, `<r>_delete.html`. Copy the reference set
+  `accounts/templates/suppliers/` (breadcrumb, sectioned form, sticky save
+  bar, row menu with delete dialog) rather than inventing a layout; the older
+  sets still use the "Gerenciamento de …" header.
+- Extend `base/base.html`; fill `page_title` (browser tab), `header`, `content`.
 - List page: the table partial lives inside `<div id="search-results">`,
-  search uses `components/search/filter_form.html`, the partial ends with
-  `components/table/pagination.html`.
-- Use the components: `components/form/field.html` for every field and the
-  `components/button/*` buttons. Don't hand-roll buttons or fields.
-- Money `R$ {{ v|floatformat:2 }}` right-aligned with `whitespace-nowrap`;
-  dates `|date:"d/m/Y"`; badge colors as in ARCHITECTURE.md.
+  search uses `components/search/filter_form.html`, the table is
+  `<div class="table-wrap"><table class="data-table">` with plain `<th>`/`<td>`,
+  the partial ends with `components/table/pagination.html`.
+- Use the components: `components/form/field.html` for every field, the
+  `components/button/*` buttons (or the `ui-btn` classes), `page/heading.html`,
+  `page/breadcrumb.html`, `table/row_menu.html`. Don't hand-roll buttons or
+  fields, and don't add colors or fonts: the design system is in
+  ARCHITECTURE.md.
+- Money `R$ {{ v|floatformat:"2g" }}` right-aligned with `whitespace-nowrap`
+  (plain `floatformat:2` inside attributes); dates `|date:"d/m/Y"`; CPF/CNPJ
+  `|document` (`{% load ui %}`); badge colors as in ARCHITECTURE.md.
 - New screens get a link in the sidebar under the right section. Each section
   is a file in `base/templates/base/sidebar/menu/` (`academico.html`,
   `financeiro.html`, …) included by `sidebar/sidebar.html`; add
@@ -119,6 +129,12 @@ all migration files.
   slip; `LIVE_SLIP_STATUSES` enforces this.
 - Enrollment creation generates the account and installments through the
   `post_save` signal in `enrollments/signals.py`; don't duplicate that in views.
+
+### Development data
+- When a new app has data worth seeing in the UI, add it to
+  `base/management/commands/full_seed.py` (and its model to `print_summary`).
+  Generate it through the app's services and rules, not hand-computed values,
+  and keep it valid for the models' `clean()`.
 
 ### Tests
 - Add tests in `<app>/tests.py` (Django `TestCase`, `setUpTestData`, test

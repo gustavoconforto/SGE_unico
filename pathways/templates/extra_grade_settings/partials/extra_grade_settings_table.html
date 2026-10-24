@@ -1,30 +1,31 @@
-  <table class=" overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
-    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+  <div class="table-wrap">
+  <table class="data-table">
+    <thead>
       <tr>
-        <th class="px-3 py-2.5 text-left font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Ano escolar</th>
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Frequência mínima nos itinerários</th>
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Mínimo de plantões</th>
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Pontos pelos plantões</th>
-        <th class="px-3 py-2.5 text-right font-semibold sm:table-cell md:px-4 md:py-3 lg:px-6 lg:py-3.5">Opções</th>
+        <th>Ano escolar</th>
+        <th class="text-right">Frequência mínima nos itinerários</th>
+        <th class="text-right">Mínimo de plantões</th>
+        <th class="text-right">Pontos pelos plantões</th>
+        <th class="text-right">Opções</th>
       </tr>
     </thead>
-    <tbody class="bg-white divide-y divide-slate-100">
+    <tbody>
     {% for school_year in school_years %}
       {% with settings=school_year.extra_grade_settings|default:defaults %}
       <tr class="hover:bg-slate-50">
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+        <td>
             {{ school_year }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 text-right whitespace-nowrap">
+        <td class="text-right whitespace-nowrap">
             {{ settings.min_pathway_attendance|floatformat:0 }}%
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 text-right">
+        <td class="text-right">
             {{ settings.q_and_a_min_sessions }}
         </td>
-        <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700 text-right whitespace-nowrap">
+        <td class="text-right whitespace-nowrap">
             {{ settings.q_and_a_points|floatformat:2 }}
         </td>
-        <td class="px-2 py-2 text-right sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5">
+        <td class="text-right">
           <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
           <a href={% url 'pathways:extra_grade_settings_edit' school_year.pk %}>
             {% include 'components/button/button_select.html' with label="Editar"%}
@@ -38,4 +39,5 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 {% include 'components/table/pagination.html' %}

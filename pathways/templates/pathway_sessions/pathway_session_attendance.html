@@ -7,13 +7,11 @@
 {% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form-wide">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Chamada</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        {{ session.offering }} - {{ session.date|date:"d/m/Y" }}{% if session.topic %} - {{ session.topic }}{% endif %}
-      </p>
+    <div class="mb-6">
+      <p class="page-context">Chamada</p>
+      <h1 class="page-title mt-1">{{ session.offering }} - {{ session.date|date:"d/m/Y" }}{% if session.topic %} - {{ session.topic }}{% endif %}</h1>
     </div>
     <form method="POST">
       {% csrf_token %}
@@ -21,24 +19,25 @@
         Todos começam presentes; marque as faltas. Faltas justificadas não contam na frequência.
       </p>
       <div class="overflow-x-auto">
-      <table class="rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
-        <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+      <div class="table-wrap">
+      <table class="data-table">
+        <thead>
           <tr>
-            <th class="px-3 py-2.5 text-left font-semibold md:px-4 md:py-3 lg:px-6 lg:py-3.5">Aluno</th>
-            <th class="px-3 py-2.5 text-left font-semibold md:px-4 md:py-3 lg:px-6 lg:py-3.5">Turma</th>
-            <th class="px-3 py-2.5 text-right font-semibold md:px-4 md:py-3 lg:px-6 lg:py-3.5">Presença</th>
+            <th>Aluno</th>
+            <th>Turma</th>
+            <th class="text-right">Presença</th>
           </tr>
         </thead>
-        <tbody class="bg-white divide-y divide-slate-100">
+        <tbody>
         {% for member, field in form.rows %}
           <tr class="hover:bg-slate-50">
-            <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+            <td>
               {{ member.enrollment.student }}
             </td>
-            <td class="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 lg:px-6 lg:py-3.5 font-medium text-slate-700">
+            <td>
               {{ member.enrollment.school_class|default:"-" }}
             </td>
-            <td class="px-2 py-2 text-right sm:px-3 md:px-4">
+            <td class="text-right">
               {{ field }}
               {% for error in field.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
             </td>
@@ -48,6 +47,7 @@
         {% endfor %}
         </tbody>
       </table>
+      </div>
       </div>
       <div class="flex flex-row gap-4 pt-6">
         {% if form.members %}

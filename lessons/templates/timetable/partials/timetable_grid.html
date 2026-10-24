@@ -5,21 +5,22 @@
   </a>
 </div>
 <div class="overflow-x-auto">
-<table class="rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
-  <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+<div class="table-wrap">
+<table class="data-table">
+  <thead>
     <tr>
-      <th class="px-3 py-2.5 text-left font-semibold md:px-4 md:py-3">Aula</th>
+      <th>Aula</th>
       {% for weekday in weekdays %}
-      <th class="px-3 py-2.5 text-left font-semibold md:px-4 md:py-3">{{ weekday }}</th>
+      <th>{{ weekday }}</th>
       {% endfor %}
     </tr>
   </thead>
-  <tbody class="bg-white divide-y divide-slate-100">
+  <tbody>
   {% for label, slots in grid %}
     <tr class="hover:bg-slate-50">
-      <td class="px-2 py-2 sm:px-3 md:px-4 font-semibold text-slate-700 whitespace-nowrap">{{ label }}</td>
+      <td class="font-semibold whitespace-nowrap">{{ label }}</td>
       {% for slot in slots %}
-      <td class="px-2 py-2 sm:px-3 md:px-4 text-slate-700">
+      <td>
         {% if slot %}
         <p class="font-medium">{{ slot.subject.subject.name }}</p>
         <p class="text-xs text-slate-500">{{ slot.teacher.name }}</p>
@@ -31,31 +32,34 @@
   </tbody>
 </table>
 </div>
+</div>
 
 <h3 class="px-2 pt-8 pb-3 text-lg font-semibold text-gray-900">Aulas por semana</h3>
 <div class="overflow-x-auto">
-<table class="rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
-  <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+<div class="table-wrap">
+<table class="data-table">
+  <thead>
     <tr>
-      <th class="px-3 py-2.5 text-left font-semibold md:px-4 md:py-3">Matéria</th>
-      <th class="px-3 py-2.5 text-right font-semibold md:px-4 md:py-3">Agendadas</th>
-      <th class="px-3 py-2.5 text-right font-semibold md:px-4 md:py-3">Previstas</th>
+      <th>Matéria</th>
+      <th class="text-right">Agendadas</th>
+      <th class="text-right">Previstas</th>
     </tr>
   </thead>
-  <tbody class="bg-white divide-y divide-slate-100">
+  <tbody>
   {% for load in weekly_load %}
     <tr class="{% if load.matches %}hover:bg-slate-50{% else %}bg-warning/10{% endif %}">
-      <td class="px-2 py-2 sm:px-3 md:px-4 font-medium text-slate-700">
+      <td>
         {{ load.subject.subject.name }}
         {% if not load.matches %}<span class="badge badge-warning badge-sm">Diferente do previsto</span>{% endif %}
       </td>
-      <td class="px-2 py-2 sm:px-3 md:px-4 text-right whitespace-nowrap text-slate-700">{{ load.scheduled }}</td>
-      <td class="px-2 py-2 sm:px-3 md:px-4 text-right whitespace-nowrap text-slate-700">{{ load.expected|floatformat:"-2"|default:"-" }}</td>
+      <td class="text-right whitespace-nowrap">{{ load.scheduled }}</td>
+      <td class="text-right whitespace-nowrap">{{ load.expected|floatformat:"-2"|default:"-" }}</td>
     </tr>
   {% empty %}
     {% include 'components/table/empty_table.html' with collspan=3 %}
   {% endfor %}
   </tbody>
 </table>
+</div>
 </div>
 {% endif %}

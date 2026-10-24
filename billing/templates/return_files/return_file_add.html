@@ -7,13 +7,11 @@
 {% endblock header %}
 
 {% block content %}
-<div class="bg-white py-12 px-4">
+<div class="page-form">
   <div class="w-full">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-semibold text-gray-900 ">Gerenciamento de retornos</h2>
-      <p class="mt-4 text-lg text-gray-600 ">
-        Importe o arquivo de retorno enviado pelo Bradesco
-      </p>
+    <div class="mb-6">
+      <p class="page-context">Gerenciamento de retornos</p>
+      <h1 class="page-title mt-1">Importe o arquivo de retorno enviado pelo Bradesco</h1>
     </div>
   {% include 'return_files/return_file_form.html' %}
   </div>

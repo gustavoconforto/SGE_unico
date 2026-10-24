@@ -1,22 +1,36 @@
 {% if page_obj.has_other_pages %}
-  <nav class="mt-4 flex items-center justify-between text-sm text-slate-600">
-    <div>
+  <nav aria-label="Paginação" class="mt-3 flex flex-wrap items-center justify-between gap-3 px-1 text-sm">
+    <span class="text-[13px] text-slate-500 tabular-nums">
+      Mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ page_obj.paginator.count }}
+    </span>
+    <div class="flex items-center gap-1 tabular-nums">
       {% if page_obj.has_previous %}
         <a href="{% querystring page=page_obj.previous_page_number %}"
            hx-get="{{ request.path }}{% querystring page=page_obj.previous_page_number %}"
-           hx-target="#search-results"
-           hx-push-url="true"
-           class="rounded-lg border border-slate-200 px-3 py-1.5 hover:bg-slate-50">Anterior</a>
+           hx-target="#search-results" hx-push-url="true"
+           class="ui-icon-btn" aria-label="Página anterior">
+          <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+        </a>
       {% endif %}
-    </div>
-    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-    <div>
+      {% for num in page_obj.paginator.page_range %}
+        {% if num == page_obj.number %}
+          <span aria-current="page" class="inline-flex size-8 items-center justify-center rounded-md bg-slate-800 font-semibold text-white">{{ num }}</span>
+        {% elif num == 1 or num == page_obj.paginator.num_pages or num >= page_obj.number|add:-1 and num <= page_obj.number|add:1 %}
+          <a href="{% querystring page=num %}"
+             hx-get="{{ request.path }}{% querystring page=num %}"
+             hx-target="#search-results" hx-push-url="true"
+             class="ui-icon-btn text-slate-700">{{ num }}</a>
+        {% elif num == page_obj.number|add:-2 or num == page_obj.number|add:2 %}
+          <span class="inline-flex w-6 justify-center text-slate-400">…</span>
+        {% endif %}
+      {% endfor %}
       {% if page_obj.has_next %}
         <a href="{% querystring page=page_obj.next_page_number %}"
            hx-get="{{ request.path }}{% querystring page=page_obj.next_page_number %}"
-           hx-target="#search-results"
-           hx-push-url="true"
-           class="rounded-lg border border-slate-200 px-3 py-1.5 hover:bg-slate-50">Próxima</a>
+           hx-target="#search-results" hx-push-url="true"
+           class="ui-icon-btn" aria-label="Próxima página">
+          <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+        </a>
       {% endif %}
     </div>
   </nav>

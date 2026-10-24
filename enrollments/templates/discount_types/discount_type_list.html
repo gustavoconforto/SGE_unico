@@ -4,7 +4,7 @@
   <div class="flex items-center justify-between px-2 pb-4">
     {% include 'components/page/heading.html' with title='Descontos' %}
     <a href={% url 'enrollments:discount_type_add' %}>
-    {% include 'components/button/button_select.html' with label='Adicionar registro'%}
+    {% include 'components/button/button_primary.html' with label='Adicionar registro' icon='add' %}
     </a>
   </div>
   {% include 'components/search/search_input.html' with placeholder='Pesquisar desconto...' %}

@@ -1,5 +1,5 @@
 {% load static %}
-<div class="bg-slate-50 rounded-2xl p-6 md:p-8">
+<div class="form-card">
     <form class="space-y-6" method="POST" novalidate>
         {% csrf_token %}
         <div class="tabs tabs-box">
@@ -16,7 +16,7 @@
                     <div class="flex flex-col gap-6">
                         <section class="card border border-base-300">
                             <div class="card-body gap-2">
-                                <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-500">Identificação</h4>
+                                <h4 class="text-sm font-semibold text-slate-700">Identificação</h4>
                                 {% include 'components/form/field.html' with field=form.name %}
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 [&>*]:min-w-0">
                                     {% include 'components/form/field.html' with field=form.sex %}
@@ -27,7 +27,7 @@
 
                         <section class="card border border-base-300">
                             <div class="card-body gap-2">
-                                <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-500">Documentos</h4>
+                                <h4 class="text-sm font-semibold text-slate-700">Documentos</h4>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 [&>*]:min-w-0">
                                     {% include 'components/form/field.html' with field=form.cpf %}
                                     {% include 'components/form/field.html' with field=form.rg %}
@@ -40,7 +40,7 @@
 
                         <section class="card border border-base-300">
                             <div class="card-body gap-2">
-                                <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-500">Nascimento</h4>
+                                <h4 class="text-sm font-semibold text-slate-700">Nascimento</h4>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 [&>*]:min-w-0">
                                     {% include 'components/form/field.html' with field=form.birth_date %}
                                     {% include 'components/form/field.html' with field=form.nationality %}

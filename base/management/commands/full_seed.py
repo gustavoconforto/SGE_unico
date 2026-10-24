@@ -3,10 +3,11 @@
 Default: 31 high-school classes (11 first-year, 10 second-year, 10 third-year)
 of 45 students each = 1395 students with their guardians, enrollments,
 installments, incidents, delays and bathroom permissions, Q&A sessions
-(plantões), grades (the
-concept grade computed from the incidents), bank slips (remittances and return
-files run through billing/services.py), counter payments, other receivables
-and payables.
+(plantões), pathways (itinerários) with their members, lessons, attendance and
+grades, a weekly timetable and class diary for every class, grades (the concept
+and extra grades computed like the app does), bank slips (remittances and
+return files run through billing/services.py), counter payments, other
+receivables and payables.
 
 Data is generated for the current school year by default, so bimesters,
 due dates and payments are spread around today's date. To fill a future year
@@ -16,10 +17,11 @@ as if it were already under way, pass a reference date with --today
 Every run starts by flushing the database, so it always seeds from empty.
 """
 
+import math
 import random
 import re
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
 from contextlib import contextmanager
 from datetime import date, timedelta
 from decimal import Decimal
@@ -89,7 +91,26 @@ from incidents.models import (
     StudentDelay,
     StudentDelayType,
 )
-from incidents.services import concept_grades
+from incidents.services import bimester_range, concept_grades
+from lessons.models import (
+    LECTURES_PER_DAY,
+    Lecture,
+    TimetableSlot,
+    Weekday,
+    lecture_teachers,
+)
+from pathways.models import (
+    MAX_PATHWAY_SCORE,
+    AttendanceStatus,
+    ExtraGradeSettings,
+    Pathway,
+    PathwayAttendance,
+    PathwayEnrollment,
+    PathwayGrade,
+    PathwayOffering,
+    PathwaySession,
+)
+from pathways.services import extra_grades
 from programs.models import Program
 from q_and_a.models import QandA
 from students.models import (
@@ -179,7 +200,8 @@ WEEKLY_CLASSES = {
     "Filosofia": Decimal(1),
     "Sociologia": Decimal(1),
 }
-TEACHERS_PER_SUBJECT = 5
+# Most periods a week per teacher; sets how many teachers each subject needs.
+TEACHER_WEEKLY_PERIODS = 25
 SECOND_DEPARTMENT_CHANCE = 0.1
 
 # (code, name, kind, max_score); list order is the report card column order.
@@ -190,7 +212,6 @@ EXAM_TYPES = [
     ("EX", "Nota extra", ExamKind.BONUS, Decimal(5)),
     ("A", "Ajuste", ExamKind.RECOVERY, Decimal(10)),
 ]
-EXTRA_CHANCE = 0.12
 ADJUSTMENT_CHANCE = 0.7  # of the bimesters below the passing grade
 PASSING_GRADE = Decimal(6)
 
@@ -216,6 +237,183 @@ CLASS_PERIODS = 6
 # Q&A sessions per student per bimester; regulars attend most of them.
 Q_AND_A_REGULAR_SHARE = 0.25
 Q_AND_AS_PER_BIMESTER = {"regular": 2.0, "other": 0.2}
+# National holidays (month, day) inside the bimesters: no lessons or records.
+HOLIDAYS = [(4, 21), (5, 1), (9, 7), (10, 12), (11, 2), (11, 15), (11, 20)]
+
+# (name, description, extra points, groups)
+PATHWAYS = [
+    ("Robótica", "Montagem e programação de robôs.", Decimal("1.00"), 2),
+    ("Programação", "Lógica de programação e desenvolvimento web.", Decimal("1.00"), 2),
+    ("Iniciação científica", "Projetos de pesquisa orientados.", Decimal("1.50"), 1),
+    ("Olimpíadas de matemática", "Preparação para OBMEP e OBM.", Decimal("1.50"), 1),
+    ("Redação avançada", "Produção de textos para o ENEM.", Decimal("1.00"), 2),
+    ("Debate e oratória", "Argumentação e falar em público.", Decimal("1.00"), 1),
+    ("Educação financeira", "Orçamento, investimentos e consumo.", Decimal("0.75"), 2),
+    ("Teatro", "Expressão corporal e montagem de peças.", Decimal("0.50"), 1),
+    ("Música", "Canto coral e prática instrumental.", Decimal("0.50"), 1),
+    ("Xadrez", "Aberturas, táticas e torneios internos.", Decimal("0.50"), 1),
+]
+# Groups of a pathway with two; students pick the one outside their class shift.
+PATHWAY_TIMES = {"Manhã": "8h às 9h40", "Tarde": "14h às 15h40", "": "17h às 18h40"}
+SHIFT_GROUPS = {Shift.MORNING: "Manhã", Shift.AFTERNOON: "Tarde"}
+PATHWAY_CAPACITY = 50
+PATHWAYS_PER_STUDENT = [60, 32, 8]  # weights of joining 0, 1 or 2 pathways
+PATHWAY_LEAVE_CHANCE = 0.08
+PATHWAY_GRADE_CHANCE = 0.95  # of the members in a complete bimester
+
+# Lectures are copied from the timetable; a few have a substitute teacher and
+# a few days of the diary were never filled in.
+SUBSTITUTION_CHANCE = 0.02
+MISSING_LECTURE_CHANCE = 0.02
+# Each series goes through its four topics over the school year.
+LECTURE_TOPICS = {
+    "Física": {
+        1: [
+            "Cinemática",
+            "Leis de Newton",
+            "Trabalho e energia",
+            "Quantidade de movimento",
+        ],
+        2: ["Termologia", "Termodinâmica", "Óptica geométrica", "Ondulatória"],
+        3: ["Eletrostática", "Eletrodinâmica", "Magnetismo", "Física moderna"],
+    },
+    "Biologia": {
+        1: ["Citologia", "Bioquímica celular", "Divisão celular", "Embriologia"],
+        2: ["Histologia", "Fisiologia humana", "Botânica", "Zoologia"],
+        3: ["Genética", "Evolução", "Ecologia", "Biotecnologia"],
+    },
+    "Química": {
+        1: [
+            "Estrutura atômica",
+            "Tabela periódica",
+            "Ligações químicas",
+            "Funções inorgânicas",
+        ],
+        2: ["Estequiometria", "Soluções", "Termoquímica", "Cinética química"],
+        3: [
+            "Equilíbrio químico",
+            "Eletroquímica",
+            "Química orgânica",
+            "Reações orgânicas",
+        ],
+    },
+    "Matemática": {
+        1: ["Conjuntos", "Funções", "Função quadrática", "Exponencial e logaritmo"],
+        2: [
+            "Trigonometria",
+            "Matrizes e determinantes",
+            "Sistemas lineares",
+            "Análise combinatória",
+        ],
+        3: [
+            "Geometria analítica",
+            "Geometria espacial",
+            "Probabilidade e estatística",
+            "Polinômios",
+        ],
+    },
+    "Português": {
+        1: [
+            "Fonética e ortografia",
+            "Morfologia",
+            "Trovadorismo e Humanismo",
+            "Classicismo e Barroco",
+        ],
+        2: [
+            "Sintaxe do período simples",
+            "Arcadismo",
+            "Romantismo",
+            "Realismo e Naturalismo",
+        ],
+        3: [
+            "Sintaxe do período composto",
+            "Parnasianismo e Simbolismo",
+            "Modernismo",
+            "Redação dissertativa",
+        ],
+    },
+    "Inglês": {
+        1: [
+            "Simple present",
+            "Simple past",
+            "Present continuous",
+            "Reading strategies",
+        ],
+        2: [
+            "Present perfect",
+            "Future forms",
+            "Modal verbs",
+            "Comparatives and superlatives",
+        ],
+        3: [
+            "Passive voice",
+            "Conditionals",
+            "Reported speech",
+            "Interpretação de textos",
+        ],
+    },
+    "História": {
+        1: [
+            "Pré-história",
+            "Antiguidade clássica",
+            "Idade Média",
+            "Renascimento e Reforma",
+        ],
+        2: [
+            "Brasil colonial",
+            "Revoluções burguesas",
+            "Independência do Brasil",
+            "Brasil Império",
+        ],
+        3: [
+            "Primeira Guerra Mundial",
+            "Era Vargas",
+            "Guerra Fria",
+            "Ditadura militar no Brasil",
+        ],
+    },
+    "Geografia": {
+        1: ["Cartografia", "Geologia e relevo", "Clima", "Hidrografia"],
+        2: ["População", "Urbanização", "Agropecuária", "Indústria e energia"],
+        3: [
+            "Globalização",
+            "Geopolítica mundial",
+            "Blocos econômicos",
+            "Questões ambientais",
+        ],
+    },
+    "Filosofia": {
+        1: [
+            "Origem da filosofia",
+            "Pré-socráticos",
+            "Sócrates e Platão",
+            "Aristóteles",
+        ],
+        2: ["Filosofia medieval", "Racionalismo", "Empirismo", "Kant"],
+        3: [
+            "Ética",
+            "Filosofia política",
+            "Existencialismo",
+            "Filosofia contemporânea",
+        ],
+    },
+    "Sociologia": {
+        1: ["Introdução à sociologia", "Durkheim", "Weber", "Marx"],
+        2: [
+            "Cultura e identidade",
+            "Estratificação social",
+            "Trabalho e sociedade",
+            "Movimentos sociais",
+        ],
+        3: [
+            "Cidadania e direitos",
+            "Estado e democracia",
+            "Globalização e desigualdade",
+            "Violência e sociedade",
+        ],
+    },
+}
+LECTURE_ACTIVITIES = ["{}", "{}", "{}", "Exercícios: {}", "Revisão: {}"]
 
 STAFF_ROLES = {"Coordenador": 3, "Fiscal": 6, "Orientadora": 2, "Secretária": 4}
 TEACHER_ROLE = "Professor"
@@ -352,6 +550,7 @@ class Command(BaseCommand):
                 exam_types = self.seed_exam_types()
                 incident_types = self.seed_incident_types()
                 subjects = self.seed_departments_and_subjects()
+                pathways = self.seed_pathways(school_years[self.year])
                 bank_settings = self.seed_bank_settings()
 
             if Student.objects.exists():
@@ -364,9 +563,9 @@ class Command(BaseCommand):
                 return
 
             with self.step("Employees and teacher users"):
-                teachers = self.seed_employees(subjects)
+                teachers = self.seed_employees(subjects, len(classes))
                 self.seed_teacher_users(teachers)
-                self.seed_grade_level_subjects(teachers)
+                class_subjects = self.seed_grade_level_subjects(teachers, classes)
             with self.step("Students and guardians"):
                 students = self.seed_families(len(classes) * self.students_per_class)
             with self.step("Enrollments, accounts and installments"):
@@ -380,8 +579,20 @@ class Command(BaseCommand):
                 )
             with self.step("Q&A sessions"):
                 self.seed_q_and_as(enrollments, school_years[self.year])
+            with self.step("Pathways: offerings, members, lessons and grades"):
+                offerings = self.seed_pathway_offerings(
+                    pathways, school_years[self.year], teachers
+                )
+                self.seed_pathway_enrollments(
+                    enrollments, offerings, school_years[self.year]
+                )
+                self.seed_pathway_sessions(offerings, school_years[self.year])
+                self.seed_pathway_grades(offerings, school_years[self.year])
             with self.step("Grades"):
                 self.seed_grades(enrollments, exam_types, school_years[self.year])
+            with self.step("Timetables and class diary"):
+                self.seed_timetables(class_subjects)
+                self.seed_lectures(school_years[self.year])
             with self.step("Tuition: payments, remittances and bank returns"):
                 self.seed_tuition(enrollments, bank_settings)
                 self.finish_enrollments(enrollments)
@@ -412,6 +623,29 @@ class Command(BaseCommand):
                 # needed to pick the enrollment when entering a grade
                 Enrollment: ["view_enrollment"],
                 Class: ["view_class"],  # needed to open the class grade report
+                TimetableSlot: ["view_timetableslot"],
+                Lecture: [
+                    "add_lecture",
+                    "change_lecture",
+                    "delete_lecture",
+                    "view_lecture",
+                ],
+                PathwayEnrollment: ["view_pathwayenrollment"],
+                PathwaySession: [
+                    "add_pathwaysession",
+                    "change_pathwaysession",
+                    "view_pathwaysession",
+                ],
+                PathwayAttendance: [
+                    "add_pathwayattendance",
+                    "change_pathwayattendance",
+                    "view_pathwayattendance",
+                ],
+                PathwayGrade: [
+                    "add_pathwaygrade",
+                    "change_pathwaygrade",
+                    "view_pathwaygrade",
+                ],
             },
         }
 
@@ -559,6 +793,17 @@ class Command(BaseCommand):
             )
         return subjects
 
+    def seed_pathways(self, school_year):
+        """The catalog, {pathway: groups}, and the year's extra grade rules."""
+        ExtraGradeSettings.for_school_year(school_year)
+        return {
+            Pathway.objects.update_or_create(
+                name=name,
+                defaults={"description": description, "extra_points": points},
+            )[0]: groups
+            for name, description, points, groups in PATHWAYS
+        }
+
     def seed_bank_settings(self):
         return BankSettings.objects.get_or_create(
             pk=1,
@@ -624,8 +869,13 @@ class Command(BaseCommand):
             **self.address(),
         )
 
-    def seed_employees(self, subjects):
-        """Staff plus TEACHERS_PER_SUBJECT teachers per subject, in its department.
+    def teacher_count(self, subject, class_count):
+        """Teachers needed to give every class its weekly periods of the subject."""
+        periods = class_count * int(WEEKLY_CLASSES[subject.name])
+        return math.ceil(periods / TEACHER_WEEKLY_PERIODS)
+
+    def seed_employees(self, subjects, class_count):
+        """Staff plus enough teachers per subject, in its department.
 
         Returns {subject: [teachers]}.
         """
@@ -641,7 +891,7 @@ class Command(BaseCommand):
         teachers = {
             subject: [
                 self.make_employee(roles[TEACHER_ROLE])
-                for _ in range(TEACHERS_PER_SUBJECT)
+                for _ in range(self.teacher_count(subject, class_count))
             ]
             for subject in subjects
         }
@@ -687,22 +937,32 @@ class Command(BaseCommand):
             for user in users
         )
 
-    def seed_grade_level_subjects(self, teachers):
-        """Each teacher teaches one or two random series of their subject."""
+    def seed_grade_level_subjects(self, teachers, classes):
+        """Split each subject's classes, in series order, evenly among its
+        teachers, so each teaches one or two series and stays within
+        TEACHER_WEEKLY_PERIODS.
+
+        Returns {class: [(grade level subject, the class's teacher)]}.
+        """
+        classes = sorted(classes, key=lambda school_class: school_class.grade_level)
+        class_subjects = defaultdict(list)
         for subject, group in teachers.items():
+            per_teacher = math.ceil(len(classes) / len(group))
             by_level = defaultdict(list)
-            for teacher in group:
-                for level in random.sample(list(CLASSES), k=random.choice([1, 1, 2])):
-                    by_level[level].append(teacher)
-            for level in CLASSES:
-                if not by_level[level]:
-                    by_level[level].append(random.choice(group))
+            for index, school_class in enumerate(classes):
+                by_level[school_class.grade_level].append(
+                    (school_class, group[index // per_teacher])
+                )
+            for level, assignments in by_level.items():
                 grade_level_subject = GradeLevelSubject.objects.update_or_create(
                     grade_level=level,
                     subject=subject,
                     defaults={"weekly_classes": WEEKLY_CLASSES[subject.name]},
                 )[0]
-                grade_level_subject.teachers.set(by_level[level])
+                grade_level_subject.teachers.set({t for _, t in assignments})
+                for school_class, teacher in assignments:
+                    class_subjects[school_class].append((grade_level_subject, teacher))
+        return class_subjects
 
     def make_guardian(self, sex, family_name):
         return Guardian(
@@ -909,6 +1169,12 @@ class Command(BaseCommand):
             for bimester, complete in bimesters.items()
             if complete
         }
+        # The extra grade comes from pathways and Q&A sessions, zero included.
+        extras = {
+            bimester: extra_grades(enrollments, bimester, extra)
+            for bimester, complete in bimesters.items()
+            if complete
+        }
 
         grades = []
         for enrollment in enrollments:
@@ -932,10 +1198,7 @@ class Command(BaseCommand):
                             scores[adjustment] = self.score(
                                 adjustment.max_score, subject_ability + 0.1
                             )
-                        if random.random() < EXTRA_CHANCE:
-                            scores[extra] = Decimal(
-                                random.choice(["0.50", "1.00", "1.50", "2.00"])
-                            )
+                        scores[extra] = extras[bimester][enrollment.pk]
                     grades.extend(
                         Grade(
                             enrollment=enrollment,
@@ -952,14 +1215,14 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------ incidents
 
     def school_days(self, school_year):
-        """{bimester: weekdays of the bimester up to today}."""
+        """{bimester: weekdays of the bimester up to today, but holidays}."""
         days = {}
         for bimester in Bimester.values:
             day = getattr(school_year, f"bi_{bimester}_begins")
             ends = min(getattr(school_year, f"bi_{bimester}_ends"), self.today)
             days[bimester] = []
             while day <= ends:
-                if day.weekday() < 5:
+                if day.weekday() < 5 and (day.month, day.day) not in HOLIDAYS:
                     days[bimester].append(day)
                 day += timedelta(days=1)
         return days
@@ -1064,6 +1327,249 @@ class Command(BaseCommand):
         # Inserted in date order, so created_at follows q_and_a_date.
         q_and_as.sort(key=lambda record: record.q_and_a_date)
         QandA.objects.bulk_create(q_and_as, batch_size=2000)
+
+    # ------------------------------------------------------------------ pathways
+
+    def seed_pathway_offerings(self, pathways, school_year, teachers):
+        """The year's groups of each pathway, each meeting on one weekday."""
+        all_teachers = [teacher for group in teachers.values() for teacher in group]
+        offerings = []
+        for pathway, groups in pathways.items():
+            for name in list(SHIFT_GROUPS.values())[:groups] if groups > 1 else [""]:
+                weekday = random.choice(Weekday.values)
+                offering = PathwayOffering.objects.create(
+                    pathway=pathway,
+                    school_year=school_year,
+                    name=name,
+                    capacity=PATHWAY_CAPACITY,
+                    schedule=f"{Weekday(weekday).label}, {PATHWAY_TIMES[name]}",
+                )
+                offering.teachers.set(
+                    random.sample(all_teachers, k=random.choice([1, 1, 2]))
+                )
+                offering.weekday = weekday
+                offerings.append(offering)
+        return offerings
+
+    def seed_pathway_enrollments(self, enrollments, offerings, school_year):
+        """Most members join in the first days of the year, a few later. Some
+        leave, and so does everyone whose enrollment ends during the year."""
+        days = [
+            day
+            for bimester in self.school_days(school_year).values()
+            for day in bimester
+        ]
+        by_pathway = defaultdict(list)
+        for offering in offerings:
+            by_pathway[offering.pathway_id].append(offering)
+        seats, members = Counter(), []
+        for enrollment in enrollments:
+            last_day = getattr(school_year, f"bi_{enrollment.bimesters_attended}_ends")
+            attended = [day for day in days if day <= last_day]
+            if not attended:
+                continue
+            count = random.choices([0, 1, 2], weights=PATHWAYS_PER_STUDENT)[0]
+            for pathway_id in random.sample(sorted(by_pathway), k=count):
+                groups = [o for o in by_pathway[pathway_id] if seats[o.pk] < o.capacity]
+                other_shift = [
+                    o
+                    for o in groups
+                    if o.name != SHIFT_GROUPS.get(enrollment.school_class.shift)
+                ]
+                if not groups:
+                    continue  # full: the student goes without it
+                offering = random.choice(other_shift or groups)
+                seats[offering.pk] += 1
+                joined_at = random.choice(
+                    attended[:10] if random.random() < 0.85 else attended
+                )
+                left_at = None
+                if last_day <= self.today and enrollment.bimesters_attended < 4:
+                    left_at = last_day
+                elif random.random() < PATHWAY_LEAVE_CHANCE:
+                    later = [day for day in attended if day > joined_at]
+                    left_at = random.choice(later) if later else None
+                members.append(
+                    PathwayEnrollment(
+                        enrollment=enrollment,
+                        offering=offering,
+                        joined_at=joined_at,
+                        left_at=left_at,
+                    )
+                )
+        PathwayEnrollment.objects.bulk_create(members, batch_size=2000)
+
+    def seed_pathway_sessions(self, offerings, school_year):
+        """A lesson every week on the offering's weekday, with its roll call.
+
+        Each member has their own commitment; a quarter of the absences are
+        excused.
+        """
+        members = defaultdict(list)
+        for member in PathwayEnrollment.objects.filter(offering__in=offerings):
+            member.commitment = min(1.0, max(0.3, random.gauss(0.88, 0.12)))
+            members[member.offering_id].append(member)
+
+        sessions = []
+        for offering in offerings:
+            for bimester, days in self.school_days(school_year).items():
+                lessons = [day for day in days if day.isoweekday() == offering.weekday]
+                for number, day in enumerate(lessons, 1):
+                    sessions.append(
+                        PathwaySession(
+                            offering=offering,
+                            date=day,
+                            topic=f"Módulo {bimester}: encontro {number}"
+                            if random.random() < 0.8
+                            else "",
+                        )
+                    )
+        # Inserted in date order, so created_at follows the lesson date.
+        sessions.sort(key=lambda session: session.date)
+        PathwaySession.objects.bulk_create(sessions, batch_size=2000)
+
+        attendances = []
+        for session in sessions:
+            for member in members[session.offering_id]:
+                if not member.is_member_on(session.date):
+                    continue
+                if random.random() < member.commitment:
+                    status = AttendanceStatus.PRESENT
+                elif random.random() < 0.25:
+                    status = AttendanceStatus.EXCUSED
+                else:
+                    status = AttendanceStatus.ABSENT
+                attendances.append(
+                    PathwayAttendance(
+                        session=session, pathway_enrollment=member, status=status
+                    )
+                )
+        PathwayAttendance.objects.bulk_create(attendances, batch_size=2000)
+
+    def seed_pathway_grades(self, offerings, school_year):
+        """The teacher's score for the members of each complete bimester."""
+        complete = [
+            bimester
+            for bimester, done in self.bimesters_to_grade(school_year).items()
+            if done
+        ]
+        grades = []
+        for member in PathwayEnrollment.objects.filter(offering__in=offerings):
+            ability = random.gauss(0.78, 0.12)
+            for bimester in complete:
+                begins, ends = bimester_range(school_year, bimester)
+                if (
+                    member.joined_at <= ends
+                    and (member.left_at is None or member.left_at >= begins)
+                    and random.random() < PATHWAY_GRADE_CHANCE
+                ):
+                    grades.append(
+                        PathwayGrade(
+                            pathway_enrollment=member,
+                            bimester=bimester,
+                            score=self.score(
+                                MAX_PATHWAY_SCORE, ability, Decimal("0.5")
+                            ),
+                        )
+                    )
+        PathwayGrade.objects.bulk_create(grades, batch_size=2000)
+
+    # ------------------------------------------------------------------ lessons
+
+    def seed_timetables(self, class_subjects):
+        """Each class gets its subjects' weekly periods, spread over the week
+        (as few of a subject per day as possible), mostly in the first six
+        periods, with no teacher in two classes of a shift at the same time.
+
+        A period that doesn't fit is left out and shows as a weekly load
+        warning on the timetable page.
+        """
+        busy, slots = set(), []
+        for school_class, subjects in class_subjects.items():
+            shift = school_class.shift
+            free = {
+                (weekday, period)
+                for weekday in Weekday.values
+                for period in range(1, LECTURES_PER_DAY + 1)
+            }
+            # The subjects with most periods first: they're the hardest to fit.
+            for subject, teacher in sorted(
+                subjects, key=lambda pair: -pair[0].weekly_classes
+            ):
+                per_day = Counter()
+                for _ in range(int(subject.weekly_classes)):
+                    options = sorted(
+                        slot for slot in free if (shift, teacher.pk, *slot) not in busy
+                    )
+                    early = [slot for slot in options if slot[1] < LECTURES_PER_DAY]
+                    options = early or options
+                    if not options:
+                        continue
+                    fewest = min(per_day[weekday] for weekday, _ in options)
+                    weekday, period = random.choice(
+                        [slot for slot in options if per_day[slot[0]] == fewest]
+                    )
+                    free.discard((weekday, period))
+                    busy.add((shift, teacher.pk, weekday, period))
+                    per_day[weekday] += 1
+                    slots.append(
+                        TimetableSlot(
+                            school_class=school_class,
+                            weekday=weekday,
+                            period=period,
+                            subject=subject,
+                            teacher=teacher,
+                        )
+                    )
+        TimetableSlot.objects.bulk_create(slots, batch_size=2000)
+
+    def seed_lectures(self, school_year):
+        """The class diary: the timetable's lectures on every school day up
+        to today, with the series' topic of that part of the year."""
+        days = [
+            day
+            for bimester in self.school_days(school_year).values()
+            for day in bimester
+        ]
+        length = (school_year.ends - school_year.begins).days
+        substitutes = {}
+        timetables = defaultdict(list)
+        for slot in TimetableSlot.objects.filter(
+            school_class__year=school_year
+        ).select_related("school_class", "subject__subject"):
+            timetables[(slot.school_class_id, slot.weekday)].append(slot)
+            if slot.subject_id not in substitutes:
+                substitutes[slot.subject_id] = list(
+                    lecture_teachers(slot.subject).values_list("pk", flat=True)
+                )
+
+        lectures = []
+        for day in days:
+            part = (day - school_year.begins).days / length
+            for (_, weekday), slots in timetables.items():
+                if weekday != day.isoweekday():
+                    continue
+                for slot in slots:
+                    if random.random() < MISSING_LECTURE_CHANCE:
+                        continue
+                    teacher_id = slot.teacher_id
+                    if random.random() < SUBSTITUTION_CHANCE:
+                        teacher_id = random.choice(substitutes[slot.subject_id])
+                    topics = LECTURE_TOPICS[slot.subject.subject.name][
+                        slot.school_class.grade_level
+                    ]
+                    topic = topics[min(int(part * len(topics)), len(topics) - 1)]
+                    lectures.append(
+                        Lecture(
+                            school_class_id=slot.school_class_id,
+                            date=day,
+                            period=slot.period,
+                            subject_id=slot.subject_id,
+                            teacher_id=teacher_id,
+                            topic=random.choice(LECTURE_ACTIVITIES).format(topic),
+                        )
+                    )
+        Lecture.objects.bulk_create(lectures, batch_size=2000)
 
     # ------------------------------------------------------------------ tuition
 
@@ -1389,6 +1895,15 @@ class Command(BaseCommand):
             StudentDelay,
             BathroomPermission,
             QandA,
+            Pathway,
+            PathwayOffering,
+            PathwayEnrollment,
+            PathwaySession,
+            PathwayAttendance,
+            PathwayGrade,
+            ExtraGradeSettings,
+            TimetableSlot,
+            Lecture,
             AccountType,
             Supplier,
             Account,

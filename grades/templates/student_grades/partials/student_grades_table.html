@@ -1,5 +1,5 @@
 {% if enrollment %}
-<div class="bg-slate-50 rounded-2xl p-6 md:p-8 mb-6 grid grid-cols-1 gap-2 sm:grid-cols-2 text-slate-700">
+<div class="form-card mb-6 grid grid-cols-1 gap-2 sm:grid-cols-2 text-slate-700">
   <p><span class="font-semibold">Aluno:</span> {{ enrollment.student.name }}</p>
   <p><span class="font-semibold">Matrícula:</span> {{ enrollment.student.registration }}</p>
   <p><span class="font-semibold">Curso:</span> {{ enrollment.enrollment_type.program }}</p>
@@ -9,29 +9,30 @@
 <p class="px-2 pb-3 text-sm text-slate-500">Clique em Editar para alterar as notas de uma matéria. Use vírgula nos decimais (ex.: 2,5) e apague o valor para remover uma nota.</p>
 <div id="student-grades-messages"></div>
 <div class="overflow-x-auto">
-<table class="rounded-xl border border-slate-200 bg-white shadow-sm min-w-full text-sm">
-  <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+<div class="table-wrap">
+<table class="data-table">
+  <thead>
     <tr>
-      <th rowspan="2" class="px-3 py-2.5 text-left font-semibold md:px-4 md:py-3">Matéria</th>
+      <th rowspan="2">Matéria</th>
       {% for value, label in bimesters %}
-      <th colspan="{{ exam_types|length|add:1 }}" class="px-3 py-2.5 text-center font-semibold whitespace-nowrap border-l border-slate-200 md:px-4 md:py-3">{{ label }}</th>
+      <th colspan="{{ exam_types|length|add:1 }}" class="text-center whitespace-nowrap border-l border-slate-200">{{ label }}</th>
       {% endfor %}
-      <th rowspan="2" class="px-3 py-2.5 text-right font-semibold whitespace-nowrap border-l border-slate-200 md:px-4 md:py-3">Média anual</th>
-      <th rowspan="2" class="px-3 py-2.5 text-right font-semibold whitespace-nowrap md:px-4 md:py-3">Recuperação</th>
-      <th rowspan="2" class="px-3 py-2.5 text-right font-semibold whitespace-nowrap md:px-4 md:py-3">Média final</th>
-      <th rowspan="2" class="px-3 py-2.5 text-right font-semibold md:px-4 md:py-3">Situação</th>
-      <th rowspan="2" class="px-3 py-2.5 md:px-4 md:py-3"></th>
+      <th rowspan="2" class="text-right whitespace-nowrap border-l border-slate-200">Média anual</th>
+      <th rowspan="2" class="text-right whitespace-nowrap">Recuperação</th>
+      <th rowspan="2" class="text-right whitespace-nowrap">Média final</th>
+      <th rowspan="2" class="text-right">Situação</th>
+      <th rowspan="2"></th>
     </tr>
     <tr>
       {% for value, label in bimesters %}
         {% for exam_type in exam_types %}
-        <th class="px-3 py-2 text-right font-semibold whitespace-nowrap {% if forloop.first %}border-l border-slate-200{% endif %}" title="{{ exam_type.name }}">{{ exam_type.code }}</th>
+        <th class="text-right whitespace-nowrap {% if forloop.first %}border-l border-slate-200{% endif %}" title="{{ exam_type.name }}">{{ exam_type.code }}</th>
         {% endfor %}
-        <th class="px-3 py-2 text-right font-semibold whitespace-nowrap {% if not exam_types %}border-l border-slate-200{% endif %}">Nota</th>
+        <th class="text-right whitespace-nowrap {% if not exam_types %}border-l border-slate-200{% endif %}">Nota</th>
       {% endfor %}
     </tr>
   </thead>
-  <tbody class="bg-white divide-y divide-slate-100">
+  <tbody>
   {% for row in rows %}
     {% include 'student_grades/partials/student_grades_row.html' %}
   {% empty %}
@@ -39,5 +40,6 @@
   {% endfor %}
   </tbody>
 </table>
+</div>
 </div>
 {% endif %}

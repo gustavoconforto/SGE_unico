@@ -1,9 +1,9 @@
-<div class="bg-slate-50 rounded-2xl p-6 md:p-8">
+<div class="form-card">
     <form class="space-y-6" method="POST">
     {% csrf_token %}
     <div>
         <div class="flex flex-col w-full justify-around">
-            <div class="flex w-full gap-4">
+            <div class="flex w-full flex-col gap-x-4 sm:flex-row">
                 <div class="flex flex-col w-full">
                     {% include 'components/form/field.html' with field=form.student %}
                 </div>
@@ -11,7 +11,7 @@
                     {% include 'components/form/field.html' with field=form.enrollment_type %}
                 </div>
             </div>
-            <div class="flex w-full gap-4">
+            <div class="flex w-full flex-col gap-x-4 sm:flex-row">
                 <div id="school-class-field" class="flex flex-col w-full">
                     {% include 'enrollments/partials/school_class_field.html' %}
                 </div>
@@ -19,7 +19,7 @@
                     {% include 'components/form/field.html' with field=form.status %}
                 </div>
             </div>
-            <div class="flex w-full gap-4">
+            <div class="flex w-full flex-col gap-x-4 sm:flex-row">
                 <div class="flex flex-col w-full">
                     {% include 'components/form/field.html' with field=form.discount %}
                 </div>
