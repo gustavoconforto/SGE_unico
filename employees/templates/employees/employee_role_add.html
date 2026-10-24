@@ -1,16 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block header %}
+{% block page_title %}Novo cargo{% endblock page_title %}
 
-{% endblock header %}
   
 {% block content %}
 <div class="page-form">
   <div class="w-full">
-    <div class="mb-6">
-      <p class="page-context">Gerenciamento de cargos</p>
-      <h1 class="page-title mt-1">Adicione um cargo</h1>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Cargos' parent_url_name='employees:employee_role_list' current='Novo' %}
+    {% include 'components/page/heading.html' with title='Novo cargo' %}
   {% include 'employees/employee_role_form.html' %}
   </div>
 </div>

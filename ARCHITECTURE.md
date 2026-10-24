@@ -566,9 +566,9 @@ introduce new colors or components without a reason.
 |---|---|
 | List | `header`: `<div class="flex flex-wrap items-end justify-between gap-4 pb-6">` with `components/page/heading.html` (`section=` sidebar section, `title=`, optional `subtitle=`) and the main action as `button/button_primary.html` with `icon='add'` and a label naming the thing ("Novo fornecedor"), then `filter_form.html` with a `placeholder` naming the searchable fields. `content`: `<div id="search-results">{% include partial %}</div>` |
 | List partial | `<div class="table-wrap"><table class="data-table">`, plain `<th>`/`<td>` (add only `text-right`, `whitespace-nowrap`), first column is the record's name and links to its edit page, secondary facts in a muted second line, last column `table/row_menu.html`. Ends with `table/pagination.html` |
-| Add / edit (reference) | `<div class="page-form">`, `page/breadcrumb.html` (list → "Novo" or the record), `heading.html` with an action title ("Novo fornecedor", "Editar fornecedor"), then the form: `.form-section` blocks (intro `h2` + one-line `p` on the left, `.form-section-body` card with a field grid on the right) and a sticky `.form-actions` bar with Cancelar + "Salvar <coisa>" |
-| Add / edit (older pages) | `page-form` (or `page-form-wide` when the form holds a table): `page-context` line "Gerenciamento de …" over a `page-title` h1, then `<thing>_form.html` in a `form-card`. Side-by-side fields go in `flex w-full flex-col gap-x-4 sm:flex-row` rows. Move a set to the reference pattern when you touch it |
-| Delete | normally the row menu's dialog; the delete page stays as a fallback: breadcrumb, "Deletar <coisa>?" title, a `form-card` naming the record, cancel + `button_delete_form.html` |
+| Add / edit | `<div class="page-form">`, `page/breadcrumb.html` (list → "Novo"/"Nova" or the record), `heading.html` with an action title ("Nova turma", "Editar turma"), then `<thing>_form.html`: `<form class="mt-6">`, `form/non_field_errors.html`, `.form-section` blocks (intro `h2` + optional one-line `p` on the left, `.form-section-body` card with a `grid … sm:grid-cols-2/3` of fields on the right; wide fields in `sm:col-span-full`) and a sticky `.form-actions` bar with Cancelar + "Salvar <coisa>". Inline formsets and tables go in a section without the card (see `enrollments/enrollment_form.html`) |
+| Tool pages (grade entry, timetable, class diary, attendance…) | `heading.html` with `section=` (sidebar entries) or a breadcrumb to the page they're opened from, and a `subtitle` saying what to pick |
+| Delete | normally the row menu's dialog; the delete page stays as a fallback: breadcrumb, "Deletar <coisa>?" title, a `form-card mt-6 max-w-xl` with a `<dl>` of the record's key fields, "Esta ação não pode ser desfeita." and Cancelar + `button_delete_form.html`, right-aligned |
 
 ### Components (`base/templates/components/`)
 
@@ -576,7 +576,8 @@ introduce new colors or components without a reason.
 |---|---|
 | `page/heading.html` | page h1; `title`, optional `section` (line above) and `subtitle` |
 | `page/breadcrumb.html` | `parent_label`, `parent_url_name`, `current` |
-| `form/field.html` | label (adds "(opcional)" when the field isn't required), widget, help text, errors. Use for every form field |
+| `form/field.html` | label, widget, help text, errors. Use for every form field. On model forms a non-required field gets "(opcional)"; pickers on plain forms don't |
+| `form/non_field_errors.html` | the form's non-field errors, at the top of the form |
 | `form/checkbox.html`, `form/checkbox_list.html` | checkbox with label; multiple-choice grid |
 | `button/button_primary.html` | main page action, wrapped in `<a>`; optional `icon` |
 | `button/button_submit_form.html` | primary submit |

@@ -1,18 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block page_title %}Departamentos{% endblock page_title %}
+{% block page_title %}Editar departamento{% endblock page_title %}
 
-{% block header %}
-
-{% endblock header %}
 
 {% block content %}
 <div class="page-form">
   <div class="w-full">
-    <div class="mb-6">
-      <p class="page-context">Gerenciamento de departamentos</p>
-      <h1 class="page-title mt-1">Edite um departamento</h1>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Departamentos' parent_url_name='departments:department_list' current=object %}
+    {% include 'components/page/heading.html' with title='Editar departamento' %}
   {% include 'departments/department_form.html' %}
   </div>
 </div>

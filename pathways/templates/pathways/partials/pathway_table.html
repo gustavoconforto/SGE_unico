@@ -6,14 +6,14 @@
         <th>Nome</th>
         <th>Descrição</th>
         <th class="text-right">Pontos extras</th>
-        <th class="text-right">Opções</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
     {% for pathway in pathways %}
       <tr class="hover:bg-slate-50">
         <td>
-            {{ pathway.name }}
+            <a href="{% url 'pathways:pathway_edit' pathway.pk %}" class="hover:underline">{{ pathway.name }}</a>
         </td>
         <td>
             {{ pathway.description|truncatechars:80|default:"-" }}
@@ -22,13 +22,11 @@
             {{ pathway.extra_points|floatformat:2 }}
         </td>
         <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
-          <a href="{% url 'pathways:pathway_edit' pathway.pk %}">
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          <a href="{% url 'pathways:pathway_delete' pathway.pk %}">
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+          {% url 'pathways:pathway_edit' pathway.pk as edit_url %}
+          {% url 'pathways:pathway_delete' pathway.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=pathway.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar itinerário?' name=pathway %}
+          
           </div>
         </td>
       </tr>

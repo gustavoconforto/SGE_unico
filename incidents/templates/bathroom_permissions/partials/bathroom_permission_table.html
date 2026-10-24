@@ -6,7 +6,7 @@
         <th>Aluno</th>
         <th>Turma</th>
         <th class="text-right">Horário</th>
-        <th class="text-right">Opções</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
@@ -25,13 +25,11 @@
             {{ permission.class_period }}º
         </td>
         <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
-          <a href={% url 'incidents:bathroom_permission_edit' permission.pk %}>
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          <a href={% url 'incidents:bathroom_permission_delete' permission.pk %}>
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+          {% url 'incidents:bathroom_permission_edit' permission.pk as edit_url %}
+          {% url 'incidents:bathroom_permission_delete' permission.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=permission.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar saída para banheiro?' name=permission %}
+          
           </div>
         </td>
       </tr>

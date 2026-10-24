@@ -6,7 +6,7 @@
         <th>Aluno</th>
         <th>Turma</th>
         <th>Tipo</th>
-        <th class="text-right">Opções</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
@@ -29,13 +29,11 @@
             {% endif %}
         </td>
         <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
-          <a href={% url 'incidents:student_delay_edit' delay.pk %}>
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          <a href={% url 'incidents:student_delay_delete' delay.pk %}>
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+          {% url 'incidents:student_delay_edit' delay.pk as edit_url %}
+          {% url 'incidents:student_delay_delete' delay.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=delay.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar atraso?' name=delay %}
+          
           </div>
         </td>
       </tr>

@@ -1,44 +1,32 @@
 {% extends 'base/base.html' %}
 
-{% block page_title %}Baixas{% endblock page_title %}
+{% block page_title %}Deletar baixa?{% endblock page_title %}
 
-{% block header %}
-
-{% endblock header %}
 
 {% block content %}
 <div class="page-form">
   <div class="w-full">
-    <div class="mb-6">
-      <p class="page-context">Gerenciamento de baixas</p>
-      <h1 class="page-title mt-1">Deseja, realmente, deletar este registro?</h1>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Baixas' parent_url_name='accounts:payment_list' current=object %}
+    {% include 'components/page/heading.html' with title='Deletar baixa?' %}
 
 
-    <div class="form-card">
+    <div class="form-card mt-6 max-w-xl">
       <form class="space-y-6" method="POST">
         {% csrf_token %}
-        <p>
-        Conta: {{ object.installment.account }}
-        </p>
-        <p>
-        Parcela: {{ object.installment.number }}ª
-        </p>
-        <p>
-        Data do pagamento: {{ object.paid_at|date:"d/m/Y" }}
-        </p>
-        <p>
-        Valor pago: R$ {{ object.amount|floatformat:"2g" }}
-        </p>
-        <p>
-        Forma de pagamento: {{ object.get_method_display }}
-        </p>
+        <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
+          <dt class="text-slate-500">Conta</dt><dd class="font-medium text-slate-900">{{ object.installment.account }}</dd>
+        <dt class="text-slate-500">Parcela</dt><dd class="font-medium text-slate-900">{{ object.installment.number }}ª</dd>
+        <dt class="text-slate-500">Data do pagamento</dt><dd class="font-medium text-slate-900">{{ object.paid_at|date:"d/m/Y" }}</dd>
+        <dt class="text-slate-500">Valor pago</dt><dd class="font-medium text-slate-900">R$ {{ object.amount|floatformat:"2g" }}</dd>
+        <dt class="text-slate-500">Forma de pagamento</dt><dd class="font-medium text-slate-900">{{ object.get_method_display }}</dd>
+        </dl>
+        <p class="mt-4 text-slate-600">Esta ação não pode ser desfeita.</p>
 
-        <div class="flex flex-row gap-4 pt-4">
-          {% include 'components/button/button_delete_form.html' with label=submit_label|default:'Deletar' %}
+        <div class="mt-6 flex flex-wrap justify-end gap-2">
           <a href={% url 'accounts:payment_list' %}>
             {% include 'components/button/button_cancel.html' with label='Cancelar' %}
           </a>
+          {% include 'components/button/button_delete_form.html' with label=submit_label|default:'Deletar' %}
         </div>
       </form>
     </div>

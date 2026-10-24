@@ -5,14 +5,14 @@
         <th>Curso</th>        
         <th>Série</th>        
         <th>Ano</th>
-        <th class="text-right">Opções</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
     {% for enrollment_type in enrollment_types %}
       <tr class="hover:bg-slate-50">
         <td>
-            {{ enrollment_type.program }}
+            <a href="{% url 'enrollments:enrollment_type_edit' enrollment_type.pk %}" class="hover:underline">{{ enrollment_type.program }}</a>
         </td>
         <td>
             {{ enrollment_type.level }}
@@ -21,13 +21,11 @@
             {{ enrollment_type.school_year }}
         </td>
         <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
-          <a href={% url 'enrollments:enrollment_type_edit' enrollment_type.pk %}>
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          <a href={% url 'enrollments:enrollment_type_delete' enrollment_type.pk %}>
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+          {% url 'enrollments:enrollment_type_edit' enrollment_type.pk as edit_url %}
+          {% url 'enrollments:enrollment_type_delete' enrollment_type.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=enrollment_type.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar contrato?' name=enrollment_type %}
+          
           </div>
         </td>
       </tr>

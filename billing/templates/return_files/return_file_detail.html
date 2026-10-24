@@ -3,24 +3,21 @@
 {% block page_title %}Retornos{% endblock page_title %}
 
 {% block header %}
-  <div class="flex justify-between items-center px-2 pb-4">
-    <h1 class="text-lg font-semibold text-slate-700">{{ return_file.name }} <span class="text-sm font-normal text-slate-500">· arquivo de {{ return_file.file_date|date:"d/m/Y"|default:"-" }}, importado em {{ return_file.created_at|date:"d/m/Y H:i" }}</span></h1>
-    <a href={% url 'billing:return_file_list' %}>
-    {% include 'components/button/button_cancel.html' with label='Voltar' %}
-    </a>
-  </div>
+  {% include 'components/page/breadcrumb.html' with parent_label='Retornos' parent_url_name='billing:return_file_list' current=return_file.name %}
+  {% include 'components/page/heading.html' with title=return_file.name %}
+  <p class="mt-1.5 pb-6 text-slate-500">Arquivo de {{ return_file.file_date|date:"d/m/Y"|default:"-" }}, importado em {{ return_file.created_at|date:"d/m/Y H:i" }}.</p>
 {% endblock header %}
 
 {% block content %}
-  <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+  <section aria-label="Resumo do retorno" class="mb-4 grid grid-cols-1 overflow-hidden rounded-xl border border-slate-200 bg-white tabular-nums sm:grid-cols-2 lg:grid-cols-4">
     {% for row in summary %}
-    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p class="text-[13px] font-semibold text-slate-600">{{ row.occurrence_code }} · {{ row.label }}</p>
-      <p class="mt-1 text-xl font-semibold text-slate-700">{{ row.count }}</p>
+    <div class="-mr-px -mb-px border-r border-b border-slate-200 p-4 sm:px-5">
+      <p class="text-[13px] text-slate-600">{{ row.occurrence_code }} - {{ row.label }}</p>
+      <p class="mt-1 text-2xl font-semibold text-slate-900">{{ row.count }}</p>
       {% if row.paid %}<p class="text-xs text-slate-500">R$ {{ row.paid|floatformat:"2g" }} pagos</p>{% endif %}
     </div>
     {% endfor %}
-  </div>
+  </section>
   <div class="table-wrap">
   <table class="data-table">
     <thead>

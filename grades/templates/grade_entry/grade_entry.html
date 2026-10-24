@@ -9,10 +9,8 @@
 {% block content %}
 <div class="page-form-wide">
   <div class="w-full">
-    <div class="mb-6">
-      <p class="page-context">Lançamento de notas</p>
-      <h1 class="page-title mt-1">Selecione o ano letivo, a turma, a matéria e o bimestre</h1>
-    </div>
+    {% include 'components/page/heading.html' with section='Acadêmico' subtitle='Selecione o ano letivo, a turma, a matéria e o bimestre.' title='Lançamento de notas' %}
+    <div class="mb-6"></div>
     <fieldset class="fieldset">
     <legend class="fieldset-legend">Ano letivo:</legend>
     <select class="select select-neutral w-full"

@@ -1,36 +1,28 @@
 {% extends 'base/base.html' %}
 
-{% block page_title %}Plantões{% endblock page_title %}
+{% block page_title %}Deletar plantão?{% endblock page_title %}
 
-{% block header %}
-
-{% endblock header %}
 
 {% block content %}
 <div class="page-form">
   <div class="w-full">
-    <div class="mb-6">
-      <p class="page-context">Gerenciamento de plantões</p>
-      <h1 class="page-title mt-1">Deseja, realmente, deletar este registro?</h1>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Plantões' parent_url_name='q_and_a:q_and_a_list' current=object %}
+    {% include 'components/page/heading.html' with title='Deletar plantão?' %}
 
-    <div class="form-card">
+    <div class="form-card mt-6 max-w-xl">
       <form class="space-y-6" method="POST">
         {% csrf_token %}
-        <p>
-        Aluno: {{ object.enrollment.student }}
-        </p>
-        <p>
-        Disciplina: {{ object.subject }}
-        </p>
-        <p>
-        Data: {{ object.q_and_a_date|date:"d/m/Y" }}
-        </p>
-        <div class="flex flex-row gap-4 pt-4">
-          {% include 'components/button/button_delete_form.html' with label=submit_label|default:'Deletar' %}
+        <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
+          <dt class="text-slate-500">Aluno</dt><dd class="font-medium text-slate-900">{{ object.enrollment.student }}</dd>
+        <dt class="text-slate-500">Disciplina</dt><dd class="font-medium text-slate-900">{{ object.subject }}</dd>
+        <dt class="text-slate-500">Data</dt><dd class="font-medium text-slate-900">{{ object.q_and_a_date|date:"d/m/Y" }}</dd>
+        </dl>
+        <p class="mt-4 text-slate-600">Esta ação não pode ser desfeita.</p>
+        <div class="mt-6 flex flex-wrap justify-end gap-2">
           <a href={% url 'q_and_a:q_and_a_list' %}>
             {% include 'components/button/button_cancel.html' with label='Cancelar' %}
           </a>
+          {% include 'components/button/button_delete_form.html' with label=submit_label|default:'Deletar' %}
         </div>
       </form>
     </div>

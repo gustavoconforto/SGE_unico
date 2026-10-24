@@ -3,6 +3,7 @@ from io import StringIO
 
 from django import forms
 from django.contrib.auth.models import User
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
 from django.template import Context, Template
 from django.test import RequestFactory, TestCase
@@ -176,6 +177,21 @@ class UiTagsTests(TestCase):
         )
 
 
+    def test_optional_marker_only_on_model_forms(self):
+        class PickerForm(forms.Form):
+            school_class = forms.CharField(required=False)
+
+        class UserForm(forms.ModelForm):
+            class Meta:
+                model = User
+                fields = ("email",)
+
+        source = "{% include 'components/form/field.html' with field=field %}"
+        self.assertNotIn(
+            "(opcional)", self.render(source, field=PickerForm()["school_class"])
+        )
+        self.assertIn("(opcional)", self.render(source, field=UserForm()["email"]))
+
 class LayoutTests(LoggedInTestCase):
     def test_sidebar_marks_the_current_section(self):
         response = self.client.get(reverse("accounts:supplier_list"))
@@ -187,3 +203,62 @@ class LayoutTests(LoggedInTestCase):
     def test_page_title_names_the_browser_tab(self):
         response = self.client.get(reverse("accounts:supplier_list"))
         self.assertContains(response, "<title>Fornecedores</title>")
+
+
+class PageSmokeTests(LoggedInTestCase):
+    """Every screen renders against seeded data: list, add, edit, delete and
+    detail pages of each app, reached through the URLconf."""
+
+    @classmethod
+    def setUpTestData(cls):
+        call_command(
+            "full_seed",
+            students_per_class=1,
+            year=timezone.localdate().year - 1,
+            stdout=StringIO(),
+        )
+
+    def iter_urls(self):
+        from django.urls import get_resolver
+        from django.urls.resolvers import URLResolver
+
+        def walk(patterns, namespace=None):
+            for p in patterns:
+                if isinstance(p, URLResolver):
+                    yield from walk(p.url_patterns, p.namespace or namespace)
+                elif namespace and namespace != "admin" and p.name:
+                    yield namespace, p
+
+        yield from walk(get_resolver().url_patterns)
+
+    def test_pages_render(self):
+        checked = 0
+        for namespace, pattern in self.iter_urls():
+            converters = pattern.pattern.converters
+            view_class = getattr(pattern.callback, "view_class", None)
+            model = getattr(view_class, "model", None)
+            if converters:
+                if list(converters) != ["pk"] or model is None:
+                    continue
+                view = view_class()
+                view.request = RequestFactory().get("/")
+                view.request.user = self.login_user
+                view.kwargs = {}
+                try:
+                    queryset = view.get_queryset()
+                except (AttributeError, KeyError, ImproperlyConfigured):
+                    # Views that filter on URL kwargs or other request state.
+                    queryset = model._default_manager.all()
+                obj = queryset.order_by("pk").first()
+                if obj is None:
+                    continue
+                url = reverse(f"{namespace}:{pattern.name}", args=[obj.pk])
+            else:
+                url = reverse(f"{namespace}:{pattern.name}")
+            if any(word in url for word in ("download", "pdf", "preview", "report", "options", "lookup")):
+                continue
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertIn(response.status_code, (200, 302, 405))
+                checked += 1
+        self.assertGreater(checked, 80)

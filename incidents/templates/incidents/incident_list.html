@@ -3,8 +3,8 @@
 {% block page_title %}Ocorrências{% endblock page_title %}
 
 {% block header %}
-  <div class="flex items-center justify-between px-2 pb-4">
-    {% include 'components/page/heading.html' with title='Ocorrências' %}
+  <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
+    {% include 'components/page/heading.html' with section='Acadêmico' title='Ocorrências' %}
     <div class="flex gap-3">
     <a href={% url 'incidents:incident_grades_individual' %}>
     {% include 'components/button/button_select.html' with label='Gerar notas de conceito individuais'%}
@@ -13,7 +13,7 @@
     {% include 'components/button/button_select.html' with label='Gerar notas de conceito coletiva'%}
     </a>
     <a href={% url 'incidents:incident_add' %}>
-    {% include 'components/button/button_primary.html' with label='Adicionar registro' icon='add' %}
+    {% include 'components/button/button_primary.html' with label='Nova ocorrência' icon='add' %}
     </a>
     </div>
   </div>

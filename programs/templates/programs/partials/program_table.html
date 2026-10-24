@@ -3,23 +3,21 @@
     <thead>
       <tr>
         <th>Curso</th>        
-        <th class="text-right">Opções</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
     {% for program in programs %}
       <tr class="hover:bg-slate-50">
         <td>
-            {{ program.name }}
+            <a href="{% url 'programs:program_edit' program.pk %}" class="hover:underline">{{ program.name }}</a>
         </td>
         <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
-          <a href={% url 'programs:program_edit' program.pk %}>
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          <a href={% url 'programs:program_delete' program.pk %}>
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+          {% url 'programs:program_edit' program.pk as edit_url %}
+          {% url 'programs:program_delete' program.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=program.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar curso?' name=program %}
+          
           </div>
         </td>
       </tr>

@@ -2,46 +2,31 @@
 
 {% block page_title %}{{ title }}{% endblock page_title %}
 
-{% block header %}
-
-{% endblock header %}
 
 {% block content %}
 <div class="page-form">
   <div class="w-full">
-    <div class="mb-6">
-      <p class="page-context">Gerenciamento de {{ title|lower }}</p>
-      <h1 class="page-title mt-1">Deseja, realmente, deletar este registro?</h1>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label=title parent_url_name=urls.list current=object %}
+    {% include 'components/page/heading.html' with title='Deletar '|add:noun|add:'?' %}
 
 
-    <div class="form-card">
+    <div class="form-card mt-6 max-w-xl">
       <form class="space-y-6" method="POST">
         {% csrf_token %}
-        <p>
-        Descrição: {{ object.description }}
-        </p>
-        <p>
-        Categoria: {{ object.category }}
-        </p>
-        <p>
-        {{ counterpart_label }}: {{ object.counterpart|default:"-" }}
-        </p>
-        <p>
-        Emissão: {{ object.issue_date|date:"d/m/Y" }}
-        </p>
-        <p>
-        Valor líquido: R$ {{ object.net_value|floatformat:"2g" }}
-        </p>
-        <p class="text-sm text-slate-500">
-        As parcelas desta conta também serão removidas. Contas com baixas registradas não podem ser deletadas.
-        </p>
+        <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
+          <dt class="text-slate-500">Descrição</dt><dd class="font-medium text-slate-900">{{ object.description }}</dd>
+          <dt class="text-slate-500">Categoria</dt><dd class="font-medium text-slate-900">{{ object.category }}</dd>
+          <dt class="text-slate-500">{{ counterpart_label }}</dt><dd class="font-medium text-slate-900">{{ object.counterpart|default:"-" }}</dd>
+          <dt class="text-slate-500">Emissão</dt><dd class="font-medium text-slate-900">{{ object.issue_date|date:"d/m/Y" }}</dd>
+          <dt class="text-slate-500">Valor líquido</dt><dd class="font-medium text-slate-900">R$ {{ object.net_value|floatformat:"2g" }}</dd>
+        </dl>
+        <p class="mt-4 text-slate-600">As parcelas desta conta também serão removidas. Contas com baixas registradas não podem ser deletadas.</p>
 
-        <div class="flex flex-row gap-4 pt-4">
-          {% include 'components/button/button_delete_form.html' with label=submit_label|default:'Deletar' %}
-          <a href={% url urls.list %}>
+        <div class="mt-6 flex flex-wrap justify-end gap-2">
+          <a href="{% url urls.list %}">
             {% include 'components/button/button_cancel.html' with label='Cancelar' %}
           </a>
+          {% include 'components/button/button_delete_form.html' with label=submit_label|default:'Deletar' %}
         </div>
       </form>
     </div>

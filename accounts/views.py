@@ -147,8 +147,7 @@ class AccountTypeDeleteView(ProtectedDeleteMixin, DeleteView):
 class AccountContextMixin:
     url_prefix = None
     title = None
-    subtitle_add = None
-    subtitle_edit = None
+    noun = None
     counterpart_label = None
 
     def get_success_url(self):
@@ -159,8 +158,7 @@ class AccountContextMixin:
         context.update(
             {
                 "title": self.title,
-                "subtitle_add": self.subtitle_add,
-                "subtitle_edit": self.subtitle_edit,
+                "noun": self.noun,
                 "counterpart_label": self.counterpart_label,
                 "urls": {
                     action: f"accounts:{self.url_prefix}_{action}"
@@ -252,8 +250,7 @@ class AccountReceivableMixin:
     model = AccountReceivable
     url_prefix = "receivable"
     title = "Contas a receber"
-    subtitle_add = "Adicione uma conta a receber"
-    subtitle_edit = "Edite uma conta a receber"
+    noun = "conta a receber"
     counterpart_label = "Responsável"
 
 
@@ -296,8 +293,7 @@ class AccountPayableMixin:
     model = AccountPayable
     url_prefix = "payable"
     title = "Contas a pagar"
-    subtitle_add = "Adicione uma conta a pagar"
-    subtitle_edit = "Edite uma conta a pagar"
+    noun = "conta a pagar"
     counterpart_label = "Fornecedor"
 
 

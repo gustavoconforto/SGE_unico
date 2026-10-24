@@ -3,30 +3,26 @@
 {% block page_title %}Boletim{% endblock page_title %}
 
 {% block header %}
-  <div class="flex justify-end gap-2 px-2 pb-4 print:hidden">
-    <a href={% url 'enrollments:enrollment_list' %}>
-      {% include 'components/button/button_cancel.html' with label='Voltar' %}
-    </a>
-    <a href="#" onclick="window.print(); return false;">
-      {% include 'components/button/button_select.html' with label='Imprimir' %}
-    </a>
+  <div class="float-right print:hidden">
+    <button type="button" onclick="window.print()" class="ui-btn ui-btn-secondary">
+      <span class="material-symbols-outlined">print</span>Imprimir
+    </button>
   </div>
 {% endblock header %}
 
 {% block content %}
 <div class="page-form-wide">
   <div class="w-full">
-    <div class="mb-6">
-      <p class="page-context">Boletim escolar</p>
-      <h1 class="page-title mt-1">{{ enrollment.school_class.year|default:enrollment.enrollment_type.school_year }}</h1>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Matrículas' parent_url_name='enrollments:enrollment_list' current=enrollment.student %}
+    {% include 'components/page/heading.html' with title='Boletim' %}
+    <p class="mt-1.5 mb-6 text-slate-500">Ano letivo {{ enrollment.school_class.year|default:enrollment.enrollment_type.school_year }}</p>
 
-    <div class="form-card mb-6 grid grid-cols-1 gap-2 sm:grid-cols-2 text-slate-700">
-      <p><span class="font-semibold">Aluno:</span> {{ enrollment.student.name }}</p>
-      <p><span class="font-semibold">Matrícula:</span> {{ enrollment.student.registration }}</p>
-      <p><span class="font-semibold">Curso:</span> {{ enrollment.enrollment_type.program }}</p>
-      <p><span class="font-semibold">Turma:</span> {{ enrollment.school_class|default:"Sem turma" }}</p>
-    </div>
+    <dl class="form-card mb-6 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+      <div><dt class="text-slate-500">Aluno</dt><dd class="font-medium text-slate-900">{{ enrollment.student.name }}</dd></div>
+      <div><dt class="text-slate-500">Matrícula</dt><dd class="font-medium text-slate-900">{{ enrollment.student.registration }}</dd></div>
+      <div><dt class="text-slate-500">Curso</dt><dd class="font-medium text-slate-900">{{ enrollment.enrollment_type.program }}</dd></div>
+      <div><dt class="text-slate-500">Turma</dt><dd class="font-medium text-slate-900">{{ enrollment.school_class|default:"Sem turma" }}</dd></div>
+    </dl>
 
     <div class="overflow-x-auto">
     <div class="table-wrap">

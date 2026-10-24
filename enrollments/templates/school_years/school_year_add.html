@@ -1,16 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block header %}
+{% block page_title %}Novo ano escolar{% endblock page_title %}
 
-{% endblock header %}
   
 {% block content %}
 <div class="page-form">
   <div class="w-full">
-    <div class="mb-6">
-      <p class="page-context">Gerenciamento de ano escolar</p>
-      <h1 class="page-title mt-1">Adicione um ano escolar</h1>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Anos escolares' parent_url_name='enrollments:school_year_list' current='Novo' %}
+    {% include 'components/page/heading.html' with title='Novo ano escolar' %}
   {% include 'school_years/school_year_form.html' %}
   </div>
 </div>

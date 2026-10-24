@@ -1,199 +1,119 @@
 {% load static %}
-<div class="form-card">
-    <form class="space-y-6" method="POST" enctype="multipart/form-data" novalidate>
-        {% csrf_token %}
-        <div class="tabs tabs-box">
-            <input
-                type="radio"
-                name="employee_tabs"
-                class="tab"
-                aria-label="Dados pessoais"
-                {% if active_tab == "personal" %}checked="checked"{% endif %}
-            />
-            <div class="tab-content bg-base-100 border-base-300 p-6">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <aside class="card bg-base-200/60 border border-base-300 h-fit">
-                        <div class="card-body items-center text-center gap-4">
-                            <div class="avatar">
-                                <div class="w-36 rounded-full ring-4 ring-base-100 shadow-md">
-                                    <img
-                                        id="student-photo-preview"
-                                        src="{% if form.instance.pk %}{{ form.instance.photo_url }}{% else %}{% static 'img/student-placeholder.svg' %}{% endif %}"
-                                        onerror="this.onerror=null;this.src='{% static 'img/student-placeholder.svg' %}'"
-                                        alt="Foto do aluno"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-semibold text-gray-900">
-                                    {{ form.instance|default:"Novo aluno" }}
-                                </h3>
-                                {% if form.instance.registration %}
-                                <span class="badge badge-neutral badge-outline mt-2">
-                                    Matrícula {{ form.instance.registration }}
-                                </span>
-                                {% else %}
-                                <p class="text-sm text-gray-500 mt-1">Matrícula gerada ao salvar</p>
-                                {% endif %}
-                            </div>
-                            <fieldset class="fieldset w-full">
-                                <label for="{{ form.photo.id_for_label }}" class="label text-sm">
-                                    {% if form.instance.photo %}Alterar foto{% else %}Enviar foto{% endif %}
-                                </label>
-                                {{ form.photo }}
-                                {% for error in form.photo.errors %}
-                                <p class="text-sm text-red-600">{{ error }}</p>
-                                {% endfor %}
-                            </fieldset>
-                        </div>
-                    </aside>
+<form class="mt-6" method="POST" enctype="multipart/form-data" novalidate>
+  {% csrf_token %}
+  {% include 'components/form/non_field_errors.html' %}
 
-                    <div class="lg:col-span-2 flex flex-col gap-6">
-                        <section class="card border border-base-300">
-                            <div class="card-body gap-2">
-                                <h4 class="text-sm font-semibold text-slate-700">Identificação</h4>
-                                {% include 'components/form/field.html' with field=form.name %}
-                                <div class="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-x-6 items-end">
-                                    {% include 'components/form/checkbox.html' with field=form.use_social_name %}
-                                    {% include 'components/form/field.html' with field=form.social_name %}
-                                </div>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
-                                    {% include 'components/form/field.html' with field=form.sex %}
-                                </div>
-                            </div>
-                        </section>
-
-                        <section class="card border border-base-300">
-                            <div class="card-body gap-2">
-                                <h4 class="text-sm font-semibold text-slate-700">Documentos</h4>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 [&>*]:min-w-0">
-                                    {% include 'components/form/field.html' with field=form.cpf %}
-                                    {% include 'components/form/field.html' with field=form.rg %}
-                                    <div class="md:col-span-2">
-                                        {% include 'components/form/field.html' with field=form.issuing_authority %}
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-
-                        <section class="card border border-base-300">
-                            <div class="card-body gap-2">
-                                <h4 class="text-sm font-semibold text-slate-700">Nascimento</h4>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 [&>*]:min-w-0">
-                                    {% include 'components/form/field.html' with field=form.birth_date %}
-                                    {% include 'components/form/field.html' with field=form.nationality %}
-                                    <div class="md:col-span-2">
-                                        {% include 'components/form/field.html' with field=form.place_of_birth %}
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                    </div>
-                </div>
-            </div>
-
-            <input
-                type="radio"
-                name="employee_tabs"
-                class="tab"
-                aria-label="Responsáveis"
-                {% if active_tab == "guardians" %}checked="checked" {% endif %}
-            />
-            <div class="tab-content bg-base-100 border-base-300 p-6">
-                {{ formset.management_form }}
-                {% if formset.non_form_errors %}
-                <div class="text-sm text-red-600 space-y-1 mt-2 mb-4">
-                    {% for error in formset.non_form_errors %}
-                    <p>{{ error }}</p>
-                    {% endfor %}
-                </div>
-                {% endif %}
-                <div id="guardian-forms" class="flex flex-col gap-6">
-                    {% for guardian_form in formset %}
-                    {% include 'students/student_guardian_form.html' with guardian_form=guardian_form %}
-                    {% endfor %}
-                </div>
-                <template id="guardian-empty-form">
-                    {% include 'students/student_guardian_form.html' with guardian_form=formset.empty_form %}
-                </template>
-                <button type="button" id="add-guardian" class="btn btn-neutral mt-4">
-                    Adicionar responsável
-                </button>
-            </div>
-
-            <input
-                type="radio"
-                name="employee_tabs"
-                class="tab"
-                aria-label="Contato"
-                {% if active_tab == "contact" %}checked="checked" {% endif %}
-            />
-            <div class="tab-content bg-base-100 border-base-300 p-6">
-                <div class="flex flex-col w-full justify-around">
-                    <div class="flex w-full  gap-4 justify-around">
-                        <div class="flex flex-col gap-4 w-full">
-                            {% include 'components/form/field.html' with field=form.phone %}
-                        </div> 
-                        <div class="flex flex-col gap-4 w-full">
-                            {% include 'components/form/field.html' with field=form.mobile %}
-                        </div> 
-                        </div>
-                    </div>
-                <div class="flex flex-col w-full justify-around">
-                {% include 'components/form/field.html' with field=form.email %}
-                </div>
-            </div>
-
-            <input
-                type="radio"
-                name="employee_tabs"
-                class="tab"
-                aria-label="Endereço"
-                {% if active_tab == "address" %}checked="checked"{% endif %}
-            />
-            <div class="tab-content bg-base-100 border-base-300 p-6">
-                <div class="flex flex-col w-full justify-around">
-                    {% include 'components/form/field.html' with field=form.address %}
-                </div> 
-                <div class="flex flex-col w-full justify-around">
-                    <div class="flex w-full  gap-4 justify-around">
-                        <div class="flex flex-col gap-4 w-full">
-                            {% include 'components/form/field.html' with field=form.neighborhood %}
-                        </div>
-                        <div class="flex flex-col gap-4 w-full">
-                            {% include 'components/form/field.html' with field=form.city %}
-                        </div>
-                    </div>
-                    <div class="flex w-full  gap-4 justify-around">
-                        <div class="flex flex-col gap-4 w-full"> 
-                            {% include 'components/form/field.html' with field=form.state %}
-                        </div>
-                        <div class="flex flex-col gap-4 w-full"> 
-                            {% include 'components/form/field.html' with field=form.zip_code %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
-        <div class="flex gap-4 pt-4">
-        {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar' %}
-        <a href="{% url 'students:student_list' %}"> 
-        {% include 'components/button/button_cancel.html' with label='Cancelar' %} 
-        </a>
-        </div>
-        
-        {% if form.non_field_errors %}
-        <div class="text-sm text-red-600 space-y-1 mt-2">
-        {% for error in form.non_field_errors %}
-        <p>{{ error }}</p>
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Foto</h2>
+      <p>{% if form.instance.registration %}Matrícula {{ form.instance.registration }}.{% else %}A matrícula do aluno é gerada ao salvar.{% endif %}</p>
+    </div>
+    <div class="form-section-body flex flex-wrap items-center gap-5">
+      <img id="student-photo-preview"
+           src="{% if form.instance.pk %}{{ form.instance.photo_url }}{% else %}{% static 'img/student-placeholder.svg' %}{% endif %}"
+           onerror="this.onerror=null;this.src='{% static 'img/student-placeholder.svg' %}'"
+           alt="Foto do aluno" class="size-24 rounded-full border border-slate-200 object-cover">
+      <div class="ui-field min-w-0 flex-1">
+        <label for="{{ form.photo.id_for_label }}" class="ui-label">
+          {% if form.instance.photo %}Alterar foto{% else %}Enviar foto{% endif %} <span class="ui-optional">(opcional)</span>
+        </label>
+        {{ form.photo }}
+        {% for error in form.photo.errors %}
+        <p class="ui-error"><span class="material-symbols-outlined text-[16px]">error</span>{{ error }}</p>
         {% endfor %}
-        </div>
-        {% endif %}
-    </form>
-</div>
+      </div>
+    </div>
+  </section>
 
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Identificação</h2>
+    </div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
+      <div class="sm:col-span-full">{% include 'components/form/field.html' with field=form.name %}</div>
+      <div class="sm:col-span-full">{% include 'components/form/checkbox.html' with field=form.use_social_name %}</div>
+      {% include 'components/form/field.html' with field=form.social_name %}
+      {% include 'components/form/field.html' with field=form.sex %}
+    </div>
+  </section>
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Documentos</h2>
+    </div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
+      {% include 'components/form/field.html' with field=form.cpf %}
+      {% include 'components/form/field.html' with field=form.rg %}
+      <div class="sm:col-span-full">{% include 'components/form/field.html' with field=form.issuing_authority %}</div>
+    </div>
+  </section>
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Nascimento</h2>
+    </div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
+      {% include 'components/form/field.html' with field=form.birth_date %}
+      {% include 'components/form/field.html' with field=form.nationality %}
+      <div class="sm:col-span-full">{% include 'components/form/field.html' with field=form.place_of_birth %}</div>
+    </div>
+  </section>
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Responsáveis</h2>
+      <p>Quem responde pelo aluno, quem paga e quem pode buscá-lo.</p>
+    </div>
+    <div class="form-section-body">
+      {{ formset.management_form }}
+      {% if formset.non_form_errors %}
+      <div role="alert" class="my-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        {% for error in formset.non_form_errors %}<p>{{ error }}</p>{% endfor %}
+      </div>
+      {% endif %}
+      <div id="guardian-forms" class="flex flex-col gap-4 py-2">
+        {% for guardian_form in formset %}
+        {% include 'students/student_guardian_form.html' with guardian_form=guardian_form %}
+        {% endfor %}
+      </div>
+      <template id="guardian-empty-form">
+        {% include 'students/student_guardian_form.html' with guardian_form=formset.empty_form %}
+      </template>
+      <button type="button" id="add-guardian" class="ui-btn ui-btn-secondary my-2">
+        <span class="material-symbols-outlined">add</span>Adicionar responsável
+      </button>
+    </div>
+  </section>
+
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Contato</h2>
+    </div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
+      {% include 'components/form/field.html' with field=form.phone %}
+      {% include 'components/form/field.html' with field=form.mobile %}
+      <div class="sm:col-span-full">{% include 'components/form/field.html' with field=form.email %}</div>
+    </div>
+  </section>
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Endereço</h2>
+    </div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
+      <div class="sm:col-span-full">{% include 'components/form/field.html' with field=form.address %}</div>
+      {% include 'components/form/field.html' with field=form.neighborhood %}
+      {% include 'components/form/field.html' with field=form.city %}
+      {% include 'components/form/field.html' with field=form.state %}
+      {% include 'components/form/field.html' with field=form.zip_code %}
+    </div>
+  </section>
+  <div class="form-actions">
+    <p class="text-[13px] text-slate-500">Campos sem “opcional” são obrigatórios.</p>
+    <div class="ml-auto flex gap-2">
+      <a href="{% url 'students:student_list' %}">
+        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+      </a>
+      {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar aluno' %}
+    </div>
+  </div>
+</form>
 <script>
     document.getElementById("{{ form.photo.id_for_label }}").addEventListener("change", (event) => {
         const file = event.target.files[0];

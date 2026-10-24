@@ -1,18 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block page_title %}Categorias financeiras{% endblock page_title %}
+{% block page_title %}Nova categoria financeira{% endblock page_title %}
 
-{% block header %}
-
-{% endblock header %}
 
 {% block content %}
 <div class="page-form">
   <div class="w-full">
-    <div class="mb-6">
-      <p class="page-context">Gerenciamento de categorias financeiras</p>
-      <h1 class="page-title mt-1">Adicione uma categoria financeira</h1>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Categorias financeiras' parent_url_name='accounts:account_type_list' current='Nova' %}
+    {% include 'components/page/heading.html' with title='Nova categoria financeira' %}
   {% include 'account_types/account_type_form.html' %}
   </div>
 </div>

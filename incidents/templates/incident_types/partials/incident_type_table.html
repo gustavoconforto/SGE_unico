@@ -4,26 +4,24 @@
       <tr>
         <th>Tipo</th>
         <th class="text-right">Penalidade</th>
-        <th class="text-right">Opções</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
     {% for incident_type in incident_types %}
       <tr class="hover:bg-slate-50">
         <td>
-            {{ incident_type.type }}
+            <a href="{% url 'incidents:incident_type_edit' incident_type.pk %}" class="hover:underline">{{ incident_type.type }}</a>
         </td>
         <td class="text-right whitespace-nowrap">
             {{ incident_type.penalty|floatformat:1 }}
         </td>
         <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
-          <a href={% url 'incidents:incident_type_edit' incident_type.pk %}>
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          <a href={% url 'incidents:incident_type_delete' incident_type.pk %}>
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+          {% url 'incidents:incident_type_edit' incident_type.pk as edit_url %}
+          {% url 'incidents:incident_type_delete' incident_type.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=incident_type.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar tipo de ocorrência?' name=incident_type %}
+          
           </div>
         </td>
       </tr>

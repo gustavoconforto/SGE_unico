@@ -1,28 +1,47 @@
-<div class="form-card">
-    <form class="space-y-6" method="POST">
-    {% csrf_token %}
-    <div class="flex flex-col gap-3">
-        {% include 'components/form/field.html' with field=form.username %}
-        {% include 'components/form/field.html' with field=form.first_name %}
-        {% include 'components/form/field.html' with field=form.last_name %}
-        {% include 'components/form/field.html' with field=form.email %}
-        {% include 'components/form/field.html' with field=form.is_staff %}
-        {% include 'components/form/field.html' with field=form.is_active %}
-        {% include 'components/form/field.html' with field=form.is_superuser %}
-    </div>
+<form class="mt-6" method="POST">
+  {% csrf_token %}
+  {% include 'components/form/non_field_errors.html' %}
 
-    <div class="flex flex-row gap-4 pt-4">
-        {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar' %}
-        <a href="{% url 'base:user_list' %}">
-        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
-        </a>
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Acesso</h2>
+      <p>O nome de usuário é usado para entrar no sistema.</p>
     </div>
-    {% if form.non_field_errors %}
-        <div class="text-sm text-red-600 space-y-1 mt-2">
-        {% for error in form.non_field_errors %}
-            <p>{{ error }}</p>
-        {% endfor %}
-        </div>
-    {% endif %}
-    </form>
-</div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
+      {% include 'components/form/field.html' with field=form.username %}
+      {% include 'components/form/field.html' with field=form.email %}
+    </div>
+  </section>
+
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Nome</h2>
+    </div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
+      {% include 'components/form/field.html' with field=form.first_name %}
+      {% include 'components/form/field.html' with field=form.last_name %}
+    </div>
+  </section>
+
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Situação</h2>
+      <p>Usuários inativos não entram no sistema; superusuários têm todas as permissões.</p>
+    </div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-3">
+      {% include 'components/form/field.html' with field=form.is_active %}
+      {% include 'components/form/field.html' with field=form.is_staff %}
+      {% include 'components/form/field.html' with field=form.is_superuser %}
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <p class="text-[13px] text-slate-500">Campos sem “opcional” são obrigatórios.</p>
+    <div class="ml-auto flex gap-2">
+      <a href="{% url 'base:user_list' %}">
+        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+      </a>
+      {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar usuário' %}
+    </div>
+  </div>
+</form>

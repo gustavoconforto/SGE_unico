@@ -1,18 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block page_title %}Retornos{% endblock page_title %}
+{% block page_title %}Importar retorno{% endblock page_title %}
 
-{% block header %}
-
-{% endblock header %}
 
 {% block content %}
 <div class="page-form">
   <div class="w-full">
-    <div class="mb-6">
-      <p class="page-context">Gerenciamento de retornos</p>
-      <h1 class="page-title mt-1">Importe o arquivo de retorno enviado pelo Bradesco</h1>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Retornos' parent_url_name='billing:return_file_list' current='Importar' %}
+    {% include 'components/page/heading.html' with title='Importar retorno' %}
   {% include 'return_files/return_file_form.html' %}
   </div>
 </div>

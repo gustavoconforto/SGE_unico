@@ -9,14 +9,14 @@
         <th>Horário</th>
         <th>Professores</th>
         <th class="text-right">Inscritos</th>
-        <th class="text-right">Opções</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
     {% for offering in offerings %}
       <tr class="hover:bg-slate-50">
         <td>
-            {{ offering.pathway }}
+            <a href="{% url 'pathways:pathway_offering_edit' offering.pk %}" class="hover:underline">{{ offering.pathway }}</a>
         </td>
         <td>
             {{ offering.school_year }}
@@ -34,7 +34,7 @@
             {{ offering.members }}{% if offering.capacity %} / {{ offering.capacity }}{% endif %}
         </td>
         <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
           <a href="{% url 'pathways:pathway_enrollment_list' %}?offering={{ offering.pk }}">
             {% include 'components/button/button_select.html' with label="Inscritos"%}
           </a>
@@ -44,12 +44,10 @@
           <a href="{% url 'pathways:pathway_grade_entry' %}?offering={{ offering.pk }}">
             {% include 'components/button/button_select.html' with label="Notas"%}
           </a>
-          <a href="{% url 'pathways:pathway_offering_edit' offering.pk %}">
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          <a href="{% url 'pathways:pathway_offering_delete' offering.pk %}">
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
+          {% url 'pathways:pathway_offering_edit' offering.pk as edit_url %}
+          {% url 'pathways:pathway_offering_delete' offering.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=offering.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar turma de itinerário?' name=offering %}
+          
           </div>
         </td>
       </tr>

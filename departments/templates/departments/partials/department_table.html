@@ -5,14 +5,14 @@
         <th>Nome</th>
         <th>Matérias</th>
         <th>Professores</th>
-        <th class="text-right">Opções</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
     {% for department in departments %}
       <tr class="hover:bg-slate-50">
         <td>
-            {{ department.name }}
+            <a href="{% url 'departments:department_edit' department.pk %}" class="hover:underline">{{ department.name }}</a>
         </td>
         <td>
             {{ department.subjects.all|join:", "|default:"-" }}
@@ -21,13 +21,11 @@
             {{ department.teachers.all|join:", "|default:"-" }}
         </td>
         <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
-          <a href={% url 'departments:department_edit' department.pk %}>
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          <a href={% url 'departments:department_delete' department.pk %}>
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+          {% url 'departments:department_edit' department.pk as edit_url %}
+          {% url 'departments:department_delete' department.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=department.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar departamento?' name=department %}
+          
           </div>
         </td>
       </tr>

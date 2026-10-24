@@ -9,7 +9,7 @@
         <th>Matéria</th>
         <th>Professor</th>
         <th>Conteúdo</th>
-        <th class="text-right">Opções</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
@@ -34,16 +34,14 @@
             {{ lecture.topic }}
         </td>
         <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
           <a href="{% url 'lessons:lecture_day' %}?school_class={{ lecture.school_class_id }}&date={{ lecture.date|date:'Y-m-d' }}">
             {% include 'components/button/button_select.html' with label="Dia"%}
           </a>
-          <a href="{% url 'lessons:lecture_edit' lecture.pk %}">
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          <a href="{% url 'lessons:lecture_delete' lecture.pk %}">
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
+          {% url 'lessons:lecture_edit' lecture.pk as edit_url %}
+          {% url 'lessons:lecture_delete' lecture.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=lecture.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar aula?' name=lecture %}
+          
           </div>
         </td>
       </tr>

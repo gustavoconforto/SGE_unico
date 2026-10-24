@@ -1,18 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block page_title %}Matérias por série{% endblock page_title %}
+{% block page_title %}Nova matéria na série{% endblock page_title %}
 
-{% block header %}
-
-{% endblock header %}
 
 {% block content %}
 <div class="page-form">
   <div class="w-full">
-    <div class="mb-6">
-      <p class="page-context">Gerenciamento de matérias por série</p>
-      <h1 class="page-title mt-1">Adicione uma matéria a uma série</h1>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Matérias por série' parent_url_name='grades:grade_level_subject_list' current='Nova' %}
+    {% include 'components/page/heading.html' with title='Nova matéria na série' %}
   {% include 'grade_level_subjects/grade_level_subject_form.html' %}
   </div>
 </div>

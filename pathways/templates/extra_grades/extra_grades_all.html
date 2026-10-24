@@ -3,8 +3,8 @@
 {% block page_title %}Nota extra{% endblock page_title %}
 
 {% block header %}
-  <div class="flex items-center justify-between px-2 pb-4">
-    {% include 'components/page/heading.html' with title='Nota extra coletiva' %}
+  <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
+    {% include 'components/page/heading.html' with section='Itinerários' title='Nota extra coletiva' %}
     <div class="flex gap-3 items-center">
     {% if school_year %}<span class="badge badge-neutral badge-outline">Ano letivo {{ school_year }}</span>{% endif %}
     <a href="{% url 'pathways:extra_grades_individual' %}">

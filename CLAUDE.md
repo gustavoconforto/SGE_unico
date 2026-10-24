@@ -89,10 +89,9 @@ database; to try it, point a settings override at a scratch SQLite file.
 ### Templates
 - Per resource, in `<app>/templates/<resource_plural>/`: `<r>_list.html`,
   `partials/<r>_table.html`, `<r>_form.html`, `<r>_add.html`,
-  `<r>_edit.html`, `<r>_delete.html`. Copy the reference set
-  `accounts/templates/suppliers/` (breadcrumb, sectioned form, sticky save
-  bar, row menu with delete dialog) rather than inventing a layout; the older
-  sets still use the "Gerenciamento de …" header.
+  `<r>_edit.html`, `<r>_delete.html`. Copy an existing set (e.g.
+  `accounts/templates/suppliers/`: breadcrumb, sectioned form, sticky save
+  bar, row menu with delete dialog) rather than inventing a layout.
 - Extend `base/base.html`; fill `page_title` (browser tab), `header`, `content`.
 - List page: the table partial lives inside `<div id="search-results">`,
   search uses `components/search/filter_form.html`, the table is

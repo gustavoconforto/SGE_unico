@@ -1,22 +1,23 @@
-<div class="form-card">
-    <form class="space-y-6" method="POST">
-    {% csrf_token %}
-    <div>
-        {% include 'components/form/field.html' with field=form.name %}
-    </div>
+<form class="mt-6" method="POST">
+  {% csrf_token %}
+  {% include 'components/form/non_field_errors.html' %}
 
-    <div class="flex flex-row gap-4 pt-4">
-        {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar' %}
-        <a href={% url 'programs:program_list' %}>
-        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
-        </a>
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Curso</h2>
     </div>
-    {% if form.non_field_errors %}
-        <div class="text-sm text-red-600 space-y-1 mt-2">
-        {% for error in form.non_field_errors %}
-            <p>{{ error }}</p>
-        {% endfor %}
-        </div>
-    {% endif %}
-    </form>
-</div>
+    <div class="form-section-body grid grid-cols-1">
+      {% include 'components/form/field.html' with field=form.name %}
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <p class="text-[13px] text-slate-500">Campos sem “opcional” são obrigatórios.</p>
+    <div class="ml-auto flex gap-2">
+      <a href="{% url 'programs:program_list' %}">
+        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+      </a>
+      {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar curso' %}
+    </div>
+  </div>
+</form>

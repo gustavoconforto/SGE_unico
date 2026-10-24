@@ -3,10 +3,10 @@
 {% block page_title %}Saídas para banheiro{% endblock page_title %}
 
 {% block header %}
-  <div class="flex items-center justify-between px-2 pb-4">
-    {% include 'components/page/heading.html' with title='Saídas para banheiro' %}
+  <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
+    {% include 'components/page/heading.html' with section='Acadêmico' title='Saídas para banheiro' %}
     <a href={% url 'incidents:bathroom_permission_add' %}>
-    {% include 'components/button/button_primary.html' with label='Adicionar registro' icon='add' %}
+    {% include 'components/button/button_primary.html' with label='Nova saída para banheiro' icon='add' %}
     </a>
   </div>
   {% include 'components/search/filter_form.html' with placeholder='Pesquisar por aluno...' %}

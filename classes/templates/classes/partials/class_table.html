@@ -6,14 +6,14 @@
         <th>Ano</th>        
         <th>Série</th>        
         <th>Nome</th>        
-        <th class="text-right">Opções</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
     {% for class in classes %}
       <tr class="hover:bg-slate-50">
         <td>
-            {{ class.program }}
+            <a href="{% url 'classes:class_edit' class.pk %}" class="hover:underline">{{ class.program }}</a>
         </td>
         <td>
             {{ class.year }}
@@ -25,13 +25,11 @@
             {{ class.name }}
         </td>
         <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
-          <a href={% url 'classes:class_edit' class.pk %}>
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          <a href={% url 'classes:class_delete' class.pk %}>
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+          {% url 'classes:class_edit' class.pk as edit_url %}
+          {% url 'classes:class_delete' class.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=class.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar turma?' name=class %}
+          
           </div>
         </td>
       </tr>

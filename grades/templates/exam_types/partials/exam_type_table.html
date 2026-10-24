@@ -7,14 +7,14 @@
         <th>Tipo</th>
         <th class="text-right">Nota máxima</th>
         <th class="text-right">Ordem</th>
-        <th class="text-right">Opções</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
     {% for exam_type in exam_types %}
       <tr class="hover:bg-slate-50">
         <td>
-            {{ exam_type.code }}
+            <a href="{% url 'grades:exam_type_edit' exam_type.pk %}" class="hover:underline">{{ exam_type.code }}</a>
         </td>
         <td>
             {{ exam_type.name }}
@@ -29,13 +29,11 @@
             {{ exam_type.order }}
         </td>
         <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
-          <a href={% url 'grades:exam_type_edit' exam_type.pk %}>
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          <a href={% url 'grades:exam_type_delete' exam_type.pk %}>
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+          {% url 'grades:exam_type_edit' exam_type.pk as edit_url %}
+          {% url 'grades:exam_type_delete' exam_type.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=exam_type.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar tipo de avaliação?' name=exam_type %}
+          
           </div>
         </td>
       </tr>

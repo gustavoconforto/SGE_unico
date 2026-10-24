@@ -9,10 +9,9 @@
 {% block content %}
 <div class="page-form-wide">
   <div class="w-full">
-    <div class="mb-6">
-      <p class="page-context">Nota extra individual</p>
-      <h1 class="page-title mt-1">Selecione o aluno e o bimestre</h1>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Nota extra coletiva' parent_url_name='pathways:extra_grades_all' current='Individual' %}
+    {% include 'components/page/heading.html' with subtitle='Selecione o aluno e o bimestre.' title='Nota extra individual' %}
+    <div class="mb-6"></div>
     <form hx-get="{{ request.path }}"
           hx-trigger="change"
           hx-target="#search-results"

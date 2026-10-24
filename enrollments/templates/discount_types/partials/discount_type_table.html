@@ -4,26 +4,24 @@
       <tr>
         <th>Descrição</th>        
         <th>Porcentagem</th>        
-        <th class="text-right">Opções</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
     {% for discount_type in discount_types %}
       <tr class="hover:bg-slate-50">
         <td>
-            {{ discount_type.description }}
+            <a href="{% url 'enrollments:discount_type_edit' discount_type.pk %}" class="hover:underline">{{ discount_type.description }}</a>
         </td>
         <td>
             {{ discount_type.percentage }}%
         </td>
         <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
-          <a href={% url 'enrollments:discount_type_edit' discount_type.pk %}>
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          <a href={% url 'enrollments:discount_type_delete' discount_type.pk %}>
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+          {% url 'enrollments:discount_type_edit' discount_type.pk as edit_url %}
+          {% url 'enrollments:discount_type_delete' discount_type.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=discount_type.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar desconto?' name=discount_type %}
+          
           </div>
         </td>
       </tr>

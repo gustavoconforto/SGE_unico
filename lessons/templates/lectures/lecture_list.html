@@ -3,11 +3,11 @@
 {% block page_title %}Diário de classe{% endblock page_title %}
 
 {% block header %}
-  <div class="flex items-center justify-between px-2 pb-4">
-    {% include 'components/page/heading.html' with title='Diário de classe' %}
+  <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
+    {% include 'components/page/heading.html' with section='Acadêmico' title='Diário de classe' %}
     <div class="flex gap-3">
     <a href="{% url 'lessons:lecture_day' %}{% if request.GET.school_class %}?school_class={{ request.GET.school_class }}{% endif %}">
-    {% include 'components/button/button_select.html' with label='Lançar dia'%}
+    {% include 'components/button/button_primary.html' with label='Lançar dia' icon='edit_calendar' %}
     </a>
     </div>
   </div>

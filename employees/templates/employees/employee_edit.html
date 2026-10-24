@@ -1,16 +1,13 @@
 {% extends 'base/base.html' %}
 
-{% block header %}
+{% block page_title %}Editar funcionário{% endblock page_title %}
 
-{% endblock header %}
   
 {% block content %}
 <div class="page-form">
   <div class="w-full">
-    <div class="mb-6">
-      <p class="page-context">Gerenciamento de funcionários</p>
-      <h1 class="page-title mt-1">Edite um funcionário</h1>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label='Funcionários' parent_url_name='employees:employee_list' current=object %}
+    {% include 'components/page/heading.html' with title='Editar funcionário' %}
   {% include 'employees/employee_form.html' %}
   </div>
 </div>

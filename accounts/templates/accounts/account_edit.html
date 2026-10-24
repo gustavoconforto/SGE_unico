@@ -2,23 +2,18 @@
 
 {% block page_title %}{{ title }}{% endblock page_title %}
 
-{% block header %}
-
-{% endblock header %}
 
 {% block content %}
-<div class="page-form-wide">
+<div class="page-form">
   <div class="w-full">
-    <div class="mb-6">
-      <p class="page-context">Gerenciamento de {{ title|lower }}</p>
-      <h1 class="page-title mt-1">{{ subtitle_edit }}</h1>
-    </div>
+    {% include 'components/page/breadcrumb.html' with parent_label=title parent_url_name=urls.list current=object %}
+    {% include 'components/page/heading.html' with title='Editar '|add:noun %}
 
     {% include 'accounts/account_form.html' %}
 
     <section class="mt-8 space-y-3">
         <div class="flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-slate-800">Parcelas</h3>
+            <h2 class="text-lg font-semibold text-slate-900">Parcelas</h2>
             <a href="{% url 'accounts:installment_add' %}?account={{ object.pk }}">
                 {% include 'components/button/button_select.html' with label="Adicionar parcela" %}
             </a>
@@ -32,16 +27,16 @@
                     <th class="text-right">Valor</th>
                     <th>Situação</th>
                     <th class="text-right">Faltante</th>
-                    <th class="text-right">Opções</th>
+                    <th class="text-right"><span class="sr-only">Ações</span></th>
                 </tr>
             </thead>
             <tbody>
                 {% for installment in installments %}
-                <tr class="hover:bg-slate-50{% if installment.is_overdue %} bg-red-50{% endif %}">
+                <tr>
                     <td>{{ installment.number }}ª</td>
                     <td class="whitespace-nowrap">
                         {{ installment.due_date|date:"d/m/Y" }}
-                        {% if installment.is_overdue %}<span class="ml-1 text-xs font-medium text-red-600">Vencida</span>{% endif %}
+                        {% if installment.is_overdue %}<span class="block text-xs font-medium text-red-700">Vencida</span>{% endif %}
                     </td>
                     <td class="text-right whitespace-nowrap">R$ {{ installment.amount|floatformat:"2g" }}</td>
                     <td>

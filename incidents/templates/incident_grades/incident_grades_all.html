@@ -3,7 +3,8 @@
 {% block page_title %}Notas de conceito{% endblock page_title %}
 
 {% block header %}
-  <div class="flex items-center justify-between px-2 pb-4">
+  {% include 'components/page/breadcrumb.html' with parent_label='Ocorrências' parent_url_name='incidents:incident_list' current='Notas de conceito' %}
+  <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
     {% include 'components/page/heading.html' with title='Notas de conceito coletivas' %}
     {% if school_year %}<span class="badge badge-neutral badge-outline">Ano letivo {{ school_year }}</span>{% endif %}
   </div>

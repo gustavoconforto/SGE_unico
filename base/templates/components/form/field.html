@@ -1,6 +1,6 @@
 <div class="ui-field">
     <label for="{{ field.id_for_label }}" class="ui-label">
-        {{ field.label }}{% if not field.field.required %} <span class="ui-optional">(opcional)</span>{% endif %}
+        {{ field.label }}{% if not field.field.required and field.form.instance %} <span class="ui-optional">(opcional)</span>{% endif %}
     </label>
     {{ field }}
     {% if field.help_text %}

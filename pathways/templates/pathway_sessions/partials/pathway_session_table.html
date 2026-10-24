@@ -8,14 +8,14 @@
         <th>Conteúdo</th>
         <th class="text-right">Presentes</th>
         <th class="text-right">Faltas</th>
-        <th class="text-right">Opções</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
     {% for session in sessions %}
       <tr class="hover:bg-slate-50">
         <td>
-            {{ session.date|date:"d/m/Y" }}
+            <a href="{% url 'pathways:pathway_session_edit' session.pk %}" class="hover:underline">{{ session.date|date:"d/m/Y" }}</a>
         </td>
         <td>
             {{ session.offering }}
@@ -30,16 +30,14 @@
             {% if session.present or session.absent %}{{ session.absent }}{% else %}-{% endif %}
         </td>
         <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
           <a href="{% url 'pathways:pathway_session_attendance' session.pk %}">
             {% include 'components/button/button_select.html' with label="Chamada"%}
           </a>
-          <a href="{% url 'pathways:pathway_session_edit' session.pk %}">
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          <a href="{% url 'pathways:pathway_session_delete' session.pk %}">
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
+          {% url 'pathways:pathway_session_edit' session.pk as edit_url %}
+          {% url 'pathways:pathway_session_delete' session.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=session.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar aula?' name=session %}
+          
           </div>
         </td>
       </tr>

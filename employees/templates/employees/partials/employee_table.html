@@ -4,26 +4,24 @@
       <tr>
         <th>Nome</th>        
         <th>Cargo</th>        
-        <th class="text-right">Opções</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
     {% for employee in employees %}
       <tr class="hover:bg-slate-50">
         <td>
-            {{ employee.name }}
+            <a href="{% url 'employees:employee_edit' employee.pk %}" class="hover:underline">{{ employee.name }}</a>
         </td>
         <td>
             {{ employee.role }}
         </td>
         <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
-          <a href="{% url 'employees:employee_edit' employee.pk %}">
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          <a href="{% url 'employees:employee_delete' employee.pk %}">
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+          {% url 'employees:employee_edit' employee.pk as edit_url %}
+          {% url 'employees:employee_delete' employee.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=employee.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar funcionário?' name=employee %}
+          
           </div>
         </td>
       </tr>

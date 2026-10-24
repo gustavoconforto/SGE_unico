@@ -8,7 +8,7 @@
         <th class="text-right">Boletos</th>
         <th class="text-right">Pedidos de baixa</th>
         <th class="text-right">Valor total</th>
-        <th class="text-right">Opções</th>
+        <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
@@ -33,13 +33,12 @@
             R$ {{ remittance.total|default:0|floatformat:"2g" }}
         </td>
         <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
           <a href={% url 'billing:remittance_download' remittance.pk %}>
             {% include 'components/button/button_select.html' with label="Baixar arquivo"%}
           </a>
-          <a href={% url 'billing:remittance_delete' remittance.pk %}>
-            {% include 'components/button/button_select.html' with label="Deletar"%}
-          </a>
+          {% url 'billing:remittance_delete' remittance.pk as delete_url %}
+          {% include 'components/table/row_menu.html' with menu_id=remittance.pk delete_url=delete_url delete_title='Deletar remessa?' name=remittance %}
           </div>
         </td>
       </tr>
