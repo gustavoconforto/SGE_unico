@@ -97,8 +97,7 @@ if DEBUG:
         }
     }
 else:
-    postgres_options = dict(parse_qsl(tmpPostgres.query))
-    postgres_options["options"] = "-c search_path=django_app,public"
+    tmpPostgres = urlparse(os.getenv("DATABASE_URL"))
 
     DATABASES = {
         "default": {
@@ -108,7 +107,7 @@ else:
             "PASSWORD": tmpPostgres.password,
             "HOST": tmpPostgres.hostname,
             "PORT": 5432,
-            "OPTIONS": postgres_options,
+            "OPTIONS": dict(parse_qsl(tmpPostgres.query)),
         }
     }
 
