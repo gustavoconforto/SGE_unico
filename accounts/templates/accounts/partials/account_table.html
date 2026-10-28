@@ -7,6 +7,10 @@
         <th>Categoria</th>
         <th>{{ counterpart_label }}</th>
         <th class="text-right">Valor líquido</th>
+        {% if show_payment_dates %}
+        <th>Vencimento</th>
+        <th>Pago em</th>
+        {% endif %}
         <th>Situação</th>
         <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
@@ -29,6 +33,14 @@
         <td class="text-right whitespace-nowrap" >
             R$ {{ account.net_value|floatformat:"2g" }}
         </td>
+        {% if show_payment_dates %}
+        <td class="whitespace-nowrap">
+            {{ account.due_date|date:"d/m/Y"|default:"-" }}
+        </td>
+        <td class="whitespace-nowrap">
+            {{ account.last_paid_at|date:"d/m/Y"|default:"-" }}
+        </td>
+        {% endif %}
         <td>
             {% with situation=account.situation %}
             <span class="badge badge-sm whitespace-nowrap
@@ -52,7 +64,7 @@
         </td>
       </tr>
       {% empty %}
-      {% include 'components/table/empty_table.html' with collspan=7%}
+      {% include 'components/table/empty_table.html' with collspan=show_payment_dates|yesno:'9,7' %}
       {% endfor %}
     </tbody>
   </table>

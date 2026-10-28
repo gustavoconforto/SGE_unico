@@ -8,7 +8,23 @@
     {% include 'components/page/heading.html' with title='Notas de conceito coletivas' %}
     {% if school_year %}<span class="badge badge-neutral badge-outline">Ano letivo {{ school_year }}</span>{% endif %}
   </div>
-  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por aluno ou turma...' %}
+  <form hx-get="{{ request.path }}"
+        hx-trigger="input delay:500ms, submit"
+        hx-target="#search-results"
+        hx-push-url="true"
+        class="mb-4 flex flex-wrap items-center gap-3">
+    <div class="w-full sm:w-56">{{ bimester_form.bimester }}</div>
+    <div class="relative max-w-xl min-w-64 flex-1">
+      <span class="material-symbols-outlined pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-slate-400">search</span>
+      <input type="search"
+             name="q"
+             value="{{ q }}"
+             placeholder="Pesquisar por aluno ou turma..."
+             aria-label="Pesquisar por aluno ou turma"
+             autocomplete="off"
+             class="input w-full pl-10">
+    </div>
+  </form>
 {% endblock header %}
 
 {% block content %}

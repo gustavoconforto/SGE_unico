@@ -23,6 +23,7 @@ from accounts.views import ProtectedDeleteMixin, SuccessMessageMixin
 from base.search import HtmxSearchMixin
 from enrollments.forms import (
     DiscountTypeForm,
+    EnrollmentCreateForm,
     EnrollmentForm,
     EnrollmentNeededDocumentFormSet,
     EnrollmentTypeForm,
@@ -209,7 +210,7 @@ class EnrollmentListView(HtmxSearchMixin, ListView):
 class EnrollmentCreateView(SuccessMessageMixin, CreateView):
     model = Enrollment
     template_name = "enrollments/enrollment_add.html"
-    form_class = EnrollmentForm
+    form_class = EnrollmentCreateForm
     success_message = "Registro cadastrado com sucesso"
 
     def get_success_url(self):
@@ -304,7 +305,7 @@ def build_report_context(pk):
     financial_guardian_mobile = financial_guardian.mobile
     financial_guardian_email = financial_guardian.email
     program = enrollment.enrollment_type
-    total_price = enrollment.gross_value
+    installment_price = enrollment.enrollment_type.total_price / 12
     discount_percentage = enrollment.discount_percent
     has_discount = bool(discount_percentage)
     discount_amount = enrollment.discount_value
@@ -326,7 +327,7 @@ def build_report_context(pk):
         "financial_guardian_mobile": financial_guardian_mobile,
         "financial_guardian_email": financial_guardian_email,
         "program": program,
-        "total_price": total_price,
+        "installment_price": installment_price,
         "has_discount": has_discount,
         "discount_percentage": discount_percentage,
         "discount_amount": discount_amount,

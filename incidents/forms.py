@@ -155,5 +155,7 @@ class ConceptBimesterFilterForm(forms.Form):
         coerce=int,
         empty_value=None,
         choices=[("", "Selecione um bimestre"), *Bimester.choices],
-        widget=forms.Select(attrs={"class": "select select-neutral select-sm w-full"}),
+        widget=forms.Select(
+            attrs={"class": "select select-neutral w-full", "aria-label": "Bimestre"}
+        ),
     )

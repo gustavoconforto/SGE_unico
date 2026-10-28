@@ -148,10 +148,14 @@
         {% include "base/navbar/navbar.html" %}
 
         <!-- Content -->
-        <main class="flex-1 overflow-y-auto px-4 py-6 lg:px-8">
-            <div class="mx-auto max-w-7xl">
-                {% block header %}{% endblock header %}
-                {% block content %}{% endblock content %}
+        <!-- Padding lives on the inner div: sticky bars (.form-actions) stop at
+             the scroll container's padding edge, which would leave a gap. -->
+        <main class="flex-1 overflow-y-auto">
+            <div class="px-4 py-6 lg:px-8">
+                <div class="mx-auto max-w-7xl">
+                    {% block header %}{% endblock header %}
+                    {% block content %}{% endblock content %}
+                </div>
             </div>
         </main>
     </div>

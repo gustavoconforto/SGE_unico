@@ -489,7 +489,7 @@
           <tr>
             <td>Parcela Mensal</td>
             <td>{{ numero_de_parcelas }}</td>
-            <td>R$ {{total_price}}</td>
+            <td>R$ {{installment_price}}</td>
             <td>Ato da Matrícula</td>
             <td>{{ultima_parcela}}</td>
           </tr>
@@ -497,8 +497,8 @@
       </table>
       {% if has_discount %}
       <p>
-        <strong>Desconto concedido:</strong> percentual aproximado de {{discount_percentage}}%, no valor exato de (R$ {{discount_amount}}) e com vigência
-        no período letivo de {{start_date_of_the_contract}} a {{end_date_of_the_contract}}.
+        <strong>Desconto concedido: percentual aproximado de {{discount_percentage}}%, no valor exato de (R$ {{discount_amount}}) e com vigência
+        no período letivo de {{start_date_of_the_contract}} a {{end_date_of_the_contract}}.</strong>
       </p>
       {% endif %}
       <p>

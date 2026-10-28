@@ -70,6 +70,7 @@ from employees.models import Employee, EmployeeRoleType
 from enrollments.models import (
     DiscountType,
     Enrollment,
+    EnrollmentDiscount,
     EnrollmentNeededDocument,
     EnrollmentStatus,
     EnrollmentType,
@@ -1069,6 +1070,26 @@ class Command(BaseCommand):
             weights=[94, 3, 3],
         )[0]
 
+    @staticmethod
+    def random_discounts(discount_types):
+        """Most students pay full price; some get one or two discount types
+        and a few a custom discount allowed by the director."""
+        count = random.choices([0, 1, 2], weights=[80, 16, 4])[0]
+        discounts = [
+            EnrollmentDiscount(discount_type=discount_type)
+            for discount_type in random.sample(discount_types, count)
+        ]
+        if random.random() < 0.03:
+            discounts.append(
+                EnrollmentDiscount(
+                    percentage=Decimal(random.choice([5, 15, 30])),
+                    observation="Desconto autorizado pela direção",
+                )
+            )
+        if sum(d.percentage or d.discount_type.percentage for d in discounts) > 100:
+            return []
+        return discounts
+
     def seed_enrollments(self, students, classes, enrollment_types, discount_types):
         """One enrollment per student, filling every class seat.
 
@@ -1100,12 +1121,9 @@ class Command(BaseCommand):
                 school_class=school_class,
                 enrolled_at=date(self.year - 1, 11, 1)
                 + timedelta(days=random.randint(0, 60)),
-                discount=random.choices(
-                    [None, *discount_types], weights=[80, 8, 6, 4, 2]
-                )[0],
                 due_day=random.choice([5, 10, 15]),
             )
-            enrollment.save()
+            enrollment.save_with_discounts(self.random_discounts(discount_types))
             enrollment.planned_status = self.planned_status()
             # those leaving during the year only attend the first bimesters
             enrollment.bimesters_attended = (
@@ -1888,6 +1906,7 @@ class Command(BaseCommand):
             DiscountType,
             NeededDocumentType,
             Enrollment,
+            EnrollmentDiscount,
             EnrollmentNeededDocument,
             Grade,
             IncidentType,

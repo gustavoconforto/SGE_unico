@@ -162,7 +162,7 @@ class IncidentGradesAll(HtmxSearchMixin, ListView):
         form, bimester = self.get_bimester(self.request.GET)
         exam_type = self.get_exam_type()
         context.update(
-            filter_form=form,
+            bimester_form=form,
             bimester=bimester,
             exam_type=exam_type,
             school_year=self.school_year,

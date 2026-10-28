@@ -30,7 +30,7 @@ Browser ──HTTP──▶ config/urls.py ──▶ <app>/urls.py ──▶ cla
 | `departments` | `/departments/` | `Department`: groups subjects and the teachers who can teach them |
 | `grades` | `/grades/` | `Subject` (matéria), `ExamType`, `GradeLevelSubject`, `Grade`; grade entry sheet, report card, grade calculation (`grades/services.py`) |
 | `students` | `/students/` | `Student`, `Guardian`, `GuardianAssociation` |
-| `enrollments` | `/enrollments/` | `SchoolYear`, `EnrollmentType`, `DiscountType`, `NeededDocumentType`, `Enrollment`, `EnrollmentNeededDocument` |
+| `enrollments` | `/enrollments/` | `SchoolYear`, `EnrollmentType`, `DiscountType`, `NeededDocumentType`, `Enrollment`, `EnrollmentDiscount`, `EnrollmentNeededDocument` |
 | `accounts` | `/accounts/` | `AccountType`, `Supplier`, `Account` (+ receivable/payable proxies), `Installment`, `Payment` |
 | `incidents` | `/incidents/` | Student conduct records, all per enrollment: `IncidentType` (with a penalty), `Incident`, `StudentDelay` (atraso), `BathroomPermission` (saída para banheiro) |
 | `q_and_a` | `/q_and_a/` | `QandA` (plantão de dúvidas): a student's attendance at a subject's Q&A session, per enrollment |
@@ -87,7 +87,8 @@ erDiagram
     Student ||--o{ Enrollment : ""
     EnrollmentType ||--o{ Enrollment : ""
     Class |o--o{ Enrollment : ""
-    DiscountType |o--o{ Enrollment : ""
+    Enrollment ||--o{ EnrollmentDiscount : ""
+    DiscountType |o--o{ EnrollmentDiscount : ""
     Enrollment ||--o{ EnrollmentNeededDocument : ""
     NeededDocumentType ||--o{ EnrollmentNeededDocument : ""
     Enrollment |o--o| Account : "contract account"
@@ -111,7 +112,8 @@ erDiagram
 | `GuardianAssociation` | student ↔ guardian with relationship and flags: `is_financial`, `is_primary_contact`, `living_with`, `pick_up`. Unique per pair |
 | `EnrollmentType` | contract template: program, level, school year, `total_price`. Contract dates default to the school year's |
 | `DiscountType` | description and percentage (0–100) |
-| `Enrollment` | student, contract type, optional class, status (`A` active, `T` transferred, `D` dropped, `C` completed, `X` cancelled), date, discount, `due_day` (1–28). Copies `gross_value` and `discount_percent` from the contract and discount on save, so later price changes don't affect existing contracts. Unique per (student, contract type) |
+| `Enrollment` | student, contract type, optional class, status (`A` active, `T` transferred, `D` dropped, `C` completed, `X` cancelled), date, `due_day` (1–28). Copies `gross_value` from the contract on save, so later price changes don't affect existing contracts; `discount_percent` is the sum of its discounts, set by `save_with_discounts()` before the first save (the account is built from it). Unique per (student, contract type) |
+| `EnrollmentDiscount` | one discount of an enrollment: a `DiscountType` (percentage copied from it) or a custom percentage with a required `observation` (e.g. "desconto autorizado pela direção"). Percentages are added; the sum can't pass 100%. Chosen only on creation, read-only afterwards. Unique per (enrollment, type) |
 | `EnrollmentNeededDocument` | one row per required document type per enrollment, with `is_delivered` |
 | `Department` (`departments`) | `name` unique; `teachers` (many-to-many to `Employee`; a teacher can be in several departments). Can't be deleted while subjects use it |
 | `Subject` (`grades`) | `name` unique; optional `department`. `seed` creates the ten high-school subjects |
@@ -307,13 +309,14 @@ Implemented in `enrollments/signals.py` and `accounts/services.py`.
      "Mensalidade" (created if missing), linked to the enrollment and the
      student's first financial guardian, using the contract's values.
    - It generates monthly installments, with due dates from
-     `enrollment_due_dates()`. The first is due on the enrollment date. The
-     rest fall on `due_day` of the **school year**, moved to Monday when that
-     day is a weekend (`utils.format.weekdays.adjust_weekend`):
-     - enrolling during the school year: one per remaining month, through
-       December (enrolled in September → Sep, Oct, Nov, Dec);
-     - enrolling ahead (e.g. November 2026 for 2027): 12 installments, the
-       first on the enrollment date, then February to December 2027.
+     `enrollment_due_dates()`. They fall on `due_day` of the **school year**,
+     moved to Monday when that day is a weekend
+     (`utils.format.weekdays.adjust_weekend`):
+     - enrolling during the school year: the first is due on the enrollment
+       date, then one per remaining month, through December (enrolled on
+       Sep 15 → Sep 15, Oct, Nov, Dec);
+     - enrolling ahead (e.g. November 2026 for 2027): 12 installments,
+       January to December 2027.
    - The net value is split with `split_value()`: every installment gets the
      value rounded down to the cent, and the first gets the remainder, so
      installments always add up to the account's net value.

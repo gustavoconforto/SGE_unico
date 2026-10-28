@@ -23,8 +23,21 @@
       <p>A conta e as parcelas são geradas ao salvar, com vencimento no dia escolhido.</p>
     </div>
     <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
-      {% include 'components/form/field.html' with field=form.discount %}
       {% include 'components/form/field.html' with field=form.due_day %}
+    </div>
+  </section>
+
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Descontos</h2>
+      <p>Os percentuais são somados. Use o desconto avulso para um percentual fora da tabela, com a justificativa.</p>
+    </div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
+      <div class="sm:col-span-2">
+        {% include 'components/form/checkbox_list.html' with field=form.discount_types %}
+      </div>
+      {% include 'components/form/field.html' with field=form.custom_discount_percent %}
+      {% include 'components/form/field.html' with field=form.custom_discount_observation %}
     </div>
   </section>
 

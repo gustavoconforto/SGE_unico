@@ -349,8 +349,8 @@ Needs: student **with a financial guardian**, contract, (optional) class,
 - [ ] Installments, enrolled during the year: the first is due on the enrollment
       date, the rest on day 10 of each month through December; a day 10 on a
       weekend moves to Monday.
-- [ ] Installments, enrolled ahead (2027): 12 installments, the first on the
-      enrollment date, then February to December 2027.
+- [ ] Installments, enrolled ahead (2027): 12 installments on day 10, January
+      to December 2027.
 - [ ] The installments add up exactly to the net value (Lucas: 12.600 − 10%).
 - [ ] Contratos a receber (`/accounts/receivable/list/`) shows one new account
       per enrollment, category "Mensalidade", linked to the financial guardian.

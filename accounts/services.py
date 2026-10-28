@@ -48,21 +48,20 @@ def tuition_category():
 
 
 def enrollment_due_dates(enrollment):
-    """First installment is due on enrollment; the others monthly on due_day.
+    """Monthly due dates on due_day, through December of the school year.
 
-    Enrolling during the school year: one installment per remaining month,
-    through December. Enrolling ahead: 12 installments, February to December
-    of the school year.
+    Enrolling during the school year: the first installment is due on
+    enrollment, then one per remaining month. Enrolling ahead: 12
+    installments, January to December of the school year.
     """
     enrolled_at = enrollment.enrolled_at
     school_year = enrollment.enrollment_type.school_year.begins.year
     if enrolled_at.year == school_year:
-        months = range(enrolled_at.month + 1, 13)
+        first, months = [enrolled_at], range(enrolled_at.month + 1, 13)
     else:
-        months = range(2, 13)
-    return [enrolled_at] + [
-        adjust_weekend(date(school_year, month, enrollment.due_day))
-        for month in months
+        first, months = [], range(1, 13)
+    return first + [
+        adjust_weekend(date(school_year, month, enrollment.due_day)) for month in months
     ]
 
 

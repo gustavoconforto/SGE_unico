@@ -1,21 +1,23 @@
 from datetime import date
 from decimal import Decimal
 
+from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
 
 from base.testing import LoggedInTestCase
 from classes.models import Class
-from enrollments.forms import EnrollmentForm
+from enrollments.forms import EnrollmentCreateForm, EnrollmentForm
 from enrollments.models import (
     DiscountType,
     Enrollment,
+    EnrollmentDiscount,
     EnrollmentType,
     NeededDocumentType,
     SchoolYear,
 )
 from programs.models import Program
-from students.models import Student
+from students.models import Guardian, GuardianAssociation, Relationship, Student
 
 
 class EnrollmentAccountTests(TestCase):
@@ -55,8 +57,8 @@ class EnrollmentAccountTests(TestCase):
         account = self.enroll(date(2026, 11, 5)).account
         installments = list(account.installments.order_by("number"))
         self.assertEqual(len(installments), 12)
-        self.assertEqual(installments[0].due_date, date(2026, 11, 5))
-        # Feb 10, 2027 is a Wednesday; Apr 10, 2027 is a Saturday -> Monday 12.
+        # Jan 10, 2027 is a Sunday -> Monday 11; Apr 10 is a Saturday -> Monday 12.
+        self.assertEqual(installments[0].due_date, date(2027, 1, 11))
         self.assertEqual(installments[1].due_date, date(2027, 2, 10))
         self.assertEqual(installments[3].due_date, date(2027, 4, 12))
         self.assertEqual(installments[-1].due_date, date(2027, 12, 10))
@@ -95,9 +97,7 @@ class EnrollmentSettingsRedirectTests(LoggedInTestCase):
         ]
         for name, data in cases:
             with self.subTest(name):
-                response = self.client.post(
-                    reverse(f"enrollments:{name}_add"), data
-                )
+                response = self.client.post(reverse(f"enrollments:{name}_add"), data)
                 self.assertRedirects(response, reverse(f"enrollments:{name}_list"))
         self.assertTrue(DiscountType.objects.exists())
         self.assertTrue(NeededDocumentType.objects.exists())
@@ -172,3 +172,128 @@ class SchoolClassOptionsTests(LoggedInTestCase):
             }
         )
         self.assertIn("school_class", form.errors)
+
+
+class EnrollmentDiscountTests(LoggedInTestCase):
+    @classmethod
+    def setUpTestData(cls):
+        school_year = SchoolYear.objects.create(
+            begins=date(2027, 1, 10), ends=date(2027, 12, 15)
+        )
+        cls.enrollment_type = EnrollmentType.objects.create(
+            program=Program.objects.create(name="Pré ENEM"),
+            school_year=school_year,
+            total_price=Decimal("1000.00"),
+        )
+        cls.student = Student.objects.create(
+            name="Ana Souza", cpf="12345678901", rg="1234567", issuing_authority="SSP"
+        )
+        GuardianAssociation.objects.create(
+            student=cls.student,
+            guardian=Guardian.objects.create(
+                name="Maria Souza", cpf="00275010198", rg="7654321"
+            ),
+            relationship=Relationship.MOTHER,
+            is_financial=True,
+        )
+        cls.siblings = DiscountType.objects.create(
+            description="IRMÃOS", percentage=Decimal(10)
+        )
+        cls.former = DiscountType.objects.create(
+            description="ALUNO ANTIGO", percentage=Decimal(20)
+        )
+
+    def form(self, **data):
+        return EnrollmentCreateForm(
+            data={
+                "student": self.student.pk,
+                "enrollment_type": self.enrollment_type.pk,
+                "status": "A",
+                "due_day": 10,
+                **data,
+            }
+        )
+
+    def test_discounts_are_summed_into_the_account(self):
+        form = self.form(
+            discount_types=[self.siblings.pk, self.former.pk],
+            custom_discount_percent="5",
+            custom_discount_observation="Desconto autorizado pela direção",
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        enrollment = form.save()
+
+        self.assertEqual(enrollment.discount_percent, Decimal(35))
+        self.assertEqual(enrollment.account.discount_value, Decimal("350.00"))
+        self.assertEqual(enrollment.account.net_value, Decimal("650.00"))
+        custom = enrollment.discounts.get(discount_type=None)
+        self.assertEqual(custom.percentage, Decimal(5))
+        self.assertEqual(custom.observation, "Desconto autorizado pela direção")
+        self.assertEqual(enrollment.discounts.count(), 3)
+
+    def test_type_percentage_is_copied(self):
+        form = self.form(discount_types=[self.siblings.pk])
+        self.assertTrue(form.is_valid(), form.errors)
+        enrollment = form.save()
+        DiscountType.objects.filter(pk=self.siblings.pk).update(percentage=50)
+
+        self.assertEqual(enrollment.discounts.get().percentage, Decimal(10))
+
+    def test_no_discount(self):
+        form = self.form()
+        self.assertTrue(form.is_valid(), form.errors)
+        enrollment = form.save()
+
+        self.assertEqual(enrollment.discount_percent, Decimal(0))
+        self.assertFalse(enrollment.discounts.exists())
+
+    def test_custom_discount_requires_observation(self):
+        form = self.form(custom_discount_percent="15")
+        self.assertFalse(form.is_valid())
+        self.assertIn("custom_discount_observation", form.errors)
+
+    def test_observation_requires_custom_percentage(self):
+        form = self.form(custom_discount_observation="Autorizado pela direção")
+        self.assertFalse(form.is_valid())
+        self.assertIn("custom_discount_percent", form.errors)
+
+    def test_discounts_cannot_exceed_100_percent(self):
+        form = self.form(
+            discount_types=[self.siblings.pk, self.former.pk],
+            custom_discount_percent="80",
+            custom_discount_observation="Bolsa integral",
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("discount_types", form.errors)
+        self.assertFalse(Enrollment.objects.exists())
+
+    def test_create_view_saves_discounts(self):
+        response = self.client.post(
+            reverse("enrollments:enrollment_add"),
+            {
+                "student": self.student.pk,
+                "enrollment_type": self.enrollment_type.pk,
+                "status": "A",
+                "due_day": 10,
+                "discount_types": [self.former.pk],
+            },
+        )
+        enrollment = Enrollment.objects.get()
+        self.assertRedirects(
+            response, reverse("enrollments:enrollment_edit", args=[enrollment.pk])
+        )
+        self.assertEqual(enrollment.discount_percent, Decimal(20))
+
+        response = self.client.get(
+            reverse("enrollments:enrollment_edit", args=[enrollment.pk])
+        )
+        self.assertContains(response, "ALUNO ANTIGO")
+
+    def test_database_requires_observation_on_custom_discount(self):
+        enrollment = Enrollment.objects.create(
+            student=self.student, enrollment_type=self.enrollment_type, due_day=10
+        )
+        with self.assertRaises(IntegrityError):
+            EnrollmentDiscount.objects.create(
+                enrollment=enrollment, percentage=Decimal(5)
+            )

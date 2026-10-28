@@ -2,7 +2,7 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
 from base.models import TimeStampedModel
@@ -164,15 +164,6 @@ class Enrollment(TimeStampedModel):
         help_text="Preenchido automáticamente",
         blank=True,
     )
-    discount = models.ForeignKey(
-        DiscountType,
-        on_delete=models.PROTECT,
-        verbose_name="Desconto",
-        related_name="enrollments",
-        blank=True,
-        null=True,
-    )
-
     gross_value = models.DecimalField(
         "Valor bruto do contrato",
         max_digits=10,
@@ -221,13 +212,27 @@ class Enrollment(TimeStampedModel):
         if self.gross_value is None and self.enrollment_type_id:
             self.gross_value = self.enrollment_type.total_price
         if self.discount_percent is None:
-            self.discount_percent = (
-                self.discount.percentage if self.discount_id else Decimal(0)
-            )
+            self.discount_percent = Decimal(0)
 
     def save(self, *args, **kwargs):
         self.fill_contract_values()
         super().save(*args, **kwargs)
+
+    @transaction.atomic
+    def save_with_discounts(self, discounts):
+        """Create the enrollment with these unsaved EnrollmentDiscount rows.
+
+        discount_percent is their sum and must be set before the first save:
+        the post_save signal creates the account from it.
+        """
+        for discount in discounts:
+            if discount.percentage is None:
+                discount.percentage = discount.discount_type.percentage
+        self.discount_percent = sum((d.percentage for d in discounts), Decimal(0))
+        self.save()
+        for discount in discounts:
+            discount.enrollment = self
+        EnrollmentDiscount.objects.bulk_create(discounts)
 
     def sync_documents(self):
         """Create the documents for any NeededDocumentType this enrollment lacks."""
@@ -264,6 +269,61 @@ class Enrollment(TimeStampedModel):
         unique_together = ["student", "enrollment_type"]
         verbose_name = "Matrícula"
         verbose_name_plural = "Matrículas"
+
+
+class EnrollmentDiscount(TimeStampedModel):
+    """One discount of an enrollment: a DiscountType or a custom percentage.
+
+    The percentage is copied from the type, so later changes to it don't
+    affect existing contracts. A custom discount (no type) needs an
+    observation explaining who allowed it.
+    """
+
+    enrollment = models.ForeignKey(
+        Enrollment,
+        on_delete=models.PROTECT,
+        related_name="discounts",
+        verbose_name="Matrícula",
+    )
+    discount_type = models.ForeignKey(
+        DiscountType,
+        on_delete=models.PROTECT,
+        related_name="enrollment_discounts",
+        verbose_name="Tipo de desconto",
+        null=True,
+        blank=True,
+    )
+    percentage = models.DecimalField(
+        "Percentual",
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    observation = models.CharField("Observação", max_length=200, blank=True)
+
+    def __str__(self):
+        label = self.discount_type or "Desconto avulso"
+        return f"{label} ({self.percentage}%)"
+
+    class Meta:
+        verbose_name = "Desconto da matrícula"
+        verbose_name_plural = "Descontos da matrícula"
+        ordering = ["enrollment", "pk"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["enrollment", "discount_type"],
+                name="unique_enrollment_discount_type",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(percentage__gte=0, percentage__lte=100),
+                name="enrollment_discount_percentage_range",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(discount_type__isnull=False)
+                | ~models.Q(observation=""),
+                name="custom_enrollment_discount_has_observation",
+            ),
+        ]
 
 
 class EnrollmentNeededDocument(TimeStampedModel):

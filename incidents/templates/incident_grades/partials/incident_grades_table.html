@@ -4,9 +4,16 @@
     <a href="{% url 'enrollments:school_year_add' %}" class="underline hover:text-slate-900">Cadastre um ano letivo</a>.
   </p>
 {% elif bimester and exam_type %}
-  <p class="px-2 pb-3 text-sm text-slate-500">
-    O conceito começa em 1, perde a penalidade de cada ocorrência do bimestre e 0,2 por atraso tolerado além do segundo, sem ficar abaixo de 0. O valor calculado é lançado em todas as matérias de cada aluno.
-  </p>
+  <div class="flex flex-wrap items-center justify-between gap-4 px-2 pb-3">
+    <p class="max-w-3xl text-sm text-slate-500">
+      O conceito começa em 1, perde a penalidade de cada ocorrência do bimestre e 0,2 por atraso tolerado além do segundo, sem ficar abaixo de 0. O valor calculado é lançado em todas as matérias de cada aluno, substituindo o conceito do bimestre.
+    </p>
+    <form method="POST" action="{{ request.path }}">
+      {% csrf_token %}
+      <input type="hidden" name="bimester" value="{{ bimester }}">
+      {% include 'components/button/button_submit_form.html' with label='Calcular para todos os alunos' %}
+    </form>
+  </div>
 {% elif not exam_type %}
   <p class="px-2 pb-3 text-sm text-slate-600">
     Nenhum tipo de avaliação Conceito (sigla C) cadastrado.
@@ -46,10 +53,3 @@
   </table>
   </div>
 {% include 'components/table/pagination.html' %}
-{% if bimester and exam_type and school_year %}
-<form method="POST" action="{{ request.path }}" class="flex flex-row gap-4 pt-6">
-  {% csrf_token %}
-  <input type="hidden" name="bimester" value="{{ bimester }}">
-  {% include 'components/button/button_submit_form.html' with label='Calcular' %}
-</form>
-{% endif %}

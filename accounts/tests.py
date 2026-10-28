@@ -72,12 +72,38 @@ class AccountViewsTests(LoggedInTestCase):
         self.assertContains(payables, "Despesa Y")
         self.assertNotContains(payables, "Receita X")
 
+    def test_payable_list_shows_due_date_and_paid_at(self):
+        account = AccountPayable.objects.create(
+            description="Aluguel março",
+            category=self.expense,
+            supplier=self.supplier,
+            gross_value=Decimal(100),
+        )
+        installment = account.installments.create(
+            number=1, due_date=timezone.localdate(), amount=Decimal(100)
+        )
+        paid_at = timezone.localdate() - timedelta(days=2)
+        Payment.objects.create(
+            installment=installment,
+            amount=Decimal(100),
+            method="PIX",
+            paid_at=paid_at,
+        )
+        response = self.client.get(reverse("accounts:payable_list"))
+        self.assertContains(response, "<th>Vencimento</th>", html=True)
+        self.assertContains(response, "<th>Pago em</th>", html=True)
+        self.assertContains(response, installment.due_date.strftime("%d/%m/%Y"))
+        self.assertContains(response, paid_at.strftime("%d/%m/%Y"))
+
+        receivables = self.client.get(reverse("accounts:receivable_list"))
+        self.assertNotContains(receivables, "Pago em")
+
     def test_htmx_search_and_status_filter_return_partial(self):
         self.create_receivable("Receita aberta")
         self.create_receivable("Receita vencida")
-        AccountReceivable.objects.get(description="Receita vencida").installments.update(
-            due_date=timezone.localdate() - timedelta(days=5)
-        )
+        AccountReceivable.objects.get(
+            description="Receita vencida"
+        ).installments.update(due_date=timezone.localdate() - timedelta(days=5))
         url = reverse("accounts:receivable_list")
 
         response = self.client.get(url, {"q": "aberta"}, **HTMX)
@@ -123,20 +149,19 @@ class PaymentViewsTests(LoggedInTestCase):
         cls.installment = cls.account.installments.create(
             number=1, due_date=timezone.localdate(), amount=Decimal(100)
         )
-        expense = AccountType.objects.create(name="Aluguel", direction=Direction.PAYABLE)
+        expense = AccountType.objects.create(
+            name="Aluguel", direction=Direction.PAYABLE
+        )
         supplier = Supplier.objects.create(
             name="Imobiliária Centro", document="12345678000199"
         )
-        cls.payable_installment = (
-            AccountPayable.objects.create(
-                description="Aluguel outubro",
-                category=expense,
-                supplier=supplier,
-                gross_value=Decimal(100),
-            )
-            .installments.create(
-                number=1, due_date=timezone.localdate(), amount=Decimal(100)
-            )
+        cls.payable_installment = AccountPayable.objects.create(
+            description="Aluguel outubro",
+            category=expense,
+            supplier=supplier,
+            gross_value=Decimal(100),
+        ).installments.create(
+            number=1, due_date=timezone.localdate(), amount=Decimal(100)
         )
 
     def post_payment(self, amount, **extra):
@@ -159,6 +184,22 @@ class PaymentViewsTests(LoggedInTestCase):
         self.post_payment("65", penalty="5")
         self.installment.refresh_from_db()
         self.assertEqual(self.installment.status, InstallmentStatus.PAID)
+
+    def test_list_shows_due_date_and_paid_at(self):
+        due_date = timezone.localdate() - timedelta(days=10)
+        self.payable_installment.due_date = due_date
+        self.payable_installment.save()
+        Payment.objects.create(
+            installment=self.payable_installment,
+            amount=Decimal(100),
+            method="PIX",
+            paid_at=timezone.localdate(),
+        )
+        response = self.client.get(reverse("accounts:payment_list"))
+        self.assertContains(response, "<th>Vencimento</th>", html=True)
+        self.assertContains(response, "<th>Pago em</th>", html=True)
+        self.assertContains(response, due_date.strftime("%d/%m/%Y"))
+        self.assertContains(response, timezone.localdate().strftime("%d/%m/%Y"))
 
     def test_payment_cannot_exceed_balance(self):
         response = self.post_payment("150")
@@ -198,7 +239,8 @@ class PaymentViewsTests(LoggedInTestCase):
 
     def test_add_ignores_payable_installment_param(self):
         response = self.client.get(
-            reverse("accounts:payment_add"), {"installment": self.payable_installment.pk}
+            reverse("accounts:payment_add"),
+            {"installment": self.payable_installment.pk},
         )
         self.assertNotIn("installment", response.context["form"].initial)
 
@@ -229,7 +271,10 @@ class PaymentViewsTests(LoggedInTestCase):
         payment = Payment.objects.get()
         response = self.client.get(reverse("accounts:payment_edit", args=[payment.pk]))
         self.assertContains(response, 'value="Mensalidade outubro - 1ª parcela')
-        self.assertContains(response, f'name="installment" id="id_installment_value" value="{self.installment.pk}"')
+        self.assertContains(
+            response,
+            f'name="installment" id="id_installment_value" value="{self.installment.pk}"',
+        )
 
     def post_payable_payment(self, amount, **extra):
         data = {
@@ -246,7 +291,9 @@ class PaymentViewsTests(LoggedInTestCase):
 
     def test_payable_payment_updates_installment_status(self):
         response = self.post_payable_payment("100")
-        self.assertRedirects(response, reverse("accounts:payment_list") + "?direction=P")
+        self.assertRedirects(
+            response, reverse("accounts:payment_list") + "?direction=P"
+        )
         self.payable_installment.refresh_from_db()
         self.assertEqual(self.payable_installment.status, InstallmentStatus.PAID)
 
@@ -270,12 +317,17 @@ class PaymentViewsTests(LoggedInTestCase):
         payable = Payment.objects.get(installment=self.payable_installment)
         edit = "accounts:payment_edit"
         payable_edit = "accounts:payable_payment_edit"
-        self.assertEqual(self.client.get(reverse(edit, args=[receivable.pk])).status_code, 200)
-        self.assertEqual(self.client.get(reverse(edit, args=[payable.pk])).status_code, 404)
+        self.assertEqual(
+            self.client.get(reverse(edit, args=[receivable.pk])).status_code, 200
+        )
+        self.assertEqual(
+            self.client.get(reverse(edit, args=[payable.pk])).status_code, 404
+        )
         response = self.client.get(reverse(payable_edit, args=[payable.pk]))
         self.assertContains(response, 'value="Aluguel outubro - 1ª parcela')
         self.assertEqual(
-            self.client.get(reverse(payable_edit, args=[receivable.pk])).status_code, 404
+            self.client.get(reverse(payable_edit, args=[receivable.pk])).status_code,
+            404,
         )
 
     def test_payable_lookup_searches_supplier_installments(self):
@@ -305,7 +357,9 @@ class InstallmentViewsTests(LoggedInTestCase):
         income = AccountType.objects.create(
             name="Mensalidade", direction=Direction.RECEIVABLE
         )
-        expense = AccountType.objects.create(name="Aluguel", direction=Direction.PAYABLE)
+        expense = AccountType.objects.create(
+            name="Aluguel", direction=Direction.PAYABLE
+        )
         cls.receivable = AccountReceivable.objects.create(
             description="Mensalidade João", category=income, gross_value=Decimal(200)
         )
@@ -479,7 +533,9 @@ class AccountTypeViewsTests(LoggedInTestCase):
         self.assertEqual(category.name, "Material escolar")
 
         url = reverse("accounts:account_type_list")
-        self.assertContains(self.client.get(url, {"direction": "P"}, **HTMX), "Material")
+        self.assertContains(
+            self.client.get(url, {"direction": "P"}, **HTMX), "Material"
+        )
         self.assertNotContains(
             self.client.get(url, {"direction": "R"}, **HTMX), "Material"
         )

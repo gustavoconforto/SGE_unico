@@ -301,6 +301,10 @@ class AccountPayableListView(AccountPayableMixin, AccountListMixin, ListView):
     queryset = AccountPayable.objects.select_related("category", "supplier")
     filter_form_class = AccountPayableFilterForm
     search_fields = ("description", "supplier__name", "supplier__document", "notes")
+    extra_context = {"show_payment_dates": True}
+
+    def get_queryset(self):
+        return super().get_queryset().with_payment_dates()
 
 
 class AccountPayableCreateView(AccountPayableMixin, AccountCreateMixin, CreateView):

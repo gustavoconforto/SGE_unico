@@ -83,6 +83,25 @@ class AccountQuerySet(models.QuerySet):
             ),
         )
 
+    def with_payment_dates(self):
+        """Annotate the due date still owed (or the last one) and the last payment.
+
+        Subqueries rather than joins, so the counts above aren't multiplied.
+        """
+        installments = Installment.objects.filter(account=OuterRef("pk"))
+        next_due = installments.filter(status__in=PENDING_STATUSES).order_by("due_date")
+        last_due = installments.order_by("-due_date")
+        last_payment = Payment.objects.filter(
+            installment__account=OuterRef("pk")
+        ).order_by("-paid_at")
+        return self.annotate(
+            due_date=Coalesce(
+                Subquery(next_due.values("due_date")[:1]),
+                Subquery(last_due.values("due_date")[:1]),
+            ),
+            last_paid_at=Subquery(last_payment.values("paid_at")[:1]),
+        )
+
 
 class Account(TimeStampedModel):
     direction = models.CharField("Natureza", max_length=1, choices=Direction.choices)
@@ -262,7 +281,9 @@ class InstallmentQuerySet(models.QuerySet):
                 When(status=InstallmentStatus.CANCELLED, then=Value(ZERO)),
                 default=Greatest(
                     F("amount")
-                    - Coalesce(Subquery(paid_principal), Value(ZERO), output_field=money),
+                    - Coalesce(
+                        Subquery(paid_principal), Value(ZERO), output_field=money
+                    ),
                     Value(ZERO),
                 ),
                 output_field=money,
@@ -325,9 +346,7 @@ class Installment(models.Model):
 
     @property
     def is_overdue(self):
-        return (
-            self.status in PENDING_STATUSES and self.due_date < timezone.localdate()
-        )
+        return self.status in PENDING_STATUSES and self.due_date < timezone.localdate()
 
     def refresh_status(self):
         if self.status == InstallmentStatus.CANCELLED:
@@ -339,7 +358,10 @@ class Installment(models.Model):
             status = InstallmentStatus.PARTIAL
         else:
             status = InstallmentStatus.PAID
-        if self.status == InstallmentStatus.EXPIRED and status != InstallmentStatus.PAID:
+        if (
+            self.status == InstallmentStatus.EXPIRED
+            and status != InstallmentStatus.PAID
+        ):
             return
         if status != self.status:
             self.status = status

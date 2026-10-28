@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django import forms
 from django.db.models import Count, Q
 from django.forms import inlineformset_factory
@@ -8,6 +10,7 @@ from classes.models import Class
 from enrollments.models import (
     DiscountType,
     Enrollment,
+    EnrollmentDiscount,
     EnrollmentNeededDocument,
     EnrollmentStatus,
     EnrollmentType,
@@ -180,7 +183,6 @@ class EnrollmentForm(forms.ModelForm):
             "school_class",
             "status",
             "enrolled_at",
-            "discount",
             "gross_value",
             "discount_percent",
             "installments_count",
@@ -199,7 +201,6 @@ class EnrollmentForm(forms.ModelForm):
                     "hx-target": "#school-class-field",
                 }
             ),
-            "discount": forms.Select(attrs={"class": "select select-neutral w-full"}),
             "status": forms.Select(attrs={"class": "select select-neutral w-full"}),
             "enrolled_at": forms.DateInput(
                 format="%Y-%m-%d",
@@ -266,6 +267,86 @@ class EnrollmentForm(forms.ModelForm):
         # e.g. "2° Inspiração - 2027 (12/50)": active students / capacity.
         capacity = school_class.capacity if school_class.capacity is not None else "—"
         return f"{school_class} ({school_class.student_count}/{capacity})"
+
+
+class EnrollmentCreateForm(EnrollmentForm):
+    """Adds the discounts, which only make sense on creation: the account is
+    generated from their sum when the enrollment is first saved."""
+
+    discount_types = forms.ModelMultipleChoiceField(
+        label="Descontos",
+        queryset=DiscountType.objects.all(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple(
+            attrs={"class": "checkbox checkbox-sm checkbox-neutral"}
+        ),
+    )
+    custom_discount_percent = forms.DecimalField(
+        label="Desconto avulso (%)",
+        max_digits=5,
+        decimal_places=2,
+        min_value=Decimal("0.01"),
+        max_value=Decimal(100),
+        required=False,
+        widget=forms.NumberInput(
+            attrs={"class": "input input-neutral w-full", "step": "0.01"}
+        ),
+    )
+    custom_discount_observation = forms.CharField(
+        label="Observação do desconto avulso",
+        max_length=200,
+        required=False,
+        help_text="Ex.: desconto autorizado pela direção",
+        widget=forms.TextInput(attrs={"class": "input input-neutral w-full"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["discount_types"].label_from_instance = lambda discount_type: (
+            f"{discount_type} ({discount_type.percentage}%)"
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        percent = cleaned_data.get("custom_discount_percent")
+        observation = cleaned_data.get("custom_discount_observation")
+        if percent and not observation:
+            self.add_error(
+                "custom_discount_observation",
+                "Informe quem autorizou ou o motivo do desconto avulso.",
+            )
+        elif observation and not percent:
+            self.add_error(
+                "custom_discount_percent", "Informe o percentual do desconto avulso."
+            )
+        total = sum(d.percentage for d in self.build_discounts())
+        if total > 100:
+            self.add_error(
+                "discount_types",
+                f"A soma dos descontos ({total}%) não pode passar de 100%.",
+            )
+        return cleaned_data
+
+    def build_discounts(self):
+        discounts = [
+            EnrollmentDiscount(
+                discount_type=discount_type, percentage=discount_type.percentage
+            )
+            for discount_type in self.cleaned_data.get("discount_types") or []
+        ]
+        percent = self.cleaned_data.get("custom_discount_percent")
+        if percent:
+            discounts.append(
+                EnrollmentDiscount(
+                    percentage=percent,
+                    observation=self.cleaned_data.get("custom_discount_observation"),
+                )
+            )
+        return discounts
+
+    def save(self, commit=True):
+        self.instance.save_with_discounts(self.build_discounts())
+        return self.instance
 
 
 class EnrollmentNeededDocumentForm(forms.ModelForm):
