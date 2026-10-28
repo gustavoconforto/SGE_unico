@@ -68,6 +68,7 @@ from classes.models import Class, Shift
 from departments.models import Department
 from employees.models import Employee, EmployeeRoleType
 from enrollments.models import (
+    DiscountGroup,
     DiscountType,
     Enrollment,
     EnrollmentDiscount,
@@ -94,14 +95,13 @@ from incidents.models import (
 )
 from incidents.services import bimester_range, concept_grades
 from lessons.models import (
-    LECTURES_PER_DAY,
     Lecture,
     TimetableSlot,
     Weekday,
     lecture_teachers,
+    weekday_periods,
 )
 from pathways.models import (
-    MAX_PATHWAY_SCORE,
     AttendanceStatus,
     ExtraGradeSettings,
     Pathway,
@@ -235,13 +235,15 @@ DELAYS_PER_BIMESTER = 2.5
 UNACCEPTABLE_DELAY_CHANCE = 0.25
 BATHROOM_PERMISSIONS_PER_BIMESTER = 6.0
 CLASS_PERIODS = 6
+# Timetables are filled from the first periods; later ones only if needed.
+EARLY_PERIODS = 6
 # Q&A sessions per student per bimester; regulars attend most of them.
 Q_AND_A_REGULAR_SHARE = 0.25
 Q_AND_AS_PER_BIMESTER = {"regular": 2.0, "other": 0.2}
 # National holidays (month, day) inside the bimesters: no lessons or records.
 HOLIDAYS = [(4, 21), (5, 1), (9, 7), (10, 12), (11, 2), (11, 15), (11, 20)]
 
-# (name, description, extra points, groups)
+# (name, description, max grade per bimester (0: no extra grade), groups)
 PATHWAYS = [
     ("Robótica", "Montagem e programação de robôs.", Decimal("1.00"), 2),
     ("Programação", "Lógica de programação e desenvolvimento web.", Decimal("1.00"), 2),
@@ -251,8 +253,9 @@ PATHWAYS = [
     ("Debate e oratória", "Argumentação e falar em público.", Decimal("1.00"), 1),
     ("Educação financeira", "Orçamento, investimentos e consumo.", Decimal("0.75"), 2),
     ("Teatro", "Expressão corporal e montagem de peças.", Decimal("0.50"), 1),
-    ("Música", "Canto coral e prática instrumental.", Decimal("0.50"), 1),
-    ("Xadrez", "Aberturas, táticas e torneios internos.", Decimal("0.50"), 1),
+    # Pathways that never give an extra grade.
+    ("Música", "Canto coral e prática instrumental.", Decimal(0), 1),
+    ("Xadrez", "Aberturas, táticas e torneios internos.", Decimal(0), 1),
 ]
 # Groups of a pathway with two; students pick the one outside their class shift.
 PATHWAY_TIMES = {"Manhã": "8h às 9h40", "Tarde": "14h às 15h40", "": "17h às 18h40"}
@@ -708,6 +711,8 @@ class Command(BaseCommand):
                     "bi_3_ends": date(year, 9, 30),
                     "bi_4_begins": date(year, 10, 13),
                     "bi_4_ends": date(year, 12, 15),
+                    "school_days": 200,
+                    "total_hours": 1000,
                 },
             )[0]
             for year in [self.year]
@@ -1070,23 +1075,53 @@ class Command(BaseCommand):
             weights=[94, 3, 3],
         )[0]
 
+    @classmethod
+    def random_discounts(cls, discount_types):
+        """Discounts of the first installment and of the remaining ones.
+        Usually the same in both groups; sometimes the remaining installments
+        get other discounts or none."""
+        first = cls.random_group_discounts(discount_types, DiscountGroup.FIRST)
+        roll = random.random()
+        if roll < 0.8:
+            remaining = [
+                EnrollmentDiscount(
+                    discount_type=discount.discount_type,
+                    group=DiscountGroup.REMAINING,
+                    percentage=discount.percentage,
+                    observation=discount.observation,
+                )
+                for discount in first
+            ]
+        elif roll < 0.9:
+            remaining = cls.random_group_discounts(
+                discount_types, DiscountGroup.REMAINING
+            )
+        else:
+            remaining = []
+        return first + remaining
+
     @staticmethod
-    def random_discounts(discount_types):
+    def random_group_discounts(discount_types, group):
         """Most students pay full price; some get one or two discount types
         and a few a custom discount allowed by the director."""
         count = random.choices([0, 1, 2], weights=[80, 16, 4])[0]
         discounts = [
-            EnrollmentDiscount(discount_type=discount_type)
+            EnrollmentDiscount(
+                discount_type=discount_type,
+                group=group,
+                percentage=discount_type.percentage,
+            )
             for discount_type in random.sample(discount_types, count)
         ]
         if random.random() < 0.03:
             discounts.append(
                 EnrollmentDiscount(
+                    group=group,
                     percentage=Decimal(random.choice([5, 15, 30])),
                     observation="Desconto autorizado pela direção",
                 )
             )
-        if sum(d.percentage or d.discount_type.percentage for d in discounts) > 100:
+        if sum(d.percentage for d in discounts) > 100:
             return []
         return discounts
 
@@ -1232,15 +1267,20 @@ class Command(BaseCommand):
 
     # ------------------------------------------------------------------ incidents
 
-    def school_days(self, school_year):
-        """{bimester: weekdays of the bimester up to today, but holidays}."""
+    def school_days(self, school_year, saturdays=False):
+        """{bimester: weekdays (and Saturdays, if asked) of the bimester up to
+        today, but holidays}."""
+        last_weekday = Weekday.SATURDAY if saturdays else Weekday.FRIDAY
         days = {}
         for bimester in Bimester.values:
             day = getattr(school_year, f"bi_{bimester}_begins")
             ends = min(getattr(school_year, f"bi_{bimester}_ends"), self.today)
             days[bimester] = []
             while day <= ends:
-                if day.weekday() < 5 and (day.month, day.day) not in HOLIDAYS:
+                if (
+                    day.isoweekday() <= last_weekday
+                    and (day.month, day.day) not in HOLIDAYS
+                ):
                     days[bimester].append(day)
                 day += timedelta(days=1)
         return days
@@ -1465,14 +1505,18 @@ class Command(BaseCommand):
         PathwayAttendance.objects.bulk_create(attendances, batch_size=2000)
 
     def seed_pathway_grades(self, offerings, school_year):
-        """The teacher's score for the members of each complete bimester."""
+        """The teacher's grade for the members of each complete bimester of
+        the pathways that give one, up to the pathway's maximum."""
         complete = [
             bimester
             for bimester, done in self.bimesters_to_grade(school_year).items()
             if done
         ]
         grades = []
-        for member in PathwayEnrollment.objects.filter(offering__in=offerings):
+        members = PathwayEnrollment.objects.filter(
+            offering__in=offerings, offering__pathway__extra_points__gt=0
+        ).select_related("offering__pathway")
+        for member in members:
             ability = random.gauss(0.78, 0.12)
             for bimester in complete:
                 begins, ends = bimester_range(school_year, bimester)
@@ -1486,7 +1530,9 @@ class Command(BaseCommand):
                             pathway_enrollment=member,
                             bimester=bimester,
                             score=self.score(
-                                MAX_PATHWAY_SCORE, ability, Decimal("0.5")
+                                member.offering.pathway.extra_points,
+                                ability,
+                                Decimal("0.05"),
                             ),
                         )
                     )
@@ -1496,8 +1542,8 @@ class Command(BaseCommand):
 
     def seed_timetables(self, class_subjects):
         """Each class gets its subjects' weekly periods, spread over the week
-        (as few of a subject per day as possible), mostly in the first six
-        periods, with no teacher in two classes of a shift at the same time.
+        (as few of a subject per day as possible, Saturdays included), mostly
+        in the first EARLY_PERIODS periods, with no teacher in two classes of a shift at the same time.
 
         A period that doesn't fit is left out and shows as a weekly load
         warning on the timetable page.
@@ -1508,7 +1554,7 @@ class Command(BaseCommand):
             free = {
                 (weekday, period)
                 for weekday in Weekday.values
-                for period in range(1, LECTURES_PER_DAY + 1)
+                for period, _ in weekday_periods(weekday)
             }
             # The subjects with most periods first: they're the hardest to fit.
             for subject, teacher in sorted(
@@ -1519,7 +1565,7 @@ class Command(BaseCommand):
                     options = sorted(
                         slot for slot in free if (shift, teacher.pk, *slot) not in busy
                     )
-                    early = [slot for slot in options if slot[1] < LECTURES_PER_DAY]
+                    early = [slot for slot in options if slot[1] <= EARLY_PERIODS]
                     options = early or options
                     if not options:
                         continue
@@ -1546,7 +1592,7 @@ class Command(BaseCommand):
         to today, with the series' topic of that part of the year."""
         days = [
             day
-            for bimester in self.school_days(school_year).values()
+            for bimester in self.school_days(school_year, saturdays=True).values()
             for day in bimester
         ]
         length = (school_year.ends - school_year.begins).days

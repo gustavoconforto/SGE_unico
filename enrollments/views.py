@@ -306,7 +306,7 @@ def build_report_context(pk):
     financial_guardian_email = financial_guardian.email
     program = enrollment.enrollment_type
     installment_price = enrollment.enrollment_type.total_price / 12
-    discount_percentage = enrollment.discount_percent
+    discount_percentage = enrollment.overall_discount_percent
     has_discount = bool(discount_percentage)
     discount_amount = enrollment.discount_value
     sign_date = enrollment.enrolled_at

@@ -41,9 +41,11 @@
           <a href="{% url 'pathways:pathway_session_list' %}?offering={{ offering.pk }}">
             {% include 'components/button/button_select.html' with label="Aulas"%}
           </a>
+          {% if offering.pathway.gives_grade %}
           <a href="{% url 'pathways:pathway_grade_entry' %}?offering={{ offering.pk }}">
             {% include 'components/button/button_select.html' with label="Notas"%}
           </a>
+          {% endif %}
           {% url 'pathways:pathway_offering_edit' offering.pk as edit_url %}
           {% url 'pathways:pathway_offering_delete' offering.pk as delete_url %}
           {% include 'components/table/row_menu.html' with menu_id=offering.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar turma de itinerário?' name=offering %}

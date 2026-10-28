@@ -9,7 +9,6 @@ from grades.models import Bimester
 from incidents.forms import ActiveEnrollmentFormMixin
 from incidents.services import bimester_range
 from pathways.models import (
-    MAX_PATHWAY_SCORE,
     AttendanceStatus,
     ExtraGradeSettings,
     Pathway,
@@ -19,7 +18,7 @@ from pathways.models import (
     PathwayOffering,
     PathwaySession,
 )
-from pathways.services import attendance_rate, pathway_points, with_attendance
+from pathways.services import attendance_rate, with_attendance
 
 
 def offerings():
@@ -259,12 +258,13 @@ class AttendanceSheetForm(forms.Form):
 
 
 class PathwayGradeSelectForm(forms.Form):
-    """Pick an offering and a bimester to enter its pathway grades."""
+    """Pick an offering and a bimester to enter its pathway grades; only
+    pathways that give an extra grade are listed."""
 
     offering = forms.ModelChoiceField(
         label="Turma de itinerário",
         required=False,
-        queryset=offerings(),
+        queryset=offerings().filter(pathway__extra_points__gt=0),
         empty_label="Selecione uma turma de itinerário",
         widget=offering_select(),
     )
@@ -280,7 +280,8 @@ class PathwayGradeSelectForm(forms.Form):
 
 class PathwayGradeSheetForm(forms.Form):
     """Every pathway grade of an offering in a bimester: a row per student in
-    the pathway during the bimester. Blank cells delete the grade."""
+    the pathway during the bimester, up to the pathway's `extra_points`.
+    Blank cells delete the grade."""
 
     def __init__(self, *args, offering, bimester, **kwargs):
         super().__init__(*args, **kwargs)
@@ -288,7 +289,7 @@ class PathwayGradeSheetForm(forms.Form):
         self.bimester = bimester
         date_range = bimester_range(offering.school_year, bimester)
         self.has_dates = date_range is not None
-        self.settings = ExtraGradeSettings.for_school_year(offering.school_year)
+        self.max_score = offering.pathway.extra_points
         self.members = list(
             with_attendance(members_between(offering, *date_range), date_range)
             if date_range
@@ -308,7 +309,7 @@ class PathwayGradeSheetForm(forms.Form):
                 label=str(member.enrollment.student),
                 required=False,
                 min_value=0,
-                max_value=MAX_PATHWAY_SCORE,
+                max_value=self.max_score,
                 max_digits=4,
                 decimal_places=2,
                 localize=True,
@@ -326,20 +327,15 @@ class PathwayGradeSheetForm(forms.Form):
         return f"score_{member.pk}"
 
     def rows(self):
-        """(pathway enrollment, bound field, attendance rate, extra points from
-        the saved score); rate and points are None without bimester dates."""
+        """(pathway enrollment, bound field, attendance rate); the rate is
+        None without bimester dates or lessons."""
         for member in self.members:
-            rate = points = None
-            if self.has_dates:
-                rate = attendance_rate(member.present, member.absent)
-                grade = self.existing.get(member.pk)
-                points = pathway_points(
-                    grade.score if grade else None,
-                    self.offering.pathway.extra_points,
-                    rate,
-                    self.settings,
-                )
-            yield member, self[self.field_name(member)], rate, points
+            rate = (
+                attendance_rate(member.present, member.absent)
+                if self.has_dates
+                else None
+            )
+            yield member, self[self.field_name(member)], rate
 
     @transaction.atomic
     def save(self):
@@ -364,11 +360,8 @@ class PathwayGradeSheetForm(forms.Form):
 class ExtraGradeSettingsForm(forms.ModelForm):
     class Meta:
         model = ExtraGradeSettings
-        fields = ["min_pathway_attendance", "q_and_a_min_sessions", "q_and_a_points"]
+        fields = ["q_and_a_min_sessions", "q_and_a_points"]
         widgets = {
-            "min_pathway_attendance": forms.NumberInput(
-                attrs={"class": "input input-neutral w-full", "step": "0.01"}
-            ),
             "q_and_a_min_sessions": forms.NumberInput(
                 attrs={"class": "input input-neutral w-full"}
             ),

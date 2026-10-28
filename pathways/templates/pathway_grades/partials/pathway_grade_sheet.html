@@ -2,11 +2,9 @@
 <form method="POST" action="{{ request.get_full_path }}">
   {% csrf_token %}
   <p class="px-2 pb-3 text-sm text-slate-500">
-    Notas de 0 a 10; use vírgula nos decimais (ex.: 7,5). Apague o valor para remover uma nota.
-    {% if form.has_dates %}
-    Com frequência de ao menos {{ form.settings.min_pathway_attendance|floatformat:"-2" }}% nas aulas do bimestre, o aluno ganha nota ÷ 10 × {{ form.offering.pathway.extra_points|floatformat:2 }} pontos na nota extra.
-    {% else %}
-    O ano escolar não tem as datas deste bimestre: a frequência e os pontos aparecem quando elas forem preenchidas.
+    Notas de 0 a {{ form.max_score|floatformat:"2g" }}, somadas como estão à nota extra do bimestre; use vírgula nos decimais (ex.: 0,5). Apague o valor para remover uma nota.
+    {% if not form.has_dates %}
+    O ano escolar não tem as datas deste bimestre: a frequência aparece quando elas forem preenchidas.
     {% endif %}
   </p>
   <div class="overflow-x-auto">
@@ -17,11 +15,10 @@
         <th>Aluno</th>
         <th class="text-right whitespace-nowrap">Frequência</th>
         <th class="text-right whitespace-nowrap">Nota</th>
-        <th class="text-right whitespace-nowrap">Pontos extras</th>
       </tr>
     </thead>
     <tbody>
-    {% for member, field, rate, points in form.rows %}
+    {% for member, field, rate in form.rows %}
       <tr class="hover:bg-slate-50">
         <td>
           {{ member.enrollment.student }}
@@ -34,13 +31,10 @@
           {{ field }}
           {% for error in field.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
         </td>
-        <td class="text-right whitespace-nowrap font-semibold">
-          {{ points|floatformat:2|default:"-" }}
-        </td>
       </tr>
     {% empty %}
       <tr>
-        <td colspan="4" class="text-center">
+        <td colspan="3" class="text-center">
           Nenhum aluno inscrito nesta turma de itinerário no bimestre
         </td>
       </tr>

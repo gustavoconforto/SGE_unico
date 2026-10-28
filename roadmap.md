@@ -382,7 +382,8 @@ Needs: class with a série, subjects per série with teachers.
 
 ### 7.1 Grade horária (`/lessons/timetable/`)
 
-- [ ] Pick "Aplicação" → empty 5 × 7 grid and the weekly load per subject.
+- [ ] Pick "Aplicação" → empty grid, Monday to Saturday, 12 periods (7 on
+      Saturday), and the weekly load per subject.
 - [ ] Edit: fill cells with "Matéria — Professor". Save.
 - [ ] Weekly load shows a warning when the periods don't match "aulas/semana"
       (a warning, not an error).
@@ -404,7 +405,8 @@ Needs: class with a série, subjects per série with teachers.
       topic.
 
 **Try to break it**
-- [ ] A Saturday, or a date outside the school year → refused.
+- [ ] A Sunday, or a date outside the school year → refused.
+- [ ] A Saturday → only 7 rows on the day sheet.
 - [ ] A teacher from outside the subject's department → refused.
 
 ---

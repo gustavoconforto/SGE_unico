@@ -24,7 +24,8 @@
     </div>
     <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
       {% include 'components/form/field.html' with field=form.gross_value %}
-      {% include 'components/form/field.html' with field=form.discount_percent %}
+      {% include 'components/form/field.html' with field=form.first_discount_percent %}
+      {% include 'components/form/field.html' with field=form.remaining_discount_percent %}
       {% include 'components/form/field.html' with field=form.installments_count %}
       {% include 'components/form/field.html' with field=form.due_day %}
     </div>
@@ -33,7 +34,7 @@
   <section class="form-section">
     <div class="form-section-intro">
       <h2>Descontos</h2>
-      <p>Definidos na matrícula; a conta já foi gerada com a soma deles.</p>
+      <p>Definidos na matrícula; a conta já foi gerada com a soma de cada grupo de parcelas.</p>
     </div>
     <div class="min-w-0 flex-[999_1_26rem] space-y-2">
       <div class="table-wrap">
@@ -41,6 +42,7 @@
           <thead>
               <tr>
                   <th>Desconto</th>
+                  <th>Parcelas</th>
                   <th>Observação</th>
                   <th class="text-right">Percentual</th>
               </tr>
@@ -49,12 +51,13 @@
               {% for discount in object.discounts.all %}
               <tr>
                   <td>{{ discount.discount_type|default:"Desconto avulso" }}</td>
+                  <td>{{ discount.get_group_display }}</td>
                   <td>{{ discount.observation|default:"-" }}</td>
                   <td class="text-right whitespace-nowrap">{{ discount.percentage|floatformat:"2g" }}%</td>
               </tr>
               {% empty %}
               <tr>
-                  <td colspan="3" class="text-center text-slate-500">Nenhum desconto nesta matrícula.</td>
+                  <td colspan="4" class="text-center text-slate-500">Nenhum desconto nesta matrícula.</td>
               </tr>
               {% endfor %}
           </tbody>

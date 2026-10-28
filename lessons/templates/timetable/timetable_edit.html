@@ -31,8 +31,10 @@
             <td class="font-semibold whitespace-nowrap">{{ label }}</td>
             {% for field in fields %}
             <td class="min-w-48 align-top">
+              {% if field is not None %}
               {{ field }}
               {% for error in field.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
+              {% endif %}
             </td>
             {% endfor %}
           </tr>

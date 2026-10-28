@@ -7,8 +7,9 @@ from django.urls import reverse
 
 from base.testing import LoggedInTestCase
 from classes.models import Class
-from enrollments.forms import EnrollmentCreateForm, EnrollmentForm
+from enrollments.forms import EnrollmentCreateForm, EnrollmentForm, SchoolYearForm
 from enrollments.models import (
+    DiscountGroup,
     DiscountType,
     Enrollment,
     EnrollmentDiscount,
@@ -78,15 +79,64 @@ class EnrollmentAccountTests(TestCase):
             ],
         )
 
-    def test_installments_add_up_to_net_value(self):
-        # 1000 / 12 doesn't divide evenly: the cents go to the first installment.
-        account = self.enroll(date(2026, 11, 5)).account
-        amounts = list(
+    def amounts(self, account):
+        return list(
             account.installments.order_by("number").values_list("amount", flat=True)
         )
+
+    def test_first_installment_is_one_twelfth(self):
+        # 1000 / 12 = 83.33; the other 916.67 split over 11 months doesn't
+        # divide evenly: the cents go to the second installment.
+        account = self.enroll(date(2026, 11, 5)).account
+        amounts = self.amounts(account)
         self.assertEqual(sum(amounts), account.net_value)
-        self.assertEqual(amounts[0], Decimal("83.37"))
-        self.assertEqual(set(amounts[1:]), {Decimal("83.33")})
+        self.assertEqual(amounts[0], Decimal("83.33"))
+        self.assertEqual(amounts[1], Decimal("83.37"))
+        self.assertEqual(set(amounts[2:]), {Decimal("83.33")})
+
+    def test_remaining_eleven_twelfths_split_over_remaining_months(self):
+        account = self.enroll(date(2027, 9, 15)).account
+        self.assertEqual(
+            self.amounts(account),
+            [
+                Decimal("83.33"),
+                Decimal("305.57"),
+                Decimal("305.55"),
+                Decimal("305.55"),
+            ],
+        )
+
+    def test_single_installment_carries_the_whole_contract(self):
+        account = self.enroll(date(2027, 12, 1)).account
+        self.assertEqual(self.amounts(account), [Decimal("1000.00")])
+
+
+class SchoolYearFormTests(TestCase):
+    def setUp(self):
+        self.data = {"begins": "2027-01-10", "ends": "2027-12-15"}
+
+    def test_requires_school_days_and_total_hours(self):
+        form = SchoolYearForm(data=self.data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("school_days", form.errors)
+        self.assertIn("total_hours", form.errors)
+
+    def test_saves_school_days_and_total_hours(self):
+        form = SchoolYearForm(
+            data={**self.data, "school_days": "200", "total_hours": "1000"}
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        school_year = form.save()
+        self.assertEqual(school_year.school_days, 200)
+        self.assertEqual(school_year.total_hours, 1000)
+
+    def test_rejects_zero(self):
+        form = SchoolYearForm(
+            data={**self.data, "school_days": "0", "total_hours": "0"}
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("school_days", form.errors)
+        self.assertIn("total_hours", form.errors)
 
 
 class EnrollmentSettingsRedirectTests(LoggedInTestCase):
@@ -214,25 +264,48 @@ class EnrollmentDiscountTests(LoggedInTestCase):
             }
         )
 
-    def test_discounts_are_summed_into_the_account(self):
+    def test_each_group_has_its_own_discounts(self):
         form = self.form(
-            discount_types=[self.siblings.pk, self.former.pk],
-            custom_discount_percent="5",
-            custom_discount_observation="Desconto autorizado pela direção",
+            first_discount_types=[self.siblings.pk, self.former.pk],
+            first_custom_discount_percent="5",
+            first_custom_discount_observation="Desconto autorizado pela direção",
+            remaining_discount_types=[self.siblings.pk],
         )
         self.assertTrue(form.is_valid(), form.errors)
         enrollment = form.save()
 
-        self.assertEqual(enrollment.discount_percent, Decimal(35))
-        self.assertEqual(enrollment.account.discount_value, Decimal("350.00"))
-        self.assertEqual(enrollment.account.net_value, Decimal("650.00"))
+        self.assertEqual(enrollment.first_discount_percent, Decimal(35))
+        self.assertEqual(enrollment.remaining_discount_percent, Decimal(10))
+        # 35% of 83.33 + 10% of 916.67
+        self.assertEqual(enrollment.account.discount_value, Decimal("120.84"))
+        self.assertEqual(enrollment.account.net_value, Decimal("879.16"))
+        amounts = list(
+            enrollment.account.installments.order_by("number").values_list(
+                "amount", flat=True
+            )
+        )
+        self.assertEqual(amounts[0], Decimal("54.16"))
+        self.assertEqual(set(amounts[1:]), {Decimal("75.00")})
+
         custom = enrollment.discounts.get(discount_type=None)
-        self.assertEqual(custom.percentage, Decimal(5))
+        self.assertEqual(custom.group, DiscountGroup.FIRST)
         self.assertEqual(custom.observation, "Desconto autorizado pela direção")
-        self.assertEqual(enrollment.discounts.count(), 3)
+        self.assertEqual(enrollment.discounts.filter(group="F").count(), 3)
+        self.assertEqual(enrollment.discounts.filter(group="R").count(), 1)
+
+    def test_discount_only_on_remaining_installments(self):
+        form = self.form(remaining_discount_types=[self.former.pk])
+        self.assertTrue(form.is_valid(), form.errors)
+        enrollment = form.save()
+
+        self.assertEqual(enrollment.first_discount_percent, Decimal(0))
+        first = enrollment.account.installments.get(number=1)
+        self.assertEqual(first.amount, Decimal("83.33"))
+        # 20% of 916.67
+        self.assertEqual(enrollment.account.discount_value, Decimal("183.33"))
 
     def test_type_percentage_is_copied(self):
-        form = self.form(discount_types=[self.siblings.pk])
+        form = self.form(first_discount_types=[self.siblings.pk])
         self.assertTrue(form.is_valid(), form.errors)
         enrollment = form.save()
         DiscountType.objects.filter(pk=self.siblings.pk).update(percentage=50)
@@ -244,27 +317,31 @@ class EnrollmentDiscountTests(LoggedInTestCase):
         self.assertTrue(form.is_valid(), form.errors)
         enrollment = form.save()
 
-        self.assertEqual(enrollment.discount_percent, Decimal(0))
+        self.assertEqual(enrollment.first_discount_percent, Decimal(0))
+        self.assertEqual(enrollment.remaining_discount_percent, Decimal(0))
         self.assertFalse(enrollment.discounts.exists())
+        self.assertEqual(enrollment.account.net_value, Decimal("1000.00"))
 
     def test_custom_discount_requires_observation(self):
-        form = self.form(custom_discount_percent="15")
+        form = self.form(remaining_custom_discount_percent="15")
         self.assertFalse(form.is_valid())
-        self.assertIn("custom_discount_observation", form.errors)
+        self.assertIn("remaining_custom_discount_observation", form.errors)
 
     def test_observation_requires_custom_percentage(self):
-        form = self.form(custom_discount_observation="Autorizado pela direção")
+        form = self.form(first_custom_discount_observation="Autorizado pela direção")
         self.assertFalse(form.is_valid())
-        self.assertIn("custom_discount_percent", form.errors)
+        self.assertIn("first_custom_discount_percent", form.errors)
 
-    def test_discounts_cannot_exceed_100_percent(self):
+    def test_each_group_cannot_exceed_100_percent(self):
         form = self.form(
-            discount_types=[self.siblings.pk, self.former.pk],
-            custom_discount_percent="80",
-            custom_discount_observation="Bolsa integral",
+            first_discount_types=[self.siblings.pk, self.former.pk],
+            remaining_discount_types=[self.siblings.pk, self.former.pk],
+            remaining_custom_discount_percent="80",
+            remaining_custom_discount_observation="Bolsa integral",
         )
         self.assertFalse(form.is_valid())
-        self.assertIn("discount_types", form.errors)
+        self.assertNotIn("first_discount_types", form.errors)
+        self.assertIn("remaining_discount_types", form.errors)
         self.assertFalse(Enrollment.objects.exists())
 
     def test_create_view_saves_discounts(self):
@@ -275,19 +352,22 @@ class EnrollmentDiscountTests(LoggedInTestCase):
                 "enrollment_type": self.enrollment_type.pk,
                 "status": "A",
                 "due_day": 10,
-                "discount_types": [self.former.pk],
+                "first_discount_types": [self.former.pk],
+                "remaining_discount_types": [self.former.pk],
             },
         )
         enrollment = Enrollment.objects.get()
         self.assertRedirects(
             response, reverse("enrollments:enrollment_edit", args=[enrollment.pk])
         )
-        self.assertEqual(enrollment.discount_percent, Decimal(20))
+        self.assertEqual(enrollment.first_discount_percent, Decimal(20))
+        self.assertEqual(enrollment.remaining_discount_percent, Decimal(20))
 
         response = self.client.get(
             reverse("enrollments:enrollment_edit", args=[enrollment.pk])
         )
         self.assertContains(response, "ALUNO ANTIGO")
+        self.assertContains(response, "Demais parcelas")
 
     def test_database_requires_observation_on_custom_discount(self):
         enrollment = Enrollment.objects.create(
@@ -295,5 +375,5 @@ class EnrollmentDiscountTests(LoggedInTestCase):
         )
         with self.assertRaises(IntegrityError):
             EnrollmentDiscount.objects.create(
-                enrollment=enrollment, percentage=Decimal(5)
+                enrollment=enrollment, group=DiscountGroup.FIRST, percentage=Decimal(5)
             )

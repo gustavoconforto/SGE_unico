@@ -105,16 +105,25 @@ class PathwayModelTests(PathwayFixturesMixin, LoggedInTestCase):
         with self.assertRaisesMessage(ValidationError, "fora do ano escolar"):
             session.full_clean()
 
-    def test_grade_up_to_ten(self):
+    def test_grade_up_to_the_pathway_maximum(self):
         grade = PathwayGrade(
-            pathway_enrollment=self.member, bimester=1, score=Decimal("10.5")
+            pathway_enrollment=self.member, bimester=1, score=Decimal("0.6")
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaisesMessage(ValidationError, "nota máxima"):
+            grade.full_clean()
+
+        grade.score = Decimal("0.5")
+        grade.full_clean()
+
+    def test_pathway_without_extra_grade_takes_no_grade(self):
+        self.robotics.extra_points = 0
+        self.robotics.save()
+        grade = PathwayGrade(pathway_enrollment=self.member, bimester=1, score=0)
+        with self.assertRaisesMessage(ValidationError, "não dá nota extra"):
             grade.full_clean()
 
     def test_settings_created_with_defaults(self):
         settings = ExtraGradeSettings.for_school_year(self.school_year)
-        self.assertEqual(settings.min_pathway_attendance, Decimal(75))
         self.assertEqual(settings.q_and_a_min_sessions, 3)
         self.assertEqual(settings.q_and_a_points, Decimal("0.5"))
         self.assertEqual(ExtraGradeSettings.for_school_year(self.school_year), settings)
@@ -157,53 +166,26 @@ class ExtraGradeTests(PathwayFixturesMixin, LoggedInTestCase):
     def extra_of(self, enrollment, bimester=1):
         return extra_grades([enrollment], bimester, self.extra).get(enrollment.pk)
 
-    def test_proportional_to_the_pathway_score(self):
-        P = AttendanceStatus.PRESENT
-        self.lessons(self.member, [P, P, P, AttendanceStatus.ABSENT])  # 75%
-        self.grade(self.member, "8")
+    def test_pathway_grade_is_added_as_given(self):
+        F = AttendanceStatus.ABSENT
+        self.lessons(self.member, [AttendanceStatus.PRESENT, F, F, F])
+        self.grade(self.member, "0.4")
+        # Attendance doesn't change the teacher's grade.
         self.assertEqual(self.extra_of(self.enrollment), Decimal("0.40"))
 
-    def test_below_minimum_attendance_gives_nothing(self):
-        P, F = AttendanceStatus.PRESENT, AttendanceStatus.ABSENT
-        self.lessons(self.member, [P, P, F, F])
-        self.grade(self.member, "10")
-        self.assertEqual(self.extra_of(self.enrollment), 0)
-
-    def test_excused_absences_are_left_out(self):
-        P, J = AttendanceStatus.PRESENT, AttendanceStatus.EXCUSED
-        self.lessons(self.member, [P, J, J, J])
-        self.grade(self.member, "10")
-        self.assertEqual(self.extra_of(self.enrollment), Decimal("0.5"))
-
-    def test_no_lessons_or_no_grade_gives_nothing(self):
-        self.grade(self.member, "10")
-        self.assertEqual(self.extra_of(self.enrollment), 0)
-
-        PathwayGrade.objects.all().delete()
+    def test_no_grade_gives_nothing(self):
         self.lessons(self.member, [AttendanceStatus.PRESENT])
         self.assertEqual(self.extra_of(self.enrollment), 0)
 
-    def test_lessons_outside_the_bimester_dont_count(self):
-        self.lessons(self.member, [AttendanceStatus.PRESENT])
-        session = PathwaySession.objects.create(
-            offering=self.offering, date=date(2027, 5, 1)
-        )
-        PathwayAttendance.objects.create(
-            session=session,
-            pathway_enrollment=self.member,
-            status=AttendanceStatus.ABSENT,
-        )
-        self.grade(self.member, "10")
-        self.assertEqual(self.extra_of(self.enrollment), Decimal("0.5"))
+    def test_grades_of_other_bimesters_dont_count(self):
+        self.grade(self.member, "0.5", bimester=2)
+        self.assertEqual(self.extra_of(self.enrollment), 0)
 
-    def test_minimum_attendance_comes_from_the_settings(self):
-        P, F = AttendanceStatus.PRESENT, AttendanceStatus.ABSENT
-        self.lessons(self.member, [P, F])
-        self.grade(self.member, "10")
-        ExtraGradeSettings.objects.create(
-            school_year=self.school_year, min_pathway_attendance=Decimal(50)
-        )
-        self.assertEqual(self.extra_of(self.enrollment), Decimal("0.5"))
+    def test_pathway_without_extra_grade_counts_zero(self):
+        self.grade(self.member, "0.5")
+        self.robotics.extra_points = 0
+        self.robotics.save()
+        self.assertEqual(self.extra_of(self.enrollment), 0)
 
     def test_q_and_a_points_from_the_minimum_sessions(self):
         self.q_and_as(2)
@@ -228,10 +210,8 @@ class ExtraGradeTests(PathwayFixturesMixin, LoggedInTestCase):
             ),
             joined_at=date(2027, 2, 1),
         )
-        self.lessons(self.member, [AttendanceStatus.PRESENT])
-        self.lessons(theater, [AttendanceStatus.PRESENT], start_day=2)
-        self.grade(self.member, "6")  # 0.30
-        self.grade(theater, "5")  # 0.50
+        self.grade(self.member, "0.3")
+        self.grade(theater, "0.5")
         self.assertEqual(self.extra_of(self.enrollment), Decimal("0.80"))
 
         self.q_and_as(3)  # 0.50, capped at the exam's 1.00
@@ -241,8 +221,7 @@ class ExtraGradeTests(PathwayFixturesMixin, LoggedInTestCase):
         self.assertEqual(extra_grades([self.enrollment], 2, self.extra), {})
 
     def test_save_writes_every_subject_zero_included(self):
-        self.lessons(self.member, [AttendanceStatus.PRESENT])
-        self.grade(self.member, "10")
+        self.grade(self.member, "0.5")
         Grade.objects.create(
             enrollment=self.other,
             subject=self.math,
@@ -285,7 +264,7 @@ class ExtraGradeSettingsViewsTests(LoggedInTestCase):
         self.assertTemplateUsed(
             response, "extra_grade_settings/extra_grade_settings_list.html"
         )
-        self.assertContains(response, "75%")
+        self.assertContains(response, "0,50")
         self.assertFalse(ExtraGradeSettings.objects.exists())
 
         response = self.client.get(url, {"q": "2027"}, **HTMX)
@@ -300,31 +279,21 @@ class ExtraGradeSettingsViewsTests(LoggedInTestCase):
 
         response = self.client.post(
             url,
-            {
-                "min_pathway_attendance": "80",
-                "q_and_a_min_sessions": "2",
-                "q_and_a_points": "0.25",
-            },
+            {"q_and_a_min_sessions": "2", "q_and_a_points": "0.25"},
         )
         self.assertRedirects(response, reverse("pathways:extra_grade_settings_list"))
         settings = ExtraGradeSettings.objects.get(school_year=self.school_year)
-        self.assertEqual(settings.min_pathway_attendance, Decimal(80))
         self.assertEqual(settings.q_and_a_min_sessions, 2)
         self.assertEqual(settings.q_and_a_points, Decimal("0.25"))
 
-    def test_attendance_over_100_is_rejected(self):
+    def test_negative_points_are_rejected(self):
         url = reverse("pathways:extra_grade_settings_edit", args=[self.school_year.pk])
         response = self.client.post(
-            url,
-            {
-                "min_pathway_attendance": "120",
-                "q_and_a_min_sessions": "2",
-                "q_and_a_points": "0.25",
-            },
+            url, {"q_and_a_min_sessions": "2", "q_and_a_points": "-1"}
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            ExtraGradeSettings.objects.get().min_pathway_attendance, Decimal(75)
+            ExtraGradeSettings.objects.get().q_and_a_points, Decimal("0.5")
         )
 
 
@@ -601,38 +570,42 @@ class PathwayGradeEntryTests(PathwayFixturesMixin, LoggedInTestCase):
             f"?offering={self.offering.pk}&bimester={bimester}"
         )
 
-    def test_sheet_shows_attendance_and_points(self):
+    def test_sheet_shows_attendance(self):
         session = PathwaySession.objects.create(
             offering=self.offering, date=date(2027, 3, 1)
         )
         PathwayAttendance.objects.create(
             session=session, pathway_enrollment=self.member
         )
-        PathwayGrade.objects.create(
-            pathway_enrollment=self.member, bimester=1, score=Decimal(8)
-        )
         response = self.client.get(self.sheet_url(), **HTMX)
         self.assertTemplateUsed(
             response, "pathway_grades/partials/pathway_grade_sheet.html"
         )
-        [(member, _, rate, points)] = list(response.context["form"].rows())
+        [(member, _, rate)] = list(response.context["form"].rows())
         self.assertEqual(member, self.member)
         self.assertEqual(rate, Decimal(100))
-        self.assertEqual(points, Decimal("0.40"))
 
     def test_save_updates_and_blank_deletes(self):
         field = f"score_{self.member.pk}"
-        response = self.client.post(self.sheet_url(), {field: "7,5"})
+        response = self.client.post(self.sheet_url(), {field: "0,4"})
         self.assertRedirects(response, self.sheet_url())
-        self.assertEqual(PathwayGrade.objects.get().score, Decimal("7.5"))
+        self.assertEqual(PathwayGrade.objects.get().score, Decimal("0.4"))
 
         self.client.post(self.sheet_url(), {field: ""})
         self.assertFalse(PathwayGrade.objects.exists())
 
-    def test_score_over_ten_saves_nothing(self):
-        response = self.client.post(self.sheet_url(), {f"score_{self.member.pk}": "11"})
+    def test_score_over_the_pathway_maximum_saves_nothing(self):
+        response = self.client.post(
+            self.sheet_url(), {f"score_{self.member.pk}": "0,6"}
+        )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(PathwayGrade.objects.exists())
+
+    def test_pathway_without_extra_grade_has_no_sheet(self):
+        self.robotics.extra_points = 0
+        self.robotics.save()
+        response = self.client.get(self.sheet_url(), **HTMX)
+        self.assertIsNone(response.context["form"])
 
     def test_without_selection_shows_no_sheet(self):
         response = self.client.get(reverse("pathways:pathway_grade_entry"))
@@ -654,7 +627,7 @@ class ExtraGradeViewsTests(PathwayFixturesMixin, LoggedInTestCase):
         )
         PathwayAttendance.objects.create(session=session, pathway_enrollment=cls.member)
         PathwayGrade.objects.create(
-            pathway_enrollment=cls.member, bimester=1, score=Decimal(10)
+            pathway_enrollment=cls.member, bimester=1, score=Decimal("0.5")
         )
 
     def setUp(self):

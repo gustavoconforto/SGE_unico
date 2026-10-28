@@ -15,6 +15,8 @@ from lessons.models import Lecture, TimetableSlot, Weekday
 
 HTMX = {"HTTP_HX_REQUEST": "true"}
 MONDAY = date(2027, 3, 1)
+SATURDAY = date(2027, 3, 6)
+SUNDAY = date(2027, 3, 7)
 
 
 class LessonFixturesMixin:
@@ -89,6 +91,12 @@ class TimetableSlotModelTests(LessonFixturesMixin, LoggedInTestCase):
         with self.assertRaisesMessage(ValidationError, "já tem aula na turma"):
             self.slot().full_clean()
 
+    def test_weekdays_have_twelve_periods_and_saturday_seven(self):
+        self.slot(weekday=Weekday.FRIDAY, period=12).full_clean()
+        self.slot(weekday=Weekday.SATURDAY, period=7).full_clean()
+        with self.assertRaisesMessage(ValidationError, "sábado tem só 7 aulas"):
+            self.slot(weekday=Weekday.SATURDAY, period=8).full_clean()
+
     def test_same_period_in_another_shift_is_not_a_clash(self):
         self.other_class.shift = Shift.AFTERNOON
         self.other_class.save()
@@ -97,9 +105,15 @@ class TimetableSlotModelTests(LessonFixturesMixin, LoggedInTestCase):
 
 
 class LectureModelTests(LessonFixturesMixin, LoggedInTestCase):
-    def test_lectures_are_on_weekdays(self):
-        with self.assertRaisesMessage(ValidationError, "segunda a sexta"):
-            self.lecture(day=date(2027, 3, 6)).full_clean()
+    def test_lectures_are_from_monday_to_saturday(self):
+        self.lecture(day=SATURDAY).full_clean()
+        with self.assertRaisesMessage(ValidationError, "segunda a sábado"):
+            self.lecture(day=SUNDAY).full_clean()
+
+    def test_saturday_lectures_stop_at_the_seventh_period(self):
+        self.lecture(period=12).full_clean()
+        with self.assertRaisesMessage(ValidationError, "sábado tem só 7 aulas"):
+            self.lecture(day=SATURDAY, period=8).full_clean()
 
     def test_lectures_are_inside_the_school_year(self):
         with self.assertRaisesMessage(ValidationError, "fora do ano escolar"):
@@ -147,6 +161,16 @@ class TimetableViewsTests(LessonFixturesMixin, LoggedInTestCase):
             set(self.school_class.timetable_slots.values_list("weekday", "period")),
             {(1, 1), (2, 3)},
         )
+
+    def test_edit_has_twelve_periods_and_seven_on_saturday(self):
+        response = self.client.get(
+            reverse("lessons:timetable_edit", args=[self.school_class.pk])
+        )
+        form = response.context["form"]
+        self.assertIn("slot_5_12", form.fields)
+        self.assertIn("slot_6_7", form.fields)
+        self.assertNotIn("slot_6_8", form.fields)
+        self.assertContains(response, "Sábado")
 
     def test_clash_saves_nothing(self):
         self.slot(school_class=self.other_class).save()
@@ -214,10 +238,17 @@ class LectureDayViewTests(LessonFixturesMixin, LoggedInTestCase):
         self.assertContains(response, "Informe o professor.")
         self.assertFalse(Lecture.objects.exists())
 
-    def test_weekend_shows_an_error_instead_of_the_sheet(self):
-        response = self.client.get(self.url(date(2027, 3, 6)), **HTMX)
+    def test_saturday_sheet_has_seven_rows(self):
+        self.assertEqual(
+            len(list(self.client.get(self.url(), **HTMX).context["form"].rows())), 12
+        )
+        form = self.client.get(self.url(SATURDAY), **HTMX).context["form"]
+        self.assertEqual(len(list(form.rows())), 7)
+
+    def test_sunday_shows_an_error_instead_of_the_sheet(self):
+        response = self.client.get(self.url(SUNDAY), **HTMX)
         self.assertIsNone(response.context["form"])
-        self.assertContains(response, "segunda a sexta")
+        self.assertContains(response, "segunda a sábado")
 
 
 class LectureCrudViewsTests(LessonFixturesMixin, LoggedInTestCase):

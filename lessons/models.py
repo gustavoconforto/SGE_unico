@@ -6,7 +6,8 @@ from base.models import TimeStampedModel
 from employees.models import Employee
 from grades.models import GradeLevelSubject
 
-LECTURES_PER_DAY = 7
+LECTURES_PER_DAY = 12
+SATURDAY_LECTURES = 7
 PERIODS = [(period, f"{period}ª aula") for period in range(1, LECTURES_PER_DAY + 1)]
 
 
@@ -16,6 +17,21 @@ class Weekday(models.IntegerChoices):
     WEDNESDAY = 3, "Quarta-feira"
     THURSDAY = 4, "Quinta-feira"
     FRIDAY = 5, "Sexta-feira"
+    SATURDAY = 6, "Sábado"
+
+
+def weekday_periods(weekday):
+    """The (period, label) choices of a weekday: Saturday has fewer."""
+    if weekday == Weekday.SATURDAY:
+        return PERIODS[:SATURDAY_LECTURES]
+    return PERIODS
+
+
+def period_error(weekday, period):
+    """Why the weekday has no such period, or None."""
+    if weekday == Weekday.SATURDAY and period > SATURDAY_LECTURES:
+        return f"O sábado tem só {SATURDAY_LECTURES} aulas."
+    return None
 
 
 def lecture_teachers(level_subject):
@@ -29,8 +45,8 @@ def lecture_teachers(level_subject):
 
 def lecture_date_error(school_class, day):
     """Why `day` can't have lectures of the class, or None."""
-    if day.isoweekday() > Weekday.FRIDAY:
-        return "As aulas são de segunda a sexta-feira."
+    if day.isoweekday() > Weekday.SATURDAY:
+        return "As aulas são de segunda a sábado."
     school_year = school_class.year
     if not school_year.begins <= day <= school_year.ends:
         return "A data está fora do ano escolar da turma."
@@ -71,8 +87,13 @@ class TimetableSlot(models.Model):
                 name="unique_timetable_slot",
             ),
             models.CheckConstraint(
-                condition=Q(weekday__gte=1, weekday__lte=5),
+                condition=Q(weekday__gte=1, weekday__lte=Weekday.SATURDAY),
                 name="timetable_slot_weekday_range",
+            ),
+            models.CheckConstraint(
+                condition=~Q(weekday=Weekday.SATURDAY)
+                | Q(period__lte=SATURDAY_LECTURES),
+                name="timetable_slot_saturday_period_range",
             ),
             models.CheckConstraint(
                 condition=Q(period__gte=1, period__lte=LECTURES_PER_DAY),
@@ -85,6 +106,10 @@ class TimetableSlot(models.Model):
 
     def clean(self):
         errors = {}
+        if self.weekday and self.period:
+            message = period_error(self.weekday, self.period)
+            if message:
+                errors["period"] = message
         if self.school_class_id and self.subject_id:
             if self.subject.grade_level != self.school_class.grade_level:
                 errors["subject"] = "Esta matéria não é oferecida na série da turma."
@@ -166,6 +191,10 @@ class Lecture(TimeStampedModel):
             message = lecture_date_error(self.school_class, self.date)
             if message:
                 errors["date"] = message
+        if self.date and self.period:
+            message = period_error(self.date.isoweekday(), self.period)
+            if message:
+                errors["period"] = message
         if self.school_class_id and self.subject_id:
             if self.subject.grade_level != self.school_class.grade_level:
                 errors["subject"] = "Esta matéria não é oferecida na série da turma."

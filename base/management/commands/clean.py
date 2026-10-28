@@ -151,6 +151,8 @@ class Command(BaseCommand):
                     "bi_3_ends": date(year, 9, 30),
                     "bi_4_begins": date(year, 10, 13),
                     "bi_4_ends": date(year, 12, 15),
+                    "school_days": 200,
+                    "total_hours": 1000,
                 },
             )[0]
             for year in self.school_years

@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import F, Q
 from django.utils import timezone
@@ -11,8 +11,6 @@ from employees.models import Employee
 from enrollments.models import Enrollment, SchoolYear
 from grades.models import SCORE, Bimester
 
-MAX_PATHWAY_SCORE = Decimal("10.00")
-
 
 class Pathway(models.Model):
     """An extra-curricular course in the catalog, offered again every year."""
@@ -20,11 +18,12 @@ class Pathway(models.Model):
     name = models.CharField("Nome", max_length=50, unique=True)
     description = models.TextField("Descrição", blank=True)
     extra_points = models.DecimalField(
-        "Pontos extras",
+        "Nota máxima",
         **SCORE,
         default=Decimal(0),
         validators=[MinValueValidator(0)],
-        help_text="Máximo que o itinerário soma à nota extra do bimestre",
+        help_text="Maior nota que o professor pode dar no bimestre; "
+        "deixe 0 se o itinerário não dá nota extra",
     )
 
     class Meta:
@@ -40,6 +39,10 @@ class Pathway(models.Model):
 
     def __str__(self):
         return f"{self.name}"
+
+    @property
+    def gives_grade(self):
+        return self.extra_points > 0
 
 
 class PathwayOffering(TimeStampedModel):
@@ -236,7 +239,8 @@ class PathwayAttendance(models.Model):
 
 
 class PathwayGrade(TimeStampedModel):
-    """The pathway teacher's score for a student in a bimester (0 to 10)."""
+    """The points the pathway teacher gives a student in a bimester, added as
+    they are to the extra grade; at most the pathway's `extra_points`."""
 
     pathway_enrollment = models.ForeignKey(
         PathwayEnrollment,
@@ -248,7 +252,7 @@ class PathwayGrade(TimeStampedModel):
     score = models.DecimalField(
         "Nota",
         **SCORE,
-        validators=[MinValueValidator(0), MaxValueValidator(MAX_PATHWAY_SCORE)],
+        validators=[MinValueValidator(0)],
     )
 
     class Meta:
@@ -261,8 +265,8 @@ class PathwayGrade(TimeStampedModel):
                 name="unique_pathway_grade_per_bimester",
             ),
             models.CheckConstraint(
-                condition=Q(score__gte=0, score__lte=MAX_PATHWAY_SCORE),
-                name="pathway_grade_score_range",
+                condition=Q(score__gte=0),
+                name="pathway_grade_score_not_negative",
             ),
             models.CheckConstraint(
                 condition=Q(bimester__gte=1, bimester__lte=4),
@@ -272,6 +276,17 @@ class PathwayGrade(TimeStampedModel):
 
     def __str__(self):
         return f"{self.pathway_enrollment} - {self.bimester}º bim.: {self.score}"
+
+    def clean(self):
+        if not self.pathway_enrollment_id or self.score is None:
+            return
+        pathway = self.pathway_enrollment.offering.pathway
+        if not pathway.gives_grade:
+            raise ValidationError("Este itinerário não dá nota extra.")
+        if self.score > pathway.extra_points:
+            raise ValidationError(
+                {"score": f"A nota máxima deste itinerário é {pathway.extra_points}."}
+            )
 
 
 class ExtraGradeSettings(models.Model):
@@ -286,14 +301,6 @@ class ExtraGradeSettings(models.Model):
         on_delete=models.PROTECT,
         related_name="extra_grade_settings",
         verbose_name="Ano escolar",
-    )
-    min_pathway_attendance = models.DecimalField(
-        "Frequência mínima nos itinerários (%)",
-        max_digits=5,
-        decimal_places=2,
-        default=Decimal(75),
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
-        help_text="Abaixo dela o itinerário não soma pontos no bimestre",
     )
     q_and_a_min_sessions = models.PositiveSmallIntegerField(
         "Mínimo de plantões no bimestre",
@@ -313,11 +320,6 @@ class ExtraGradeSettings(models.Model):
         verbose_name_plural = "Configurações da nota extra"
         ordering = ["-school_year__begins"]
         constraints = [
-            models.CheckConstraint(
-                condition=Q(min_pathway_attendance__gte=0)
-                & Q(min_pathway_attendance__lte=100),
-                name="extra_grade_settings_attendance_range",
-            ),
             models.CheckConstraint(
                 condition=Q(q_and_a_min_sessions__gte=1),
                 name="extra_grade_settings_min_sessions_positive",

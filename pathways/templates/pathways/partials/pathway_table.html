@@ -5,7 +5,7 @@
       <tr>
         <th>Nome</th>
         <th>Descrição</th>
-        <th class="text-right">Pontos extras</th>
+        <th class="text-right">Nota máxima</th>
         <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
@@ -19,7 +19,7 @@
             {{ pathway.description|truncatechars:80|default:"-" }}
         </td>
         <td class="text-right whitespace-nowrap">
-            {{ pathway.extra_points|floatformat:2 }}
+            {% if pathway.gives_grade %}{{ pathway.extra_points|floatformat:"2g" }}{% else %}<span class="text-slate-500">Sem nota</span>{% endif %}
         </td>
         <td class="text-right">
           <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">

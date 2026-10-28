@@ -282,6 +282,8 @@ class Command(BaseCommand):
                     "bi_3_ends": date(year, 9, 30),
                     "bi_4_begins": date(year, 10, 13),
                     "bi_4_ends": date(year, 12, 15),
+                    "school_days": 200,
+                    "total_hours": 1000,
                 },
             )[0]
             for year in self.school_years
@@ -559,6 +561,10 @@ class Command(BaseCommand):
                 enrollment_type = enrollment_types[
                     (year, program.pk, str(grade_level) if grade_level else "")
                 ]
+                discount_percent = random.choices(
+                    [Decimal(0), Decimal(10), Decimal(20)],
+                    weights=[75, 20, 5],
+                )[0]
                 enrollments.append(
                     Enrollment(
                         student=student,
@@ -575,10 +581,8 @@ class Command(BaseCommand):
                         status=status,
                         enrolled_at=date(year - 1, 12, 1)
                         + timedelta(days=random.randint(0, 60)),
-                        discount_percent=random.choices(
-                            [Decimal(0), Decimal(10), Decimal(20)],
-                            weights=[75, 20, 5],
-                        )[0],
+                        first_discount_percent=discount_percent,
+                        remaining_discount_percent=discount_percent,
                         due_day=random.choice([5, 10, 15]),
                     )
                 )

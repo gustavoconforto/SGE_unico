@@ -30,6 +30,21 @@ class SchoolYear(models.Model):
         "Data de início do 4 Bimestre", blank=True, null=True
     )
     bi_4_ends = models.DateField("Data de fim do 4 Bimestre", blank=True, null=True)
+    # Required by SchoolYearForm; nullable only for years created before them.
+    school_days = models.PositiveSmallIntegerField(
+        "Dias letivos",
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1)],
+        help_text="Total de dias letivos do ano",
+    )
+    total_hours = models.PositiveIntegerField(
+        "Carga horária (horas)",
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1)],
+        help_text="Total de horas oferecidas ao aluno no ano, base da frequência",
+    )
 
     def __str__(self):
         return f"{self.begins.year}"
@@ -37,6 +52,18 @@ class SchoolYear(models.Model):
     class Meta:
         verbose_name = "Ano escolar"
         verbose_name_plural = "Anos escolares"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(school_days__isnull=True)
+                | models.Q(school_days__gte=1),
+                name="school_year_school_days_positive",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(total_hours__isnull=True)
+                | models.Q(total_hours__gte=1),
+                name="school_year_total_hours_positive",
+            ),
+        ]
 
 
 class NeededDocumentType(models.Model):
@@ -131,6 +158,19 @@ class DiscountType(models.Model):
         ordering = ["description"]
 
 
+class DiscountGroup(models.TextChoices):
+    """Which installments a discount applies to. The first installment is
+    1/12 of the contract; the remaining 11/12 are split over the other months.
+    """
+
+    FIRST = "F", "1ª parcela"
+    REMAINING = "R", "Demais parcelas"
+
+
+def percent_of(value, percent):
+    return (value * percent / 100).quantize(Decimal("0.01"), ROUND_HALF_UP)
+
+
 class Enrollment(TimeStampedModel):
     student = models.ForeignKey(
         Student,
@@ -172,8 +212,17 @@ class Enrollment(TimeStampedModel):
         blank=True,
         help_text="Preenchido automáticamente",
     )
-    discount_percent = models.DecimalField(
-        "Percentual de desconto",
+    first_discount_percent = models.DecimalField(
+        "Desconto da 1ª parcela (%)",
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Preenchido automáticamente",
+    )
+    remaining_discount_percent = models.DecimalField(
+        "Desconto das demais parcelas (%)",
         max_digits=5,
         decimal_places=2,
         null=True,
@@ -199,20 +248,54 @@ class Enrollment(TimeStampedModel):
         return f"{self.student} - {self.enrollment_type}"
 
     @property
+    def first_gross_value(self):
+        """1/12 of the contract, charged in the first installment."""
+        return (self.gross_value / 12).quantize(Decimal("0.01"), ROUND_HALF_UP)
+
+    @property
+    def remaining_gross_value(self):
+        return self.gross_value - self.first_gross_value
+
+    @property
+    def first_discount_value(self):
+        return percent_of(self.first_gross_value, self.first_discount_percent)
+
+    @property
+    def remaining_discount_value(self):
+        return percent_of(self.remaining_gross_value, self.remaining_discount_percent)
+
+    @property
+    def first_net_value(self):
+        return self.first_gross_value - self.first_discount_value
+
+    @property
+    def remaining_net_value(self):
+        return self.remaining_gross_value - self.remaining_discount_value
+
+    @property
     def discount_value(self):
-        return (self.gross_value * self.discount_percent / 100).quantize(
-            Decimal("0.01"), ROUND_HALF_UP
-        )
+        return self.first_discount_value + self.remaining_discount_value
 
     @property
     def net_value(self):
         return self.gross_value - self.discount_value
 
+    @property
+    def overall_discount_percent(self):
+        """Discount over the whole contract, both groups combined."""
+        if not self.gross_value:
+            return Decimal(0)
+        return (self.discount_value * 100 / self.gross_value).quantize(
+            Decimal("0.01"), ROUND_HALF_UP
+        )
+
     def fill_contract_values(self):
         if self.gross_value is None and self.enrollment_type_id:
             self.gross_value = self.enrollment_type.total_price
-        if self.discount_percent is None:
-            self.discount_percent = Decimal(0)
+        if self.first_discount_percent is None:
+            self.first_discount_percent = Decimal(0)
+        if self.remaining_discount_percent is None:
+            self.remaining_discount_percent = Decimal(0)
 
     def save(self, *args, **kwargs):
         self.fill_contract_values()
@@ -222,13 +305,21 @@ class Enrollment(TimeStampedModel):
     def save_with_discounts(self, discounts):
         """Create the enrollment with these unsaved EnrollmentDiscount rows.
 
-        discount_percent is their sum and must be set before the first save:
-        the post_save signal creates the account from it.
+        Each group's percentage is the sum of its discounts and must be set
+        before the first save: the post_save signal creates the account from
+        them.
         """
         for discount in discounts:
             if discount.percentage is None:
                 discount.percentage = discount.discount_type.percentage
-        self.discount_percent = sum((d.percentage for d in discounts), Decimal(0))
+        self.first_discount_percent = sum(
+            (d.percentage for d in discounts if d.group == DiscountGroup.FIRST),
+            Decimal(0),
+        )
+        self.remaining_discount_percent = sum(
+            (d.percentage for d in discounts if d.group == DiscountGroup.REMAINING),
+            Decimal(0),
+        )
         self.save()
         for discount in discounts:
             discount.enrollment = self
@@ -274,9 +365,10 @@ class Enrollment(TimeStampedModel):
 class EnrollmentDiscount(TimeStampedModel):
     """One discount of an enrollment: a DiscountType or a custom percentage.
 
-    The percentage is copied from the type, so later changes to it don't
-    affect existing contracts. A custom discount (no type) needs an
-    observation explaining who allowed it.
+    It applies to the first installment or to the remaining ones (group);
+    the same type can be in both groups. The percentage is copied from the
+    type, so later changes to it don't affect existing contracts. A custom
+    discount (no type) needs an observation explaining who allowed it.
     """
 
     enrollment = models.ForeignKey(
@@ -293,6 +385,7 @@ class EnrollmentDiscount(TimeStampedModel):
         null=True,
         blank=True,
     )
+    group = models.CharField("Parcelas", max_length=1, choices=DiscountGroup.choices)
     percentage = models.DecimalField(
         "Percentual",
         max_digits=5,
@@ -303,16 +396,20 @@ class EnrollmentDiscount(TimeStampedModel):
 
     def __str__(self):
         label = self.discount_type or "Desconto avulso"
-        return f"{label} ({self.percentage}%)"
+        return f"{label} ({self.percentage}%, {self.get_group_display()})"
 
     class Meta:
         verbose_name = "Desconto da matrícula"
         verbose_name_plural = "Descontos da matrícula"
-        ordering = ["enrollment", "pk"]
+        ordering = ["enrollment", "group", "pk"]
         constraints = [
             models.UniqueConstraint(
-                fields=["enrollment", "discount_type"],
+                fields=["enrollment", "group", "discount_type"],
                 name="unique_enrollment_discount_type",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(group__in=DiscountGroup.values),
+                name="enrollment_discount_group_valid",
             ),
             models.CheckConstraint(
                 condition=models.Q(percentage__gte=0, percentage__lte=100),

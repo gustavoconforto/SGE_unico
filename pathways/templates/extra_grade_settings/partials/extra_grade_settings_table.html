@@ -3,7 +3,6 @@
     <thead>
       <tr>
         <th>Ano escolar</th>
-        <th class="text-right">Frequência mínima nos itinerários</th>
         <th class="text-right">Mínimo de plantões</th>
         <th class="text-right">Pontos pelos plantões</th>
         <th class="text-right"><span class="sr-only">Ações</span></th>
@@ -15,9 +14,6 @@
       <tr class="hover:bg-slate-50">
         <td>
             {{ school_year }}
-        </td>
-        <td class="text-right whitespace-nowrap">
-            {{ settings.min_pathway_attendance|floatformat:0 }}%
         </td>
         <td class="text-right">
             {{ settings.q_and_a_min_sessions }}
@@ -35,7 +31,7 @@
       </tr>
       {% endwith %}
       {% empty %}
-      {% include 'components/table/empty_table.html' with collspan=5%}
+      {% include 'components/table/empty_table.html' with collspan=4%}
       {% endfor %}
     </tbody>
   </table>
