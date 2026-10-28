@@ -153,7 +153,7 @@ class Command(BaseCommand):
             programs = self.seed_programs()
             school_years = self.seed_school_years()
             classes = self.seed_classes(programs, school_years)
-            # enrollment_types = self.seed_enrollment_types(programs, school_years)
+            enrollment_types = self.seed_enrollment_types(programs, school_years)
             # incident_types = self.seed_incident_types()
             subjects = self.seed_subjects()
             self.seed_enrollment_needed_document_types()
@@ -291,7 +291,9 @@ class Command(BaseCommand):
 
     def seed_discount_types(self):
         for discount in DISCOUNT_TYPES:
-            DiscountType.objects.create(description=discount[0], percentage=discount[1])
+            DiscountType.objects.get_or_create(
+                description=discount[0], defaults={"percentage": discount[1]}
+            )
 
     def seed_enrollment_types(self, programs, school_years):
         """Keyed by (year, program pk, level); level is "" for prep programs."""
