@@ -23,7 +23,7 @@ Browser ──HTTP──▶ config/urls.py ──▶ <app>/urls.py ──▶ cla
 
 | App | URL prefix | Responsibility |
 |---|---|---|
-| `base` | `/` | Abstract models (`TimeStampedModel`, `Person`), htmx search/filter mixins, layout and UI components, login page template, `LoginRequiredMiddleware`, users/groups/permissions screens, `clean`, `seed` and `full_seed` commands |
+| `base` | `/` | Abstract models (`TimeStampedModel`, `Person`), htmx search/filter mixins, layout and UI components, login page template, `LoginRequiredMiddleware`, users/groups/permissions screens, `seed` and `full_seed` commands |
 | `employees` | `/employees/` | `EmployeeRoleType`, `Employee` |
 | `programs` | `/programs/` | `Program` (course: Ensino Médio, Pré UNB, Pré ENEM) |
 | `classes` | `/classes/` | `Class` (turma), and the class page (the class's subjects and the students actively enrolled in it) |
@@ -394,9 +394,14 @@ match files the bank already accepted (`00000 000000000000 ` in positions
 
 ## Development data (`base/management/commands/`)
 
-- `clean` seeds reference data (users, programs, school years, classes…)
-  despite its name; `seed` adds a few fake people.
-- `full_seed` **flushes the database** and fills a whole school year sized to
+- Both commands **drop every table and re-run all migrations** first
+  (`--no-reset` skips that; tests use it), and refuse to reset without DEBUG.
+- `seed` creates only what other records are built from: users, groups, the
+  school year, classes, enrollment types, discounts, documents, exam and
+  incident types, departments, subjects, pathways, bank settings, account
+  categories and suppliers, staff and teachers, students and guardians
+  (3 per class by default). No enrollments, accounts, grades or lessons.
+- `full_seed` fills a whole school year sized to
   stress the UI (31 classes × 45 students by default; `--students-per-class`,
   `--year`, `--today`, `--random-seed`). It goes through the app's own rules:
   enrollments are saved one by one so the signal builds their accounts, bank

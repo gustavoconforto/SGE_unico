@@ -10,7 +10,7 @@ from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from accounts.models import Payment
+from accounts.models import Payment, Supplier
 from billing.models import BankSlip, ReturnEvent, SlipStatus
 from classes.models import Class
 from enrollments.models import Enrollment
@@ -90,6 +90,7 @@ class FullSeedTests(TestCase):
         year = timezone.localdate().year + 1
         call_command(
             "full_seed",
+            reset=False,
             students_per_class=2,
             year=year,
             today=date(year, 11, 20),
@@ -102,6 +103,7 @@ class FullSeedTests(TestCase):
         # A past year runs every step: all bimesters graded, every month billed.
         call_command(
             "full_seed",
+            reset=False,
             students_per_class=2,
             year=timezone.localdate().year - 1,
             stdout=StringIO(),
@@ -289,6 +291,7 @@ class PageSmokeTests(LoggedInTestCase):
     def setUpTestData(cls):
         call_command(
             "full_seed",
+            reset=False,
             students_per_class=1,
             year=timezone.localdate().year - 1,
             stdout=StringIO(),
@@ -348,3 +351,15 @@ class PageSmokeTests(LoggedInTestCase):
                 self.assertIn(response.status_code, (200, 302, 405))
                 checked += 1
         self.assertGreater(checked, 80)
+
+
+class SeedTests(TestCase):
+    def test_seeds_people_without_enrollments(self):
+        call_command("seed", reset=False, students_per_class=1, stdout=StringIO())
+        self.assertEqual(Student.objects.count(), 31)
+        self.assertFalse(
+            Student.objects.filter(registration__startswith="TMP").exists()
+        )
+        self.assertEqual(Enrollment.objects.count(), 0)
+        self.assertEqual(Class.objects.filter(capacity=45).count(), 31)
+        self.assertTrue(Supplier.objects.exists())

@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 from decimal import Decimal
 
+from django.test import SimpleTestCase
 from django.urls import reverse
 from django.utils import timezone
 
@@ -19,6 +20,7 @@ from billing.models import BankSlip, Remittance
 from enrollments.models import Enrollment, EnrollmentType, SchoolYear
 from programs.models import Program
 from students.models import Guardian, GuardianAssociation, Relationship, Student
+from utils.format.number_values import amount_in_words
 
 HTMX = {"HTTP_HX_REQUEST": "true"}
 
@@ -373,6 +375,64 @@ class PaymentViewsTests(LoggedInTestCase):
         self.assertNotContains(response, "Mensalidade outubro")
         response = self.client.get(url, {"method": "DIN"}, **HTMX)
         self.assertNotContains(response, "Mensalidade outubro")
+
+    def test_receipt_lists_payments_and_amount_in_words(self):
+        Payment.objects.create(
+            installment=self.installment, amount=Decimal("100.00"), method="PIX"
+        )
+        response = self.client.get(
+            reverse("accounts:receivable_print", args=[self.account.pk])
+        )
+        self.assertContains(response, "COMPROVANTE DE PAGAMENTO")
+        self.assertContains(response, "100,00 (cem reais)")
+        self.assertContains(response, "PIX: R$ 100,00")
+
+    def test_receipt_shows_balance_after_each_payment(self):
+        for amount in ("40.00", "60.00"):
+            Payment.objects.create(
+                installment=self.installment, amount=Decimal(amount), method="PIX"
+            )
+        response = self.client.get(
+            reverse("accounts:receivable_print", args=[self.account.pk])
+        )
+        balances = [p.balance_after for p in response.context["payments"]]
+        self.assertEqual(balances, [Decimal("60.00"), Decimal("0.00")])
+
+    def test_receipt_pdf_downloads(self):
+        response = self.client.get(
+            reverse("accounts:receivable_pdf", args=[self.account.pk])
+        )
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertTrue(response.content.startswith(b"%PDF"))
+
+    def test_payable_receipt_rejects_receivable_account(self):
+        response = self.client.get(
+            reverse("accounts:payable_print", args=[self.account.pk])
+        )
+        self.assertEqual(response.status_code, 404)
+        response = self.client.get(
+            reverse(
+                "accounts:payable_print", args=[self.payable_installment.account_id]
+            )
+        )
+        self.assertContains(response, "Pagamos ao fornecedor abaixo")
+
+
+class AmountInWordsTests(SimpleTestCase):
+    def test_amounts(self):
+        cases = {
+            "7530.16": "sete mil quinhentos e trinta reais e dezesseis centavos",
+            "1": "um real",
+            "0.01": "um centavo",
+            "101": "cento e um reais",
+            "1100": "mil e cem reais",
+            "2000000": "dois milhões de reais",
+            "1500000": "um milhão e quinhentos mil reais",
+            "1234000": "um milhão duzentos e trinta e quatro mil reais",
+            "21.50": "vinte e um reais e cinquenta centavos",
+        }
+        for value, words in cases.items():
+            self.assertEqual(amount_in_words(Decimal(value)), words)
 
 
 class InstallmentViewsTests(LoggedInTestCase):

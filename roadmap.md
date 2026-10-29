@@ -90,8 +90,8 @@ Configuração bancária ──▶ Remessas ──▶ Boletos ──▶ Retornos
 
 > Two shortcuts exist, but skip them on the first pass so every screen gets
 > tested by hand:
-> - `uv run python manage.py clean` **inserts** reference data (courses, school
->   years, classes, contracts, discounts, documents, roles) despite its name.
+> - `uv run python manage.py seed` **erases the whole database** and inserts
+>   reference data, staff, students and guardians (no enrollments).
 > - `uv run python manage.py full_seed` **erases the whole database** and fills
 >   a complete school year. Use it only for Phase 15.
 

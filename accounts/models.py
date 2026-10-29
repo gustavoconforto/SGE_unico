@@ -221,8 +221,8 @@ class AccountReceivable(Account):
 
     class Meta:
         proxy = True
-        verbose_name = "Conta a receber"
-        verbose_name_plural = "Contas a receber"
+        verbose_name = "Duplicata a receber"
+        verbose_name_plural = "Duplicatas a receber"
 
 
 class AccountPayable(Account):
@@ -234,8 +234,8 @@ class AccountPayable(Account):
 
     class Meta:
         proxy = True
-        verbose_name = "Conta a pagar"
-        verbose_name_plural = "Contas a pagar"
+        verbose_name = "Duplicata a pagar"
+        verbose_name_plural = "Duplicatas a pagar"
 
 
 class InstallmentStatus(models.TextChoices):

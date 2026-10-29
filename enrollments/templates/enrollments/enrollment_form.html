@@ -150,7 +150,7 @@
         </table>
         </div>
         {% else %}
-        <p class="text-sm text-slate-500">Nenhuma conta gerada para esta matrícula.</p>
+        <p class="text-sm text-slate-500">Nenhuma duplicata gerada para esta matrícula.</p>
         {% endif %}
     </div>
   </section>
@@ -160,7 +160,7 @@
       <h2>Contas a receber</h2>
       <p>Todas as cobranças do aluno, incluindo o contrato.</p>
       <a href="{% url 'accounts:receivable_add' %}?enrollment={{ object.pk }}" class="mt-3 inline-block">
-        {% include 'components/button/button_primary.html' with label='Nova conta a receber' icon='add' %}
+        {% include 'components/button/button_primary.html' with label='Nova duplicata a receber' icon='add' %}
       </a>
     </div>
     <div class="min-w-0 flex-[999_1_26rem] space-y-2">

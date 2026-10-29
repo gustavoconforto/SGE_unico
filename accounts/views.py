@@ -1,17 +1,24 @@
+from pathlib import Path
+
 from django.contrib import messages
+from django.contrib.staticfiles import finders
 from django.db import transaction
 from django.db.models import Count, ProtectedError, Q, Sum
+from django.http import HttpResponse
 from django.shortcuts import redirect
+from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.text import format_lazy
 from django.views.generic import (
     CreateView,
     DeleteView,
+    DetailView,
     ListView,
     TemplateView,
     UpdateView,
 )
+from weasyprint import HTML
 
 from accounts.forms import (
     AccountPayableFilterForm,
@@ -33,6 +40,7 @@ from accounts.forms import (
 )
 from accounts.models import (
     PENDING_STATUSES,
+    ZERO,
     Account,
     AccountPayable,
     AccountReceivable,
@@ -46,6 +54,7 @@ from accounts.models import (
 from accounts.services import build_installments
 from base.search import HtmxFilterMixin, HtmxSearchMixin
 from enrollments.models import Enrollment
+from utils.format.number_values import amount_in_words
 
 
 class SuccessMessageMixin:
@@ -170,7 +179,7 @@ class AccountContextMixin:
                 "counterpart_label": self.counterpart_label,
                 "urls": {
                     action: f"accounts:{self.url_prefix}_{action}"
-                    for action in ("list", "add", "edit", "delete")
+                    for action in ("list", "add", "edit", "delete", "print", "pdf")
                 },
             }
         )
@@ -259,14 +268,65 @@ class AccountDeleteMixin(AccountContextMixin):
         return redirect(self.get_success_url())
 
 
+class AccountReceiptMixin(AccountContextMixin):
+    """Payment receipt for an account; `pdf = True` downloads it via WeasyPrint."""
+
+    template_name = "accounts/account_receipt.html"
+    pdf = False
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        payments = (
+            Payment.objects.filter(installment__account=self.object)
+            .select_related("installment")
+            .order_by("paid_at", "installment__number", "pk")
+        )
+        total = sum((p.amount for p in payments), ZERO)
+        by_method = {}
+        paid = {}
+        for payment in payments:
+            label = payment.get_method_display()
+            by_method[label] = by_method.get(label, ZERO) + payment.amount
+            # Balance right after this payment, not today's balance.
+            installment = payment.installment
+            paid[installment.pk] = paid.get(installment.pk, ZERO) + payment.principal
+            payment.balance_after = max(installment.amount - paid[installment.pk], ZERO)
+        context.update(
+            {
+                "payments": payments,
+                "total": total,
+                "total_in_words": amount_in_words(total),
+                "by_method": by_method,
+                "today": timezone.localdate(),
+                "pdf": self.pdf,
+            }
+        )
+        if self.pdf:
+            context["logo_src"] = Path(finders.find("img/Logo_light.png")).as_uri()
+        return context
+
+    def render_to_response(self, context, **response_kwargs):
+        if not self.pdf:
+            return super().render_to_response(context, **response_kwargs)
+        html = render_to_string(self.template_name, context, request=self.request)
+        pdf = HTML(
+            string=html, base_url=self.request.build_absolute_uri("/")
+        ).write_pdf()
+        response = HttpResponse(pdf, content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'attachment; filename="recibo-{self.object.pk}.pdf"'
+        )
+        return response
+
+
 # ACCOUNT RECEIVABLE VIEWS
 
 
 class AccountReceivableMixin:
     model = AccountReceivable
     url_prefix = "receivable"
-    title = "Contas a receber"
-    noun = "conta a receber"
+    title = "A receber"
+    noun = "duplicata a receber"
     counterpart_label = "Responsável"
 
 
@@ -348,14 +408,24 @@ class AccountReceivableDeleteView(
     pass
 
 
+class AccountReceivableReceiptView(
+    AccountReceivableMixin, AccountReceiptMixin, DetailView
+):
+    pass
+
+
+class AccountReceivablePdfView(AccountReceivableReceiptView):
+    pdf = True
+
+
 # ACCOUNT PAYABLE VIEWS
 
 
 class AccountPayableMixin:
     model = AccountPayable
     url_prefix = "payable"
-    title = "Contas a pagar"
-    noun = "conta a pagar"
+    title = "A pagar"
+    noun = "duplicata a pagar"
     counterpart_label = "Fornecedor"
 
 
@@ -379,6 +449,14 @@ class AccountPayableUpdateView(AccountPayableMixin, AccountUpdateMixin, UpdateVi
 
 class AccountPayableDeleteView(AccountPayableMixin, AccountDeleteMixin, DeleteView):
     pass
+
+
+class AccountPayableReceiptView(AccountPayableMixin, AccountReceiptMixin, DetailView):
+    pass
+
+
+class AccountPayablePdfView(AccountPayableReceiptView):
+    pdf = True
 
 
 # INSTALLMENT VIEWS
