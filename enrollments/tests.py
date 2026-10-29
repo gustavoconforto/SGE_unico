@@ -1,6 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
@@ -79,6 +80,16 @@ class EnrollmentAccountTests(TestCase):
                 date(2027, 12, 10),
             ],
         )
+
+    def test_contract_type_of_a_past_school_year_is_rejected(self):
+        enrollment = Enrollment(
+            student=self.student,
+            enrollment_type=self.enrollment_type,
+            enrolled_at=date(2028, 2, 1),
+        )
+        with self.assertRaises(ValidationError) as caught:
+            enrollment.clean()
+        self.assertIn("enrollment_type", caught.exception.message_dict)
 
     def amounts(self, account):
         return list(

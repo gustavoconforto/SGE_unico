@@ -175,15 +175,6 @@ class Account(TimeStampedModel):
     def counterpart(self):
         return self.guardian or self.supplier
 
-    def balance(self):
-        return sum(
-            (
-                i.balance()
-                for i in self.installments.exclude(status=InstallmentStatus.CANCELLED)
-            ),
-            ZERO,
-        )
-
     class Meta:
         verbose_name = "Conta"
         verbose_name_plural = "Contas"
@@ -327,9 +318,6 @@ class Installment(models.Model):
 
     def __str__(self):
         return f"{self.account} - {self.number}"
-
-    def get_inline_title(self):
-        return "Parcela"
 
     def paid_principal(self):
         totals = self.payments.aggregate(

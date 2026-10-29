@@ -226,7 +226,7 @@ class AccountUpdateMixin(AccountContextMixin):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["installments"] = self.object.installments.all()
+        context["installments"] = self.object.installments.with_balance()
         return context
 
     def form_valid(self, form):

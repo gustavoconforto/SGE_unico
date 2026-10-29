@@ -63,8 +63,7 @@ debug is on (see [Known issues](#known-issues)).
 | `conforto` | superuser |
 | `teste` | staff, non-superuser |
 
-Sign in at http://127.0.0.1:8000/login/. The app pages don't require login
-yet, so you can also open them directly. The same users work for `/admin/`.
+Sign in at http://127.0.0.1:8000/login/. The same users work for `/admin/`.
 
 ## Common commands
 

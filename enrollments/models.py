@@ -344,6 +344,15 @@ class Enrollment(TimeStampedModel):
             errors["student"] = (
                 "O aluno precisa ter ao menos um responsável financeiro cadastrado."
             )
+        if (
+            self.enrollment_type_id
+            and self.enrolled_at
+            and self.enrolled_at.year > self.enrollment_type.school_year.begins.year
+        ):
+            # Its installments would all fall in a year that has already passed.
+            errors["enrollment_type"] = (
+                "Este tipo de contrato é de um ano letivo encerrado."
+            )
         if self.school_class_id and self.enrollment_type_id:
             if self.school_class.year_id != self.enrollment_type.school_year_id:
                 errors["school_class"] = "A turma pertence a outro ano letivo."

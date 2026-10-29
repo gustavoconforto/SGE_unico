@@ -10,8 +10,6 @@ from django.db import transaction
 from django.utils import timezone
 from faker import Faker
 
-# from grades.models import Evaluation, Grade, Subject
-# from incidents.models import Incident, IncidentType
 from accounts.models import (
     AccountType,
     Installment,
@@ -75,43 +73,10 @@ SUBJECTS = [
     "Sociologia",
 ]
 
-# EVALUATIONS = [
-#     Evaluation.PS1,
-#     Evaluation.PS2,
-#     Evaluation.PS3,
-#     Evaluation.PB,
-#     Evaluation.C,
-# ]
-EXTRA_CHANCE = 0.2
-BIMESTERS = range(1, 5)
-
 DISCOUNT_TYPES = [
     ("ALUNO ANTIGO", 20),
     ("ALUNO DESTAQUE", 25),
 ]
-
-INCIDENT_TYPES = {
-    "Atraso": 0.5,
-    "Uso de celular em sala": 1.0,
-    "Uniforme incompleto": 0.5,
-    "Falta sem justificativa": 1.0,
-    "Desrespeito ao professor": 3.0,
-    "Briga": 5.0,
-    "Dano ao patrimônio": 4.0,
-    "Saída sem autorização": 2.0,
-    "Cola em avaliação": 3.0,
-    "Conversa excessiva": 0.5,
-}
-
-MONTHLY_EXPENSES = [
-    ("Aluguel", "Imobiliária Planalto", Decimal("18000.00")),
-    ("Energia elétrica", "Neoenergia Brasília", Decimal("3200.00")),
-    ("Água", "CAESB", Decimal("900.00")),
-    ("Internet", "Vivo Empresas", Decimal("450.00")),
-    ("Limpeza", "Limpa DF Serviços", Decimal("5600.00")),
-]
-LATE_PENALTY = Decimal("0.02")
-LATE_INTEREST_PER_DAY = Decimal("0.00033")
 
 CITIES = [
     "Brasília",
@@ -154,7 +119,6 @@ class Command(BaseCommand):
             school_years = self.seed_school_years()
             classes = self.seed_classes(programs, school_years)
             enrollment_types = self.seed_enrollment_types(programs, school_years)
-            # incident_types = self.seed_incident_types()
             subjects = self.seed_subjects()
             self.seed_enrollment_needed_document_types()
 
@@ -170,11 +134,6 @@ class Command(BaseCommand):
             students = self.seed_families(options["students"])
             # self.seed_enrollments(students, programs, classes, enrollment_types)
             self.seed_discount_types()
-            # self.seed_grades(subjects)
-            # self.seed_incidents(students, incident_types)
-            # self.seed_enrollment_accounts()
-            # self.seed_payables()
-            # self.seed_payments()
 
         self.print_summary()
 
@@ -317,14 +276,6 @@ class Command(BaseCommand):
 
     def seed_subjects(self):
         return [Subject.objects.get_or_create(name=name)[0] for name in SUBJECTS]
-
-    # def seed_incident_types(self):
-    #     return [
-    #         IncidentType.objects.update_or_create(
-    #             type=name, defaults={"penalty": penalty}
-    #         )[0]
-    #         for name, penalty in INCIDENT_TYPES.items()
-    #     ]
 
     def seed_enrollment_needed_document_types(self):
         NEEDED_DOCUMENTS = [
@@ -612,143 +563,6 @@ class Command(BaseCommand):
                 enrollment.status = final_status
                 enrollment.save(update_fields=["status"])
 
-        # def score(self, ability):
-        #     value = min(10.0, max(0.0, random.gauss(ability, 1.3)))
-        #     return Decimal(str(round(value * 2) / 2))  # round to the nearest 0.5
-
-        # def seed_grades(self, subjects):
-        #     """Grades for every enrollment active in the current year."""
-        #     grades = []
-        #     active = Enrollment.objects.filter(status=EnrollmentStatus.ACTIVE)
-        #     for enrollment in active:
-        #         ability = random.gauss(7.0, 1.4)
-        #         for subject in subjects:
-        #             for bimester in BIMESTERS:
-        #                 for evaluation in EVALUATIONS:
-        #                     grades.append(
-        #                         Grade(
-        #                             enrollment=enrollment,
-        #                             subject=subject,
-        #                             evaluation=evaluation,
-        #                             bimester=bimester,
-        #                             score=self.score(ability),
-        #                         )
-        #                     )
-        #                 if random.random() < EXTRA_CHANCE:
-        #                     grades.append(
-        #                         Grade(
-        #                             enrollment=enrollment,
-        #                             subject=subject,
-        #                             evaluation=Evaluation.EX,
-        #                             bimester=bimester,
-        #                             score=Decimal(
-        #                                 random.choice(["0.50", "1.00", "1.50", "2.00"])
-        #                             ),
-        #                         )
-        #                     )
-        #     Grade.objects.bulk_create(grades, batch_size=2000)
-
-        # def seed_incidents(self, students, incident_types, count=180):
-        #     troublemakers = random.sample(students, k=max(1, len(students) // 8))
-        #     type_weights = [
-        #         1 / penalty for penalty in INCIDENT_TYPES.values()
-        #     ]  # light incidents are more common
-
-        #     incidents = Incident.objects.bulk_create(
-        #         [
-        #             Incident(
-        #                 student=random.choice(
-        #                     troublemakers if random.random() < 0.6 else students
-        #                 ),
-        #                 incident_type=random.choices(incident_types, weights=type_weights)[
-        #                     0
-        #                 ],
-        #             )
-        #             for _ in range(count)
-        #         ]
-        #     )
-
-        # created_at is auto_now_add, so backdate it after insert
-        # start = timezone.make_aware(datetime(self.current_year, 2, 1, 7))
-        # span = (timezone.now() - start).total_seconds()
-        # for incident in incidents:
-        #     incident.created_at = start + timedelta(seconds=random.uniform(0, span))
-        # Incident.objects.bulk_update(incidents, ["created_at"])
-
-    # ------------------------------------------------------------------ finance
-
-    # def seed_enrollment_accounts(self):
-    #     """bulk_create skips the post_save signal, so build each contract's receivable here."""
-    #     category = tuition_category()
-    #     for enrollment in Enrollment.objects.select_related(
-    #         "enrollment_type", "student"
-    #     ):
-    #         create_enrollment_account(enrollment, category=category)
-
-    # def seed_payables(self):
-    #     today = timezone.localdate()
-    #     for category_name, supplier_name, value in MONTHLY_EXPENSES:
-    #         category = AccountType.objects.get_or_create(
-    #             name=category_name, defaults={"direction": Direction.PAYABLE}
-    #         )[0]
-    #         supplier = Supplier.objects.get_or_create(name=supplier_name)[0]
-    #         account = AccountPayable.objects.create(
-    #             description=f"{category_name} {today.year}",
-    #             category=category,
-    #             supplier=supplier,
-    #             issue_date=date(today.year, 1, 1),
-    #             gross_value=value * 12,
-    #         )
-    #         Installment.objects.bulk_create(
-    #             build_installments(account, 12, date(today.year, 1, 5))
-    #         )
-
-    # def seed_payments(self):
-    #     """Most past installments are paid on time, some late with charges; a few stay overdue."""
-    #     today = timezone.localdate()
-    #     installments = Installment.objects.filter(
-    #         due_date__lt=today, status=InstallmentStatus.OPEN
-    #     )
-    #     payments, paid = [], []
-    #     for installment in installments:
-    #         roll = random.random()
-    #         if roll < 0.06:
-    #             continue  # still overdue
-    #         paid_at = installment.due_date - timedelta(days=random.randint(0, 5))
-    #         penalty = interest = Decimal("0.00")
-    #         if roll < 0.2:
-    #             paid_at = min(
-    #                 today, installment.due_date + timedelta(days=random.randint(1, 40))
-    #             )
-    #             penalty = (installment.amount * LATE_PENALTY).quantize(Decimal("0.01"))
-    #             interest = (
-    #                 installment.amount
-    #                 * LATE_INTEREST_PER_DAY
-    #                 * (paid_at - installment.due_date).days
-    #             ).quantize(Decimal("0.01"))
-    #         payments.append(
-    #             Payment(
-    #                 installment=installment,
-    #                 paid_at=paid_at,
-    #                 amount=installment.amount + penalty + interest,
-    #                 penalty=penalty,
-    #                 interest=interest,
-    #                 method=random.choice(
-    #                     [
-    #                         PaymentMethod.PIX,
-    #                         PaymentMethod.PIX,
-    #                         PaymentMethod.BOLETO,
-    #                         PaymentMethod.CREDIT_CARD,
-    #                     ]
-    #                 ),
-    #             )
-    #         )
-    #         installment.status = InstallmentStatus.PAID
-    #         paid.append(installment)
-    #     # bulk_create skips Payment.save(), so set the status in bulk too
-    #     Payment.objects.bulk_create(payments, batch_size=2000)
-    #     Installment.objects.bulk_update(paid, ["status"], batch_size=2000)
-
     # ------------------------------------------------------------------ summary
 
     def print_summary(self):
@@ -763,10 +577,6 @@ class Command(BaseCommand):
             SchoolYear,
             EnrollmentType,
             Enrollment,
-            # Subject,
-            # Grade,
-            # IncidentType,
-            # Incident,
             AccountType,
             Supplier,
             Installment,

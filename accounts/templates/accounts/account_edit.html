@@ -50,7 +50,7 @@
                         </span>
                     </td>
                     <td class="text-right whitespace-nowrap">
-                        R$ {{ installment.balance|floatformat:"2g" }}
+                        R$ {{ installment.outstanding|floatformat:"2g" }}
                     </td>
                     <td class="text-right">
                         {% if installment.status == 'A' or installment.status == 'P' or installment.status == 'E' %}
