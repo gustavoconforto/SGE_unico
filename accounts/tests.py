@@ -1,9 +1,11 @@
-from datetime import timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 
+from django.test import SimpleTestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from accounts.forms import AccountReceivableForm
 from accounts.models import (
     AccountPayable,
     AccountReceivable,
@@ -14,6 +16,11 @@ from accounts.models import (
     Supplier,
 )
 from base.testing import LoggedInTestCase
+from billing.models import BankSlip, Remittance
+from enrollments.models import Enrollment, EnrollmentType, SchoolYear
+from programs.models import Program
+from students.models import Guardian, GuardianAssociation, Relationship, Student
+from utils.format.number_values import amount_in_words
 
 HTMX = {"HTTP_HX_REQUEST": "true"}
 
@@ -44,8 +51,10 @@ class AccountViewsTests(LoggedInTestCase):
 
     def test_create_receivable_generates_installments(self):
         response = self.create_receivable()
-        self.assertRedirects(response, reverse("accounts:receivable_list"))
         account = AccountReceivable.objects.get()
+        self.assertRedirects(
+            response, reverse("accounts:receivable_edit", args=[account.pk])
+        )
         self.assertEqual(account.direction, Direction.RECEIVABLE)
         self.assertEqual(account.installments.count(), 3)
         self.assertEqual(
@@ -72,12 +81,38 @@ class AccountViewsTests(LoggedInTestCase):
         self.assertContains(payables, "Despesa Y")
         self.assertNotContains(payables, "Receita X")
 
+    def test_payable_list_shows_due_date_and_paid_at(self):
+        account = AccountPayable.objects.create(
+            description="Aluguel março",
+            category=self.expense,
+            supplier=self.supplier,
+            gross_value=Decimal(100),
+        )
+        installment = account.installments.create(
+            number=1, due_date=timezone.localdate(), amount=Decimal(100)
+        )
+        paid_at = timezone.localdate() - timedelta(days=2)
+        Payment.objects.create(
+            installment=installment,
+            amount=Decimal(100),
+            method="PIX",
+            paid_at=paid_at,
+        )
+        response = self.client.get(reverse("accounts:payable_list"))
+        self.assertContains(response, "<th>Vencimento</th>", html=True)
+        self.assertContains(response, "<th>Pago em</th>", html=True)
+        self.assertContains(response, installment.due_date.strftime("%d/%m/%Y"))
+        self.assertContains(response, paid_at.strftime("%d/%m/%Y"))
+
+        receivables = self.client.get(reverse("accounts:receivable_list"))
+        self.assertNotContains(receivables, "Pago em")
+
     def test_htmx_search_and_status_filter_return_partial(self):
         self.create_receivable("Receita aberta")
         self.create_receivable("Receita vencida")
-        AccountReceivable.objects.get(description="Receita vencida").installments.update(
-            due_date=timezone.localdate() - timedelta(days=5)
-        )
+        AccountReceivable.objects.get(
+            description="Receita vencida"
+        ).installments.update(due_date=timezone.localdate() - timedelta(days=5))
         url = reverse("accounts:receivable_list")
 
         response = self.client.get(url, {"q": "aberta"}, **HTMX)
@@ -102,6 +137,25 @@ class AccountViewsTests(LoggedInTestCase):
         self.client.post(reverse("accounts:receivable_delete", args=[account.pk]))
         self.assertTrue(AccountReceivable.objects.filter(pk=account.pk).exists())
 
+    def test_delete_blocked_when_installment_has_bank_slip(self):
+        self.create_receivable(count=1)
+        account = AccountReceivable.objects.get()
+        BankSlip.objects.create(
+            remittance=Remittance.objects.create(
+                number=1, generated_at=timezone.localdate()
+            ),
+            installment=account.installments.get(),
+            nosso_numero="20000000001",
+            nosso_numero_dv="1",
+            due_date=timezone.localdate(),
+            amount=Decimal(10),
+        )
+        response = self.client.post(
+            reverse("accounts:receivable_delete", args=[account.pk]), follow=True
+        )
+        self.assertContains(response, "parcelas em uso")
+        self.assertTrue(account.installments.exists())
+
     def test_delete_removes_installments(self):
         self.create_receivable()
         account = AccountReceivable.objects.get()
@@ -123,23 +177,22 @@ class PaymentViewsTests(LoggedInTestCase):
         cls.installment = cls.account.installments.create(
             number=1, due_date=timezone.localdate(), amount=Decimal(100)
         )
-        expense = AccountType.objects.create(name="Aluguel", direction=Direction.PAYABLE)
+        expense = AccountType.objects.create(
+            name="Aluguel", direction=Direction.PAYABLE
+        )
         supplier = Supplier.objects.create(
             name="Imobiliária Centro", document="12345678000199"
         )
-        cls.payable_installment = (
-            AccountPayable.objects.create(
-                description="Aluguel outubro",
-                category=expense,
-                supplier=supplier,
-                gross_value=Decimal(100),
-            )
-            .installments.create(
-                number=1, due_date=timezone.localdate(), amount=Decimal(100)
-            )
+        cls.payable_installment = AccountPayable.objects.create(
+            description="Aluguel outubro",
+            category=expense,
+            supplier=supplier,
+            gross_value=Decimal(100),
+        ).installments.create(
+            number=1, due_date=timezone.localdate(), amount=Decimal(100)
         )
 
-    def post_payment(self, amount, **extra):
+    def post_payment(self, amount, query="", **extra):
         data = {
             "installment": self.installment.pk,
             "paid_at": timezone.localdate().isoformat(),
@@ -150,7 +203,7 @@ class PaymentViewsTests(LoggedInTestCase):
             "method": "PIX",
             **extra,
         }
-        return self.client.post(reverse("accounts:payment_add"), data)
+        return self.client.post(reverse("accounts:payment_add") + query, data)
 
     def test_payment_updates_installment_status(self):
         self.assertRedirects(self.post_payment("40"), reverse("accounts:payment_list"))
@@ -159,6 +212,29 @@ class PaymentViewsTests(LoggedInTestCase):
         self.post_payment("65", penalty="5")
         self.installment.refresh_from_db()
         self.assertEqual(self.installment.status, InstallmentStatus.PAID)
+
+    def test_payment_from_account_page_returns_to_it(self):
+        response = self.post_payment("40", f"?installment={self.installment.pk}")
+        self.assertRedirects(
+            response,
+            reverse("accounts:receivable_edit", args=[self.installment.account_id]),
+        )
+
+    def test_list_shows_due_date_and_paid_at(self):
+        due_date = timezone.localdate() - timedelta(days=10)
+        self.payable_installment.due_date = due_date
+        self.payable_installment.save()
+        Payment.objects.create(
+            installment=self.payable_installment,
+            amount=Decimal(100),
+            method="PIX",
+            paid_at=timezone.localdate(),
+        )
+        response = self.client.get(reverse("accounts:payment_list"))
+        self.assertContains(response, "<th>Vencimento</th>", html=True)
+        self.assertContains(response, "<th>Pago em</th>", html=True)
+        self.assertContains(response, due_date.strftime("%d/%m/%Y"))
+        self.assertContains(response, timezone.localdate().strftime("%d/%m/%Y"))
 
     def test_payment_cannot_exceed_balance(self):
         response = self.post_payment("150")
@@ -198,7 +274,8 @@ class PaymentViewsTests(LoggedInTestCase):
 
     def test_add_ignores_payable_installment_param(self):
         response = self.client.get(
-            reverse("accounts:payment_add"), {"installment": self.payable_installment.pk}
+            reverse("accounts:payment_add"),
+            {"installment": self.payable_installment.pk},
         )
         self.assertNotIn("installment", response.context["form"].initial)
 
@@ -229,9 +306,12 @@ class PaymentViewsTests(LoggedInTestCase):
         payment = Payment.objects.get()
         response = self.client.get(reverse("accounts:payment_edit", args=[payment.pk]))
         self.assertContains(response, 'value="Mensalidade outubro - 1ª parcela')
-        self.assertContains(response, f'name="installment" id="id_installment_value" value="{self.installment.pk}"')
+        self.assertContains(
+            response,
+            f'name="installment" id="id_installment_value" value="{self.installment.pk}"',
+        )
 
-    def post_payable_payment(self, amount, **extra):
+    def post_payable_payment(self, amount, query="", **extra):
         data = {
             "installment": self.payable_installment.pk,
             "paid_at": timezone.localdate().isoformat(),
@@ -242,13 +322,25 @@ class PaymentViewsTests(LoggedInTestCase):
             "method": "TED",
             **extra,
         }
-        return self.client.post(reverse("accounts:payable_payment_add"), data)
+        return self.client.post(reverse("accounts:payable_payment_add") + query, data)
 
     def test_payable_payment_updates_installment_status(self):
         response = self.post_payable_payment("100")
-        self.assertRedirects(response, reverse("accounts:payment_list") + "?direction=P")
+        self.assertRedirects(
+            response, reverse("accounts:payment_list") + "?direction=P"
+        )
         self.payable_installment.refresh_from_db()
         self.assertEqual(self.payable_installment.status, InstallmentStatus.PAID)
+
+    def test_payable_payment_from_account_page_returns_to_it(self):
+        query = f"?installment={self.payable_installment.pk}"
+        response = self.post_payable_payment("100", query)
+        self.assertRedirects(
+            response,
+            reverse(
+                "accounts:payable_edit", args=[self.payable_installment.account_id]
+            ),
+        )
 
     def test_payable_form_rejects_receivable_installment(self):
         response = self.post_payable_payment("10", installment=self.installment.pk)
@@ -270,12 +362,17 @@ class PaymentViewsTests(LoggedInTestCase):
         payable = Payment.objects.get(installment=self.payable_installment)
         edit = "accounts:payment_edit"
         payable_edit = "accounts:payable_payment_edit"
-        self.assertEqual(self.client.get(reverse(edit, args=[receivable.pk])).status_code, 200)
-        self.assertEqual(self.client.get(reverse(edit, args=[payable.pk])).status_code, 404)
+        self.assertEqual(
+            self.client.get(reverse(edit, args=[receivable.pk])).status_code, 200
+        )
+        self.assertEqual(
+            self.client.get(reverse(edit, args=[payable.pk])).status_code, 404
+        )
         response = self.client.get(reverse(payable_edit, args=[payable.pk]))
         self.assertContains(response, 'value="Aluguel outubro - 1ª parcela')
         self.assertEqual(
-            self.client.get(reverse(payable_edit, args=[receivable.pk])).status_code, 404
+            self.client.get(reverse(payable_edit, args=[receivable.pk])).status_code,
+            404,
         )
 
     def test_payable_lookup_searches_supplier_installments(self):
@@ -298,6 +395,64 @@ class PaymentViewsTests(LoggedInTestCase):
         response = self.client.get(url, {"method": "DIN"}, **HTMX)
         self.assertNotContains(response, "Mensalidade outubro")
 
+    def test_receipt_lists_payments_and_amount_in_words(self):
+        Payment.objects.create(
+            installment=self.installment, amount=Decimal("100.00"), method="PIX"
+        )
+        response = self.client.get(
+            reverse("accounts:receivable_print", args=[self.account.pk])
+        )
+        self.assertContains(response, "COMPROVANTE DE PAGAMENTO")
+        self.assertContains(response, "100,00 (cem reais)")
+        self.assertContains(response, "PIX: R$ 100,00")
+
+    def test_receipt_shows_balance_after_each_payment(self):
+        for amount in ("40.00", "60.00"):
+            Payment.objects.create(
+                installment=self.installment, amount=Decimal(amount), method="PIX"
+            )
+        response = self.client.get(
+            reverse("accounts:receivable_print", args=[self.account.pk])
+        )
+        balances = [p.balance_after for p in response.context["payments"]]
+        self.assertEqual(balances, [Decimal("60.00"), Decimal("0.00")])
+
+    def test_receipt_pdf_downloads(self):
+        response = self.client.get(
+            reverse("accounts:receivable_pdf", args=[self.account.pk])
+        )
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertTrue(response.content.startswith(b"%PDF"))
+
+    def test_payable_receipt_rejects_receivable_account(self):
+        response = self.client.get(
+            reverse("accounts:payable_print", args=[self.account.pk])
+        )
+        self.assertEqual(response.status_code, 404)
+        response = self.client.get(
+            reverse(
+                "accounts:payable_print", args=[self.payable_installment.account_id]
+            )
+        )
+        self.assertContains(response, "Pagamos ao fornecedor abaixo")
+
+
+class AmountInWordsTests(SimpleTestCase):
+    def test_amounts(self):
+        cases = {
+            "7530.16": "sete mil quinhentos e trinta reais e dezesseis centavos",
+            "1": "um real",
+            "0.01": "um centavo",
+            "101": "cento e um reais",
+            "1100": "mil e cem reais",
+            "2000000": "dois milhões de reais",
+            "1500000": "um milhão e quinhentos mil reais",
+            "1234000": "um milhão duzentos e trinta e quatro mil reais",
+            "21.50": "vinte e um reais e cinquenta centavos",
+        }
+        for value, words in cases.items():
+            self.assertEqual(amount_in_words(Decimal(value)), words)
+
 
 class InstallmentViewsTests(LoggedInTestCase):
     @classmethod
@@ -305,7 +460,9 @@ class InstallmentViewsTests(LoggedInTestCase):
         income = AccountType.objects.create(
             name="Mensalidade", direction=Direction.RECEIVABLE
         )
-        expense = AccountType.objects.create(name="Aluguel", direction=Direction.PAYABLE)
+        expense = AccountType.objects.create(
+            name="Aluguel", direction=Direction.PAYABLE
+        )
         cls.receivable = AccountReceivable.objects.create(
             description="Mensalidade João", category=income, gross_value=Decimal(200)
         )
@@ -479,7 +636,9 @@ class AccountTypeViewsTests(LoggedInTestCase):
         self.assertEqual(category.name, "Material escolar")
 
         url = reverse("accounts:account_type_list")
-        self.assertContains(self.client.get(url, {"direction": "P"}, **HTMX), "Material")
+        self.assertContains(
+            self.client.get(url, {"direction": "P"}, **HTMX), "Material"
+        )
         self.assertNotContains(
             self.client.get(url, {"direction": "R"}, **HTMX), "Material"
         )
@@ -504,3 +663,128 @@ class AccountTypeViewsTests(LoggedInTestCase):
 
         self.client.post(reverse("accounts:account_type_delete", args=[category.pk]))
         self.assertTrue(AccountType.objects.filter(pk=category.pk).exists())
+
+
+class StudentReceivableTests(LoggedInTestCase):
+    @classmethod
+    def setUpTestData(cls):
+        year = timezone.localdate().year + 1
+        enrollment_type = EnrollmentType.objects.create(
+            program=Program.objects.create(name="Pré ENEM"),
+            school_year=SchoolYear.objects.create(
+                begins=date(year, 1, 10), ends=date(year, 12, 15)
+            ),
+            total_price=Decimal("1200.00"),
+        )
+        cls.student = Student.objects.create(
+            name="Ana Souza", cpf="12345678901", rg="1"
+        )
+        cls.mother = Guardian.objects.create(
+            name="Maria Souza", cpf="00275010198", rg="2"
+        )
+        cls.father = Guardian.objects.create(
+            name="João Souza", cpf="11144477735", rg="3"
+        )
+        cls.other = Guardian.objects.create(
+            name="Pedro Lima", cpf="52998224725", rg="4"
+        )
+        GuardianAssociation.objects.create(
+            student=cls.student,
+            guardian=cls.mother,
+            relationship=Relationship.MOTHER,
+            is_financial=True,
+        )
+        GuardianAssociation.objects.create(
+            student=cls.student, guardian=cls.father, relationship=Relationship.FATHER
+        )
+        cls.enrollment = Enrollment.objects.create(
+            student=cls.student, enrollment_type=enrollment_type
+        )
+        cls.category = AccountType.objects.create(
+            name="Material didático", direction=Direction.RECEIVABLE
+        )
+
+    def post_receivable(self, query="", **extra):
+        data = {
+            "description": "Apostilas",
+            "category": self.category.pk,
+            "issue_date": timezone.localdate().isoformat(),
+            "gross_value": "300.00",
+            "discount_value": "0",
+            "installments_count": 1,
+            "first_due_date": timezone.localdate().isoformat(),
+            **extra,
+        }
+        return self.client.post(reverse("accounts:receivable_add") + query, data)
+
+    def test_contract_account_belongs_to_student(self):
+        self.assertEqual(self.enrollment.account.student, self.student)
+
+    def test_guardian_options_list_only_financial_guardians(self):
+        response = self.client.get(
+            reverse("accounts:receivable_guardian_options"),
+            {"student": self.student.pk},
+            **HTMX,
+        )
+        self.assertTemplateUsed(response, "accounts/partials/guardian_field.html")
+        self.assertQuerySetEqual(
+            response.context["form"].fields["guardian"].queryset, [self.mother]
+        )
+        self.assertEqual(response.context["form"]["guardian"].value(), self.mother.pk)
+
+    def test_guardian_defaults_to_financial_guardian(self):
+        response = self.post_receivable(student=self.student.pk)
+        account = AccountReceivable.objects.get(description="Apostilas")
+        self.assertRedirects(
+            response, reverse("accounts:receivable_edit", args=[account.pk])
+        )
+        self.assertEqual(account.student, self.student)
+        self.assertEqual(account.guardian, self.mother)
+
+    def test_rejects_guardian_not_financial_for_student(self):
+        response = self.post_receivable(
+            student=self.student.pk, guardian=self.father.pk
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("guardian", response.context["form"].errors)
+        self.assertFalse(AccountReceivable.objects.filter(description="Apostilas"))
+
+    def test_without_student_any_guardian(self):
+        response = self.post_receivable(guardian=self.other.pk)
+        self.assertEqual(response.status_code, 302)
+
+    def test_prefill_from_enrollment_then_open_account(self):
+        query = f"?enrollment={self.enrollment.pk}"
+        response = self.client.get(reverse("accounts:receivable_add") + query)
+        form = response.context["form"]
+        self.assertEqual(form["student"].value(), self.student.pk)
+        self.assertEqual(form["guardian"].value(), self.mother.pk)
+        self.assertEqual(
+            response.context["back_url"],
+            reverse("enrollments:enrollment_edit", args=[self.enrollment.pk]),
+        )
+        response = self.post_receivable(
+            query, student=self.student.pk, guardian=self.mother.pk
+        )
+        account = AccountReceivable.objects.get(description="Apostilas")
+        self.assertRedirects(
+            response, reverse("accounts:receivable_edit", args=[account.pk])
+        )
+
+    def test_enrollment_page_lists_student_receivables(self):
+        self.post_receivable(student=self.student.pk)
+        self.post_receivable(description="Uniforme", guardian=self.other.pk)
+        response = self.client.get(
+            reverse("enrollments:enrollment_edit", args=[self.enrollment.pk])
+        )
+        self.assertContains(response, "Apostilas")
+        self.assertContains(response, self.enrollment.account.description)
+        self.assertNotContains(response, "Uniforme")
+        self.assertContains(
+            response,
+            reverse("accounts:receivable_add") + f"?enrollment={self.enrollment.pk}",
+        )
+
+    def test_contract_account_student_is_locked(self):
+        form = AccountReceivableForm(instance=self.enrollment.account)
+        self.assertTrue(form.fields["student"].disabled)

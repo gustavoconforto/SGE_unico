@@ -19,12 +19,12 @@
   {% for label, slots in grid %}
     <tr class="hover:bg-slate-50">
       <td class="font-semibold whitespace-nowrap">{{ label }}</td>
-      {% for slot in slots %}
+      {% for has_period, slot in slots %}
       <td>
         {% if slot %}
         <p class="font-medium">{{ slot.subject.subject.name }}</p>
         <p class="text-xs text-slate-500">{{ slot.teacher.name }}</p>
-        {% else %}-{% endif %}
+        {% elif has_period %}-{% endif %}
       </td>
       {% endfor %}
     </tr>

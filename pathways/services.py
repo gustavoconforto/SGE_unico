@@ -1,31 +1,24 @@
 """Extra grade ("nota extra") of a bimester, from pathways and Q&A sessions.
 
-Each pathway adds `score / 10 × pathway.extra_points` when the student's
-attendance in the bimester's lessons reaches the year's minimum (excused
-absences don't count either way); no lessons, no grade or low attendance add
-nothing. Q&A sessions add their fixed points (`q_and_a.services`). The total is
-capped at the extra exam type's maximum and written to every subject of the
-student's series, like the concept grade.
+The pathway teachers' grades of the bimester are added as they are; a pathway
+without a grade adds nothing, and attendance is only shown, never counted. Q&A
+sessions add their fixed points (`q_and_a.services`). The total is capped at
+the extra exam type's maximum and written to every subject of the student's
+series, like the concept grade.
 """
 
 from collections import defaultdict
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
 
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 
 from grades.models import ExamType
 from grades.services import save_series_grades
 from incidents.services import bimester_range
-from pathways.models import (
-    MAX_PATHWAY_SCORE,
-    AttendanceStatus,
-    ExtraGradeSettings,
-    PathwayEnrollment,
-)
+from pathways.models import AttendanceStatus, ExtraGradeSettings, PathwayGrade
 from q_and_a.services import q_and_a_points
 
 ZERO = Decimal(0)
-CENTS = Decimal("0.01")
 EXTRA_CODE = "EX"
 
 
@@ -37,14 +30,6 @@ def attendance_rate(present, absent):
     """Percentage of lessons attended; None without lessons."""
     lessons = present + absent
     return Decimal(100) * present / lessons if lessons else None
-
-
-def pathway_points(score, extra_points, rate, settings):
-    if score is None or rate is None or rate < settings.min_pathway_attendance:
-        return ZERO
-    return (score / MAX_PATHWAY_SCORE * extra_points).quantize(
-        CENTS, rounding=ROUND_HALF_UP
-    )
 
 
 def with_attendance(pathway_enrollments, date_range):
@@ -66,26 +51,23 @@ def with_attendance(pathway_enrollments, date_range):
     )
 
 
-def pathways_points(enrollment_ids, bimester, date_range, settings):
-    """{enrollment pk: points} from every pathway the enrollments joined."""
-    pathway_enrollments = with_attendance(
-        PathwayEnrollment.objects.filter(enrollment_id__in=enrollment_ids),
-        date_range,
-    ).select_related("offering__pathway")
-    scores = dict(
-        PathwayEnrollment.objects.filter(
-            enrollment_id__in=enrollment_ids, grades__bimester=bimester
-        ).values_list("pk", "grades__score")
-    )
-    points = defaultdict(lambda: ZERO)
-    for pathway_enrollment in pathway_enrollments:
-        points[pathway_enrollment.enrollment_id] += pathway_points(
-            scores.get(pathway_enrollment.pk),
-            pathway_enrollment.offering.pathway.extra_points,
-            attendance_rate(pathway_enrollment.present, pathway_enrollment.absent),
-            settings,
+def pathways_points(enrollment_ids, bimester):
+    """{enrollment pk: sum of its pathway grades in the bimester}.
+
+    Grades left in a pathway that no longer gives an extra grade don't count.
+    """
+    totals = (
+        PathwayGrade.objects.filter(
+            pathway_enrollment__enrollment_id__in=enrollment_ids,
+            pathway_enrollment__offering__pathway__extra_points__gt=0,
+            bimester=bimester,
         )
-    return points
+        .values("pathway_enrollment__enrollment")
+        .annotate(total=Sum("score"))
+        .order_by()
+        .values_list("pathway_enrollment__enrollment", "total")
+    )
+    return defaultdict(lambda: ZERO, totals)
 
 
 def extra_grades(enrollments, bimester, exam_type):
@@ -108,7 +90,7 @@ def extra_grades(enrollments, bimester, exam_type):
         if date_range is None:
             continue
         settings = ExtraGradeSettings.for_school_year(years[year_id])
-        from_pathways = pathways_points(ids, bimester, date_range, settings)
+        from_pathways = pathways_points(ids, bimester)
         from_q_and_a = q_and_a_points(ids, date_range, settings)
         for pk in ids:
             grades[pk] = min(from_pathways[pk] + from_q_and_a[pk], exam_type.max_score)

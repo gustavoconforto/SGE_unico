@@ -15,6 +15,17 @@
 
   <section class="form-section">
     <div class="form-section-intro">
+      <h2>Carga horária</h2>
+      <p>Dias letivos e horas oferecidas ao aluno no ano, base do cálculo de frequência.</p>
+    </div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
+      {% include 'components/form/field.html' with field=form.school_days %}
+      {% include 'components/form/field.html' with field=form.total_hours %}
+    </div>
+  </section>
+
+  <section class="form-section">
+    <div class="form-section-intro">
       <h2>Bimestres</h2>
       <p>Início e fim de cada bimestre.</p>
     </div>

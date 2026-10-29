@@ -23,14 +23,14 @@ Browser ──HTTP──▶ config/urls.py ──▶ <app>/urls.py ──▶ cla
 
 | App | URL prefix | Responsibility |
 |---|---|---|
-| `base` | `/` | Abstract models (`TimeStampedModel`, `Person`), htmx search/filter mixins, layout and UI components, login page template, `LoginRequiredMiddleware`, users/groups/permissions screens, `clean`, `seed` and `full_seed` commands |
+| `base` | `/` | Abstract models (`TimeStampedModel`, `Person`), htmx search/filter mixins, layout and UI components, login page template, `LoginRequiredMiddleware`, users/groups/permissions screens, `seed` and `full_seed` commands |
 | `employees` | `/employees/` | `EmployeeRoleType`, `Employee` |
 | `programs` | `/programs/` | `Program` (course: Ensino Médio, Pré UNB, Pré ENEM) |
 | `classes` | `/classes/` | `Class` (turma), and the class page (the class's subjects and the students actively enrolled in it) |
 | `departments` | `/departments/` | `Department`: groups subjects and the teachers who can teach them |
 | `grades` | `/grades/` | `Subject` (matéria), `ExamType`, `GradeLevelSubject`, `Grade`; grade entry sheet, report card, grade calculation (`grades/services.py`) |
 | `students` | `/students/` | `Student`, `Guardian`, `GuardianAssociation` |
-| `enrollments` | `/enrollments/` | `SchoolYear`, `EnrollmentType`, `DiscountType`, `NeededDocumentType`, `Enrollment`, `EnrollmentNeededDocument` |
+| `enrollments` | `/enrollments/` | `SchoolYear`, `EnrollmentType`, `DiscountType`, `NeededDocumentType`, `Enrollment`, `EnrollmentDiscount`, `EnrollmentNeededDocument` |
 | `accounts` | `/accounts/` | `AccountType`, `Supplier`, `Account` (+ receivable/payable proxies), `Installment`, `Payment` |
 | `incidents` | `/incidents/` | Student conduct records, all per enrollment: `IncidentType` (with a penalty), `Incident`, `StudentDelay` (atraso), `BathroomPermission` (saída para banheiro) |
 | `q_and_a` | `/q_and_a/` | `QandA` (plantão de dúvidas): a student's attendance at a subject's Q&A session, per enrollment |
@@ -56,7 +56,9 @@ employees ◀── departments ◀── grades ──▶ enrollments, classes,
 
 `accounts` imports `Enrollment` and `Guardian`. `enrollments` reaches
 `accounts` only through **signals** (`enrollments/signals.py`) and the
-installment formset on the enrollment edit page. `classes.Class.year` refers to
+installment formset and the student's receivables on the enrollment edit
+page, which links to `receivable/add/?enrollment=<pk>` to charge the student
+something else. `classes.Class.year` refers to
 `enrollments.SchoolYear` by string to avoid a circular import. The one
 exception to the arrow is `classes/views.py`, which imports `SchoolYear`,
 `EnrollmentStatus` and `Student` for the class roster page. Keep those imports
@@ -87,7 +89,8 @@ erDiagram
     Student ||--o{ Enrollment : ""
     EnrollmentType ||--o{ Enrollment : ""
     Class |o--o{ Enrollment : ""
-    DiscountType |o--o{ Enrollment : ""
+    Enrollment ||--o{ EnrollmentDiscount : ""
+    DiscountType |o--o{ EnrollmentDiscount : ""
     Enrollment ||--o{ EnrollmentNeededDocument : ""
     NeededDocumentType ||--o{ EnrollmentNeededDocument : ""
     Enrollment |o--o| Account : "contract account"
@@ -104,14 +107,15 @@ erDiagram
 | Model | Key fields and rules |
 |---|---|
 | `Program` | `name` unique |
-| `SchoolYear` | start/end dates plus start/end of each of the 4 bimesters; `__str__` is the year |
+| `SchoolYear` | start/end dates plus start/end of each of the 4 bimesters, `school_days` and `total_hours` (hours offered to the student in the year, the base for attendance; required in the form, nullable for older years); `__str__` is the year |
 | `Class` | program, school year, optional grade level (1–3), name, shift (`M/T/N/I`), capacity. Unique per (year, program, name) |
 | `Student(Person)` | `registration` auto-generated as `<year><5-digit sequence>` (e.g. `202600001`); social name; photo saved as `media/students/<registration>.<ext>`, with the old file removed on change and a placeholder when missing |
 | `Guardian(Person)` | marital status |
 | `GuardianAssociation` | student ↔ guardian with relationship and flags: `is_financial`, `is_primary_contact`, `living_with`, `pick_up`. Unique per pair |
 | `EnrollmentType` | contract template: program, level, school year, `total_price`. Contract dates default to the school year's |
 | `DiscountType` | description and percentage (0–100) |
-| `Enrollment` | student, contract type, optional class, status (`A` active, `T` transferred, `D` dropped, `C` completed, `X` cancelled), date, discount, `due_day` (1–28). Copies `gross_value` and `discount_percent` from the contract and discount on save, so later price changes don't affect existing contracts. Unique per (student, contract type) |
+| `Enrollment` | student, contract type, optional class, status (`A` active, `T` transferred, `D` dropped, `C` completed, `X` cancelled), date, `due_day` (1–28). Copies `gross_value` from the contract on save, so later price changes don't affect existing contracts; `first_discount_percent` and `remaining_discount_percent` are the sums of each group's discounts, set by `save_with_discounts()` before the first save (the account is built from them). The first installment is 1/12 of `gross_value` less its own discount; the other 11/12, less theirs, are split over the remaining installments (`enrollment_amounts()` in `accounts/services.py`; a single December installment carries both parts). Unique per (student, contract type) |
+| `EnrollmentDiscount` | one discount of an enrollment: a `DiscountType` (percentage copied from it) or a custom percentage with a required `observation` (e.g. "desconto autorizado pela direção"). Each one has a `group`: `F` first installment or `R` remaining installments; the groups are independent (same, other or no discounts). Percentages are added per group; each sum can't pass 100%. Chosen only on creation, read-only afterwards. Unique per (enrollment, group, type) |
 | `EnrollmentNeededDocument` | one row per required document type per enrollment, with `is_delivered` |
 | `Department` (`departments`) | `name` unique; `teachers` (many-to-many to `Employee`; a teacher can be in several departments). Can't be deleted while subjects use it |
 | `Subject` (`grades`) | `name` unique; optional `department`. `seed` creates the ten high-school subjects |
@@ -177,22 +181,23 @@ list searches by student or subject name and filters by subject and date range
 ### Pathway models (`pathways/models.py`)
 
 Extra-curricular courses. A student picks pathways every year, with no
-contract or installments; what they earn is extra points in the bimester.
+contract or installments. Some pathways give an extra grade in the bimester,
+chosen by their teachers; others never do.
 
 | Model | Key fields and rules |
 |---|---|
-| `Pathway` | catalog: `name` unique, `description`, `extra_points` (≥ 0, the most it adds in a bimester) |
+| `Pathway` | catalog: `name` unique, `description`, `extra_points` ("Nota máxima", ≥ 0: the highest grade its teachers can give in a bimester; 0 means it gives no extra grade, `gives_grade`) |
 | `PathwayOffering` | a pathway running in a `SchoolYear`: optional `name` (to tell groups apart), `teachers` (many-to-many to `Employee`), optional `capacity`, `schedule` (free text). Unique per (pathway, year, name) |
 | `PathwayEnrollment` | **enrollment** × offering, `joined_at`, `left_at` (leaving sets it instead of deleting). Unique per pair. `clean()` requires the offering to be in the enrollment's school year and a free seat (members without `left_at`) |
 | `PathwaySession` | a lesson (aula): offering, `date` inside the school year, optional `topic` |
 | `PathwayAttendance` | session × pathway enrollment, `status` (`P` presente, `F` falta, `J` falta justificada). Deleted with its session. `clean()` requires the same offering and membership on the lesson's date |
-| `PathwayGrade` | the pathway teacher's score per pathway enrollment and bimester (1–4), 0–10. Unique per (pathway enrollment, bimester) |
-| `ExtraGradeSettings` | per `SchoolYear` (one-to-one), created with the defaults by `for_school_year()`: `min_pathway_attendance` (75%), `q_and_a_min_sessions` (3), `q_and_a_points` (0.50). Edited at `pathways/extra_grade_settings/` |
+| `PathwayGrade` | the points the pathway teacher gives per pathway enrollment and bimester (1–4), from 0 to the pathway's `extra_points`; `clean()` rejects grades in a pathway that gives none. Unique per (pathway enrollment, bimester) |
+| `ExtraGradeSettings` | per `SchoolYear` (one-to-one), created with the defaults by `for_school_year()`: `q_and_a_min_sessions` (3), `q_and_a_points` (0.50). Edited at `pathways/extra_grade_settings/` |
 
 **Extra grade** (`pathways/services.py`, like the concept grade): for each
-enrollment and bimester, every pathway adds `score / 10 × extra_points` when
-attendance (`P / (P + F)`, `J` left out) over the bimester's lessons reaches
-`min_pathway_attendance`; no lessons, no grade or low attendance add 0. Q&A
+enrollment and bimester, the pathway grades are added as the teachers gave
+them; a pathway without a grade, or one that gives no extra grade, adds 0.
+Attendance is recorded and shown but never changes the grade. Q&A
 sessions add `q_and_a_points` with at least `q_and_a_min_sessions` in the
 bimester (`q_and_a/services.py`). The sum is capped at the max score of the
 `EX` exam type and `save_extra_grades()` writes it, zero included, to every
@@ -216,9 +221,10 @@ deleting a member with attendance or grades is blocked.
   who weren't in the pathway then. The list shows present and absent counts,
   or "Sem chamada".
 - **Pathway grades** (`pathways/grades/entry/`): pick offering and bimester;
-  `PathwayGradeSheetForm` has one optional 0–10 score per student in the pathway
-  during the bimester (blank deletes), and shows each one's attendance and the
-  extra points the saved score gives.
+  only pathways that give an extra grade are listed. `PathwayGradeSheetForm`
+  has one optional grade (0 to the pathway's `extra_points`) per student in the
+  pathway during the bimester (blank deletes), and shows each one's attendance
+  (`P / (P + F)`, `J` left out) for reference.
 - **Extra grade** (`pathways/extra_grades/all/` and `individual/`): the concept
   grade screens (`IncidentGradesAll` / `IncidentGradesIndividual`), subclassed
   through their `get_exam_type()`, `save_grades()`, `exam_type_missing` and
@@ -227,13 +233,17 @@ deleting a member with attendance or grades is blocked.
 
 ### Lesson models (`lessons/models.py`)
 
-The regular lessons of a class: 7 periods a day, Monday to Friday. Only
-classes with a series (`grade_level`) have them, since only they have subjects.
+The regular lessons of a class: 12 periods a day Monday to Friday and 7 on
+Saturday (`LECTURES_PER_DAY`, `SATURDAY_LECTURES`). Only classes with a series
+(`grade_level`) have them, since only they have subjects. `weekday_periods()`
+gives the periods of a weekday and `period_error()` refuses a Saturday period
+past the 7th; loop over `weekday_periods()`, not `PERIODS`, when building a
+day.
 
 | Model | Key fields and rules |
 |---|---|
-| `TimetableSlot` | class, `weekday` (1–5, `Weekday`), `period` (1–7, `PERIODS`), `subject` (`GradeLevelSubject`), `teacher`. Unique per (class, weekday, period). One timetable per class, valid for its year; editing it never changes saved lectures. `clean()` requires the subject in the class's series, the teacher among the subject's `teachers`, and no other class of the same year **and shift** with that teacher in that weekday and period |
-| `Lecture` | class, `date`, `period`, `subject`, `teacher`, `topic` (required). Unique per (class, date, period). Subject and teacher are copied from the timetable, so a substitution only changes the lecture. `clean()` requires a weekday inside the class's school year (`lecture_date_error()`), the subject in the class's series and a teacher from `lecture_teachers()`: the subject's teachers or any teacher of its department |
+| `TimetableSlot` | class, `weekday` (1–6, `Weekday`, Monday to Saturday), `period` (1–12, `PERIODS`; 1–7 on Saturday, also a `CheckConstraint`), `subject` (`GradeLevelSubject`), `teacher`. Unique per (class, weekday, period). One timetable per class, valid for its year; editing it never changes saved lectures. `clean()` requires a period the weekday has, the subject in the class's series, the teacher among the subject's `teachers`, and no other class of the same year **and shift** with that teacher in that weekday and period |
+| `Lecture` | class, `date`, `period`, `subject`, `teacher`, `topic` (required). Unique per (class, date, period). Subject and teacher are copied from the timetable, so a substitution only changes the lecture. `clean()` requires a Monday-to-Saturday date inside the class's school year (`lecture_date_error()`), a period that day has, the subject in the class's series and a teacher from `lecture_teachers()`: the subject's teachers or any teacher of its department |
 
 Days without lectures (holidays, events) simply have no rows: there's no
 calendar. `lessons/services.py` builds the timetable grid and `weekly_load()`,
@@ -242,13 +252,15 @@ the periods scheduled per subject against `GradeLevelSubject.weekly_classes`
 
 **Screens** (sidebar section "Acadêmico"):
 
-- **Timetable** (`lessons/timetable/?school_class=<pk>`): the 5 × 7 grid and
-  the weekly load. `timetable/edit/<pk>/` (`TimetableForm`) has one
+- **Timetable** (`lessons/timetable/?school_class=<pk>`): the 6-day grid
+  (12 rows; Saturday's cells past the 7th period are empty) and the weekly
+  load. `timetable/edit/<pk>/` (`TimetableForm`) has one
   "Matéria — Professor" select per cell, built from the series' subjects ×
   their teachers; a blank cell deletes the slot. The whole grid is validated
   before anything is saved.
 - **Day sheet** (`lessons/lectures/day/?school_class=<pk>&date=<iso>`,
-  `LectureDayForm`): a row per period, prefilled from the saved lecture or the
+  `LectureDayForm`): a row per period of that weekday (12, or 7 on
+  Saturday), prefilled from the saved lecture or the
   timetable. Rows with a topic are saved, clearing a topic deletes the lecture,
   and one invalid row saves nothing. This is the only way to add lectures.
 - **Class diary** (`lessons/lectures/list/`): filters by year, class, subject,
@@ -266,7 +278,7 @@ constant). Never use floats.
 |---|---|
 | `AccountType` | financial category, with `direction` `R` (receivable) or `P` (payable). Name unique |
 | `Supplier` | name, CPF/CNPJ (digits, unique when filled), contacts |
-| `Account` | `direction`, description, category, issue date, `gross_value`, `discount_value`, notes. Counterpart: `guardian` and/or `enrollment` for receivables, `supplier` for payables, enforced by a DB check constraint. `net_value = gross − discount` |
+| `Account` | `direction`, description, category, issue date, `gross_value`, `discount_value`, notes. Counterpart: `student`, `guardian` and/or `enrollment` for receivables, `supplier` for payables, enforced by a DB check constraint. When a receivable has a student, its guardian must be one of the student's financial guardians (the form fills in the first one if left empty). `net_value = gross − discount` |
 | `AccountReceivable`, `AccountPayable` | **proxy models** of `Account`, each with a manager filtered by direction and a `save()` that sets it. Views and forms use these |
 | `Installment` | account, `number` (unique per account), `due_date`, `amount`, `status`: `A` open, `P` partially paid, `Q` paid, `C` cancelled, `E` expired (bank wrote off the unpaid slip; still owed). `PENDING_STATUSES` = open, partial, expired |
 | `Payment` (baixa) | installment, `paid_at`, `amount` (total received, **including** penalty, interest and monetary adjustment), the three charges, `discount` (e.g. punctuality; settles principal without being received), method (PIX, boleto, cash, card, transfer, check) |
@@ -304,16 +316,17 @@ Implemented in `enrollments/signals.py` and `accounts/services.py`.
 
 1. **Enrollment created** (`post_save`, `created=True`):
    - `create_enrollment_account()` creates an `AccountReceivable` in category
-     "Mensalidade" (created if missing), linked to the enrollment and the
-     student's first financial guardian, using the contract's values.
+     "Mensalidade" (created if missing), linked to the enrollment, its
+     student and the student's first financial guardian, using the contract's values.
    - It generates monthly installments, with due dates from
-     `enrollment_due_dates()`. The first is due on the enrollment date. The
-     rest fall on `due_day` of the **school year**, moved to Monday when that
-     day is a weekend (`utils.format.weekdays.adjust_weekend`):
-     - enrolling during the school year: one per remaining month, through
-       December (enrolled in September → Sep, Oct, Nov, Dec);
-     - enrolling ahead (e.g. November 2026 for 2027): 12 installments, the
-       first on the enrollment date, then February to December 2027.
+     `enrollment_due_dates()`. They fall on `due_day` of the **school year**,
+     moved to Monday when that day is a weekend
+     (`utils.format.weekdays.adjust_weekend`):
+     - enrolling during the school year: the first is due on the enrollment
+       date, then one per remaining month, through December (enrolled on
+       Sep 15 → Sep 15, Oct, Nov, Dec);
+     - enrolling ahead (e.g. November 2026 for 2027): 12 installments,
+       January to December 2027.
    - The net value is split with `split_value()`: every installment gets the
      value rounded down to the cent, and the first gets the remainder, so
      installments always add up to the account's net value.
@@ -381,9 +394,14 @@ match files the bank already accepted (`00000 000000000000 ` in positions
 
 ## Development data (`base/management/commands/`)
 
-- `clean` seeds reference data (users, programs, school years, classes…)
-  despite its name; `seed` adds a few fake people.
-- `full_seed` **flushes the database** and fills a whole school year sized to
+- Both commands **drop every table and re-run all migrations** first
+  (`--no-reset` skips that; tests use it), and refuse to reset without DEBUG.
+- `seed` creates only what other records are built from: users, groups, the
+  school year, classes, enrollment types, discounts, documents, exam and
+  incident types, departments, subjects, pathways, bank settings, account
+  categories and suppliers, staff and teachers, students and guardians
+  (3 per class by default). No enrollments, accounts, grades or lessons.
+- `full_seed` fills a whole school year sized to
   stress the UI (31 classes × 45 students by default; `--students-per-class`,
   `--year`, `--today`, `--random-seed`). It goes through the app's own rules:
   enrollments are saved one by one so the signal builds their accounts, bank
@@ -674,9 +692,6 @@ style.
   every screen (the "Professor" group `full_seed` creates is not enforced).
 - **Production hardening is incomplete:** CDN assets aren't pinned or
   self-hosted.
-- `Enrollment.installments_count` exists (default 12) but isn't used:
-  the number of installments comes from the enrollment date (see
-  [workflow](#enrollment--finance-workflow)).
 - `enrollments/forms.py` and `accounts/forms.py` each define an
   `InstallmentForm` with different purposes.
 - `tailwind.config.js` and `src/gestao/` (uv scaffolding) are empty or unused.

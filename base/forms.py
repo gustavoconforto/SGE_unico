@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import Group, Permission, User
 
 
@@ -50,7 +51,23 @@ class PermissionForm(forms.ModelForm):
         }
 
 
-class UserForm(forms.ModelForm):
+class UserStatusFieldsMixin:
+    """Drops is_active/is_staff/is_superuser unless `can_set_status`.
+
+    user_form.html shows them only to superusers; left in the form, a missing
+    field would save as False and deactivate the user.
+    """
+
+    status_fields = ("is_active", "is_staff", "is_superuser")
+
+    def __init__(self, *args, can_set_status=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not can_set_status:
+            for name in self.status_fields:
+                del self.fields[name]
+
+
+class UserForm(UserStatusFieldsMixin, forms.ModelForm):
     class Meta:
         model = User
         fields = [
@@ -103,3 +120,20 @@ class UserForm(forms.ModelForm):
                 }
             ),
         }
+
+
+class UserCreateForm(UserStatusFieldsMixin, UserCreationForm):
+    """UserForm plus the password, so the new user can log in."""
+
+    class Meta(UserForm.Meta):
+        pass
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in ("password1", "password2"):
+            self.fields[name].widget.attrs["class"] = "input input-neutral w-full"
+        # Django's help text is an HTML list, which the field component escapes.
+        self.fields["password1"].help_text = (
+            "Mínimo de 8 caracteres, não pode ser só números nem parecida com os "
+            "dados do usuário."
+        )

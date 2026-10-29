@@ -14,12 +14,12 @@ uv run python manage.py check
 uv run python manage.py makemigrations --check --dry-run   # confirm no missing migration
 uv run ruff check <files> && uv run ruff format <files>    # only files you touched; the repo isn't ruff-clean yet
 uv run python manage.py runserver
-uv run python manage.py full_seed          # FLUSHES the database, then fills a whole school year
+uv run python manage.py seed               # RESETS the database (drop + migrate), then reference data, staff, students
+uv run python manage.py full_seed          # RESETS the database, then fills a whole school year
 ```
 
 `.env` needs `SECRET_KEY` and `DJANGO_DEBUG=true` (without debug it connects
-to PostgreSQL through `DATABASE_URL`). Never run `reset_db.py`: it deletes the
-database and all migration files. Ask before running `full_seed` on the dev
+to PostgreSQL through `DATABASE_URL`). Ask before running `seed` or `full_seed` on the dev
 database; to try it, point a settings override at a scratch SQLite file.
 
 ## Language
@@ -129,6 +129,14 @@ database; to try it, point a settings override at a scratch SQLite file.
 - Enrollment creation generates the account and installments through the
   `post_save` signal in `enrollments/signals.py`; don't duplicate that in views.
 
+### Lessons rules
+- Lessons run Monday to Saturday: 12 periods a day Monday to Friday, 7 on
+  Saturday. Build a day's periods with `weekday_periods(weekday)` from
+  `lessons/models.py`, not `PERIODS` (which holds all 12), and validate with
+  `period_error()`. Change the counts only through `LECTURES_PER_DAY` and
+  `SATURDAY_LECTURES` (then `makemigrations`: they feed choices and
+  constraints).
+
 ### Development data
 - When a new app has data worth seeing in the UI, add it to
   `base/management/commands/full_seed.py` (and its model to `print_summary`).
@@ -148,4 +156,3 @@ database; to try it, point a settings override at a scratch SQLite file.
   which answers htmx requests with `HX-Redirect`). Mark public views with
   `@login_not_required`. `/login/` and `/logout/` are Django auth views (URL
   names `login` and `logout`, no namespace); logout is POST-only.
-- `manage.py clean` **seeds** reference data despite its name.

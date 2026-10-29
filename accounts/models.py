@@ -18,7 +18,7 @@ from django.utils import timezone
 
 from base.models import TimeStampedModel
 from enrollments.models import Enrollment
-from students.models import Guardian
+from students.models import Guardian, Student
 
 MONEY = {"max_digits": 10, "decimal_places": 2}
 ZERO = Decimal("0.00")
@@ -83,6 +83,25 @@ class AccountQuerySet(models.QuerySet):
             ),
         )
 
+    def with_payment_dates(self):
+        """Annotate the due date still owed (or the last one) and the last payment.
+
+        Subqueries rather than joins, so the counts above aren't multiplied.
+        """
+        installments = Installment.objects.filter(account=OuterRef("pk"))
+        next_due = installments.filter(status__in=PENDING_STATUSES).order_by("due_date")
+        last_due = installments.order_by("-due_date")
+        last_payment = Payment.objects.filter(
+            installment__account=OuterRef("pk")
+        ).order_by("-paid_at")
+        return self.annotate(
+            due_date=Coalesce(
+                Subquery(next_due.values("due_date")[:1]),
+                Subquery(last_due.values("due_date")[:1]),
+            ),
+            last_paid_at=Subquery(last_payment.values("paid_at")[:1]),
+        )
+
 
 class Account(TimeStampedModel):
     direction = models.CharField("Natureza", max_length=1, choices=Direction.choices)
@@ -100,6 +119,14 @@ class Account(TimeStampedModel):
         blank=True,
         related_name="account",
         verbose_name="Matrícula",
+    )
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="accounts",
+        verbose_name="Aluno",
     )
     guardian = models.ForeignKey(
         Guardian,
@@ -148,15 +175,6 @@ class Account(TimeStampedModel):
     def counterpart(self):
         return self.guardian or self.supplier
 
-    def balance(self):
-        return sum(
-            (
-                i.balance()
-                for i in self.installments.exclude(status=InstallmentStatus.CANCELLED)
-            ),
-            ZERO,
-        )
-
     class Meta:
         verbose_name = "Conta"
         verbose_name_plural = "Contas"
@@ -168,6 +186,7 @@ class Account(TimeStampedModel):
                     direction=Direction.PAYABLE,
                     guardian__isnull=True,
                     enrollment__isnull=True,
+                    student__isnull=True,
                 ),
                 name="account_counterpart_matches_direction",
             ),
@@ -202,8 +221,8 @@ class AccountReceivable(Account):
 
     class Meta:
         proxy = True
-        verbose_name = "Conta a receber"
-        verbose_name_plural = "Contas a receber"
+        verbose_name = "Duplicata a receber"
+        verbose_name_plural = "Duplicatas a receber"
 
 
 class AccountPayable(Account):
@@ -215,8 +234,8 @@ class AccountPayable(Account):
 
     class Meta:
         proxy = True
-        verbose_name = "Conta a pagar"
-        verbose_name_plural = "Contas a pagar"
+        verbose_name = "Duplicata a pagar"
+        verbose_name_plural = "Duplicatas a pagar"
 
 
 class InstallmentStatus(models.TextChoices):
@@ -262,7 +281,9 @@ class InstallmentQuerySet(models.QuerySet):
                 When(status=InstallmentStatus.CANCELLED, then=Value(ZERO)),
                 default=Greatest(
                     F("amount")
-                    - Coalesce(Subquery(paid_principal), Value(ZERO), output_field=money),
+                    - Coalesce(
+                        Subquery(paid_principal), Value(ZERO), output_field=money
+                    ),
                     Value(ZERO),
                 ),
                 output_field=money,
@@ -298,9 +319,6 @@ class Installment(models.Model):
     def __str__(self):
         return f"{self.account} - {self.number}"
 
-    def get_inline_title(self):
-        return "Parcela"
-
     def paid_principal(self):
         totals = self.payments.aggregate(
             amount=Sum("amount"),
@@ -325,9 +343,7 @@ class Installment(models.Model):
 
     @property
     def is_overdue(self):
-        return (
-            self.status in PENDING_STATUSES and self.due_date < timezone.localdate()
-        )
+        return self.status in PENDING_STATUSES and self.due_date < timezone.localdate()
 
     def refresh_status(self):
         if self.status == InstallmentStatus.CANCELLED:
@@ -339,7 +355,10 @@ class Installment(models.Model):
             status = InstallmentStatus.PARTIAL
         else:
             status = InstallmentStatus.PAID
-        if self.status == InstallmentStatus.EXPIRED and status != InstallmentStatus.PAID:
+        if (
+            self.status == InstallmentStatus.EXPIRED
+            and status != InstallmentStatus.PAID
+        ):
             return
         if status != self.status:
             self.status = status

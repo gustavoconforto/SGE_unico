@@ -9,8 +9,6 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-tmpPostgres = urlparse(os.getenv("DATABASE_URL"))
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
@@ -26,7 +24,6 @@ ALLOWED_HOSTS = [
     "gestaounico.com.br",
     "www.gestaounico.com.br",
     "127.0.0.1",
-    "localhost",
 ]
 
 
@@ -179,12 +176,11 @@ LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "base:main"
 LOGOUT_REDIRECT_URL = "login"
 
-
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
-
-MAILERS = {
-    "default": {
-        "BACKEND": "django.core.mail.backends.console.EmailBackend",
-    },
-}
+if not DEBUG:
+    # nginx terminates HTTPS and redirects plain HTTP.
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    CSRF_TRUSTED_ORIGINS = [
+        "https://gestaounico.com.br",
+        "https://www.gestaounico.com.br",
+    ]

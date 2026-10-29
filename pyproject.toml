@@ -9,13 +9,10 @@ authors = [
 requires-python = ">=3.14"
 dependencies = [
     "django>=6.1.2",
-    "django-allauth>=65.20.1",
-    "faker>=40.43.0",
     "gunicorn>=26.2.0",
     "pillow>=12.3.0",
     "psycopg>=3.3.6",
     "python-dotenv>=1.2.4",
-    "ruff>=0.17.1",
     "weasyprint>=70.0",
 ]
 
@@ -25,3 +22,9 @@ gestao = "gestao:main"
 [build-system]
 requires = ["uv_build>=0.12.23,<0.13.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "faker>=40.44.0",
+    "ruff>=0.17.3",
+]

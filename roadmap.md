@@ -90,8 +90,8 @@ Configuração bancária ──▶ Remessas ──▶ Boletos ──▶ Retornos
 
 > Two shortcuts exist, but skip them on the first pass so every screen gets
 > tested by hand:
-> - `uv run python manage.py clean` **inserts** reference data (courses, school
->   years, classes, contracts, discounts, documents, roles) despite its name.
+> - `uv run python manage.py seed` **erases the whole database** and inserts
+>   reference data, staff, students and guardians (no enrollments).
 > - `uv run python manage.py full_seed` **erases the whole database** and fills
 >   a complete school year. Use it only for Phase 15.
 
@@ -349,8 +349,8 @@ Needs: student **with a financial guardian**, contract, (optional) class,
 - [ ] Installments, enrolled during the year: the first is due on the enrollment
       date, the rest on day 10 of each month through December; a day 10 on a
       weekend moves to Monday.
-- [ ] Installments, enrolled ahead (2027): 12 installments, the first on the
-      enrollment date, then February to December 2027.
+- [ ] Installments, enrolled ahead (2027): 12 installments on day 10, January
+      to December 2027.
 - [ ] The installments add up exactly to the net value (Lucas: 12.600 − 10%).
 - [ ] Contratos a receber (`/accounts/receivable/list/`) shows one new account
       per enrollment, category "Mensalidade", linked to the financial guardian.
@@ -382,7 +382,8 @@ Needs: class with a série, subjects per série with teachers.
 
 ### 7.1 Grade horária (`/lessons/timetable/`)
 
-- [ ] Pick "Aplicação" → empty 5 × 7 grid and the weekly load per subject.
+- [ ] Pick "Aplicação" → empty grid, Monday to Saturday, 12 periods (7 on
+      Saturday), and the weekly load per subject.
 - [ ] Edit: fill cells with "Matéria — Professor". Save.
 - [ ] Weekly load shows a warning when the periods don't match "aulas/semana"
       (a warning, not an error).
@@ -404,7 +405,8 @@ Needs: class with a série, subjects per série with teachers.
       topic.
 
 **Try to break it**
-- [ ] A Saturday, or a date outside the school year → refused.
+- [ ] A Sunday, or a date outside the school year → refused.
+- [ ] A Saturday → only 7 rows on the day sheet.
 - [ ] A teacher from outside the subject's department → refused.
 
 ---

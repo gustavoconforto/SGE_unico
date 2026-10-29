@@ -1,0 +1,8 @@
+<details class="nav-group">
+    <summary><span class="material-symbols-outlined text-slate-500">account_balance</span>Duplicatas<span class="material-symbols-outlined nav-chevron">expand_more</span></summary>
+    <ul class="nav-list">
+        {% include 'base/sidebar/items/menu_item.html' with path="accounts:receivable_list" label="A receber" icon="attach_money" %}
+        {% include 'base/sidebar/items/menu_item.html' with path="accounts:payable_list" label="A pagar" icon="money_off" %}
+        {% include 'base/sidebar/items/menu_item.html' with path="accounts:payment_add" label="Baixa" icon="price_check" %}
+    </ul>
+</details>

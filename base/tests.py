@@ -3,14 +3,14 @@ from io import StringIO
 
 from django import forms
 from django.contrib.auth.models import User
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.core.management import call_command
 from django.template import Context, Template
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from accounts.models import Payment
+from accounts.models import Payment, Supplier
 from billing.models import BankSlip, ReturnEvent, SlipStatus
 from classes.models import Class
 from enrollments.models import Enrollment
@@ -90,6 +90,7 @@ class FullSeedTests(TestCase):
         year = timezone.localdate().year + 1
         call_command(
             "full_seed",
+            reset=False,
             students_per_class=2,
             year=year,
             today=date(year, 11, 20),
@@ -102,6 +103,7 @@ class FullSeedTests(TestCase):
         # A past year runs every step: all bimesters graded, every month billed.
         call_command(
             "full_seed",
+            reset=False,
             students_per_class=2,
             year=timezone.localdate().year - 1,
             stdout=StringIO(),
@@ -176,7 +178,6 @@ class UiTagsTests(TestCase):
             self.render(source, form=FilterForm({"status": "A", "year": ""})), "1"
         )
 
-
     def test_optional_marker_only_on_model_forms(self):
         class PickerForm(forms.Form):
             school_class = forms.CharField(required=False)
@@ -192,6 +193,7 @@ class UiTagsTests(TestCase):
         )
         self.assertIn("(opcional)", self.render(source, field=UserForm()["email"]))
 
+
 class LayoutTests(LoggedInTestCase):
     def test_sidebar_marks_the_current_section(self):
         response = self.client.get(reverse("accounts:supplier_list"))
@@ -205,6 +207,82 @@ class LayoutTests(LoggedInTestCase):
         self.assertContains(response, "<title>Fornecedores</title>")
 
 
+class UserAddTests(LoggedInTestCase):
+    def test_new_user_can_log_in_with_the_password_given(self):
+        response = self.client.post(
+            reverse("base:user_add"),
+            {
+                "username": "joana",
+                "first_name": "Joana",
+                "password1": "Cad3rno-azul",
+                "password2": "Cad3rno-azul",
+            },
+        )
+        self.assertRedirects(response, reverse("base:user_list"))
+        self.client.logout()
+        self.assertTrue(self.client.login(username="joana", password="Cad3rno-azul"))
+
+    def test_passwords_must_match(self):
+        response = self.client.post(
+            reverse("base:user_add"),
+            {"username": "joana", "password1": "Cad3rno-azul", "password2": "outra"},
+        )
+        self.assertIn("password2", response.context["form"].errors)
+        self.assertFalse(User.objects.filter(username="joana").exists())
+
+
+class UserEditStatusTests(LoggedInTestCase):
+    def test_non_superuser_save_keeps_status_flags(self):
+        user = User.objects.create_user(
+            username="ana", is_staff=True, is_superuser=True
+        )
+        self.client.post(
+            reverse("base:user_edit", args=[user.pk]),
+            {"username": "ana", "first_name": "Ana", "is_superuser": "false"},
+        )
+        user.refresh_from_db()
+        self.assertEqual(user.first_name, "Ana")
+        self.assertTrue(user.is_active)
+        self.assertTrue(user.is_superuser)
+
+    def test_superuser_can_change_status_flags(self):
+        self.client.force_login(
+            User.objects.create_user(username="admin", is_superuser=True)
+        )
+        user = User.objects.create_user(username="ana")
+        self.client.post(
+            reverse("base:user_edit", args=[user.pk]),
+            {"username": "ana", "is_active": "false", "is_staff": "true"},
+        )
+        user.refresh_from_db()
+        self.assertFalse(user.is_active)
+        self.assertTrue(user.is_staff)
+
+
+class CpfValidationTests(TestCase):
+    def test_cpf_must_have_eleven_digits(self):
+        for cpf in ("1234", "123.456.789", "1234567890a"):
+            with self.subTest(cpf=cpf):
+                student = Student(name="Ana", cpf=cpf, rg="1", issuing_authority="SSP")
+                with self.assertRaises(ValidationError) as caught:
+                    student.full_clean()
+                self.assertIn("cpf", caught.exception.message_dict)
+
+
+class UserEditTests(LoggedInTestCase):
+    def test_invalid_post_keeps_errors_and_input(self):
+        user = User.objects.create_user(username="ana")
+        response = self.client.post(
+            reverse("base:user_edit", args=[user.pk]),
+            {"username": "", "first_name": "Ana Maria"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["form"].errors)
+        self.assertContains(response, "Ana Maria")
+        user.refresh_from_db()
+        self.assertEqual(user.username, "ana")
+
+
 class PageSmokeTests(LoggedInTestCase):
     """Every screen renders against seeded data: list, add, edit, delete and
     detail pages of each app, reached through the URLconf."""
@@ -213,6 +291,7 @@ class PageSmokeTests(LoggedInTestCase):
     def setUpTestData(cls):
         call_command(
             "full_seed",
+            reset=False,
             students_per_class=1,
             year=timezone.localdate().year - 1,
             stdout=StringIO(),
@@ -246,7 +325,7 @@ class PageSmokeTests(LoggedInTestCase):
                 view.kwargs = {}
                 try:
                     queryset = view.get_queryset()
-                except (AttributeError, KeyError, ImproperlyConfigured):
+                except AttributeError, KeyError, ImproperlyConfigured:
                     # Views that filter on URL kwargs or other request state.
                     queryset = model._default_manager.all()
                 obj = queryset.order_by("pk").first()
@@ -255,10 +334,32 @@ class PageSmokeTests(LoggedInTestCase):
                 url = reverse(f"{namespace}:{pattern.name}", args=[obj.pk])
             else:
                 url = reverse(f"{namespace}:{pattern.name}")
-            if any(word in url for word in ("download", "pdf", "preview", "report", "options", "lookup")):
+            if any(
+                word in url
+                for word in (
+                    "download",
+                    "pdf",
+                    "preview",
+                    "report",
+                    "options",
+                    "lookup",
+                )
+            ):
                 continue
             with self.subTest(url=url):
                 response = self.client.get(url)
                 self.assertIn(response.status_code, (200, 302, 405))
                 checked += 1
         self.assertGreater(checked, 80)
+
+
+class SeedTests(TestCase):
+    def test_seeds_people_without_enrollments(self):
+        call_command("seed", reset=False, students_per_class=1, stdout=StringIO())
+        self.assertEqual(Student.objects.count(), 31)
+        self.assertFalse(
+            Student.objects.filter(registration__startswith="TMP").exists()
+        )
+        self.assertEqual(Enrollment.objects.count(), 0)
+        self.assertEqual(Class.objects.filter(capacity=45).count(), 31)
+        self.assertTrue(Supplier.objects.exists())

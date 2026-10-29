@@ -48,21 +48,20 @@ def tuition_category():
 
 
 def enrollment_due_dates(enrollment):
-    """First installment is due on enrollment; the others monthly on due_day.
+    """Monthly due dates on due_day, through December of the school year.
 
-    Enrolling during the school year: one installment per remaining month,
-    through December. Enrolling ahead: 12 installments, February to December
-    of the school year.
+    Enrolling during the school year: the first installment is due on
+    enrollment, then one per remaining month. Enrolling ahead: 12
+    installments, January to December of the school year.
     """
     enrolled_at = enrollment.enrolled_at
     school_year = enrollment.enrollment_type.school_year.begins.year
     if enrolled_at.year == school_year:
-        months = range(enrolled_at.month + 1, 13)
+        first, months = [enrolled_at], range(enrolled_at.month + 1, 13)
     else:
-        months = range(2, 13)
-    return [enrolled_at] + [
-        adjust_weekend(date(school_year, month, enrollment.due_day))
-        for month in months
+        first, months = [], range(1, 13)
+    return first + [
+        adjust_weekend(date(school_year, month, enrollment.due_day)) for month in months
     ]
 
 
@@ -74,6 +73,7 @@ def create_enrollment_account(enrollment, category=None):
         description=f"Contrato {enrollment}"[:200],
         category=category or tuition_category(),
         enrollment=enrollment,
+        student_id=enrollment.student_id,
         guardian=Guardian.objects.filter(
             student_links__student=enrollment.student_id,
             student_links__is_financial=True,
@@ -93,10 +93,23 @@ def create_enrollment_account(enrollment, category=None):
             status=InstallmentStatus.OPEN,
         )
         for number, (due_date, amount) in enumerate(
-            zip(due_dates, split_value(account.net_value, len(due_dates))), start=1
+            zip(due_dates, enrollment_amounts(enrollment, len(due_dates))), start=1
         )
     )
     return account
+
+
+def enrollment_amounts(enrollment, count):
+    """The first installment is 1/12 of the contract with its own discounts;
+    the other 11/12, with theirs, are split over the remaining installments.
+
+    With a single installment (enrolling in December) it carries both parts.
+    """
+    if count == 1:
+        return [enrollment.net_value]
+    return [enrollment.first_net_value] + split_value(
+        enrollment.remaining_net_value, count - 1
+    )
 
 
 def cancel_future_installments(enrollment):

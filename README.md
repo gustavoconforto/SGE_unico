@@ -42,8 +42,7 @@ DJANGO_DEBUG=true
 EOF
 
 # 3. Create the database and load reference data
-uv run python manage.py migrate
-uv run python manage.py clean      # seeds users, programs, school years, classes, etc.
+uv run python manage.py seed       # resets the database, then users, classes, staff, students, etc.
 
 # 4. Run
 uv run python manage.py runserver
@@ -56,15 +55,14 @@ debug is on (see [Known issues](#known-issues)).
 
 ### Development users
 
-`manage.py clean` creates two users, both with password `73823789`:
+`manage.py seed` creates two users, both with password `73823789`:
 
 | Username | Role |
 |---|---|
 | `conforto` | superuser |
 | `teste` | staff, non-superuser |
 
-Sign in at http://127.0.0.1:8000/login/. The app pages don't require login
-yet, so you can also open them directly. The same users work for `/admin/`.
+Sign in at http://127.0.0.1:8000/login/. The same users work for `/admin/`.
 
 ## Common commands
 
@@ -73,20 +71,14 @@ uv run python manage.py test                 # all tests
 uv run python manage.py test accounts        # one app
 uv run python manage.py makemigrations
 uv run python manage.py migrate
-uv run python manage.py clean                # (re)seed reference data
-uv run python manage.py seed                 # reference data + fake employees, students and guardians
+uv run python manage.py seed                 # reset DB; reference data + staff, students and guardians
+uv run python manage.py full_seed            # reset DB; a whole school year of data
 uv run ruff check <files>                    # lint (the repo isn't clean yet)
 uv run ruff format <files>                   # format
-uv run python reset_db.py                    # see warning below
 ```
 
-`seed` takes `--students N` (default 10) and `--random-seed` (default 42). It
-skips the fake people if students already exist.
-
-> **`reset_db.py` is destructive.** It deletes `db.sqlite3` **and every
-> migration file** in the project, then regenerates them. Only use it while the
-> schema is still throwaway, and never once there's a database you care about.
-> Option 1 then runs `clean`, option 2 runs `seed`.
+Both reset the database (drop every table, migrate). `seed` takes
+`--students-per-class N` (default 3) and `--random-seed` (default 42).
 
 ## Project layout
 
@@ -94,7 +86,7 @@ skips the fake people if students already exist.
 config/        settings, root URLconf, WSGI/ASGI
 base/          shared models (Person, TimeStampedModel), search/htmx mixins,
                layout templates, login page, UI components, users/groups/permissions,
-               clean and seed commands
+               seed and full_seed commands
 employees/     employee roles and employees
 programs/      courses
 classes/       classes (turmas) and the class roster page

@@ -2,7 +2,7 @@ from collections import Counter
 from typing import NamedTuple
 
 from grades.models import GradeLevelSubject
-from lessons.models import PERIODS, TimetableSlot, Weekday
+from lessons.models import PERIODS, TimetableSlot, Weekday, weekday_periods
 
 
 class WeeklyLoad(NamedTuple):
@@ -13,7 +13,8 @@ class WeeklyLoad(NamedTuple):
 
 
 def timetable_grid(school_class):
-    """[(period label, [slot or None per weekday])] of the class's timetable."""
+    """[(period label, [cell per weekday])] of the class's timetable. A cell is
+    (has the period?, slot or None): Saturday has fewer periods."""
     slots = {
         (slot.weekday, slot.period): slot
         for slot in TimetableSlot.objects.filter(
@@ -21,7 +22,16 @@ def timetable_grid(school_class):
         ).select_related("subject__subject", "teacher")
     }
     return [
-        (label, [slots.get((weekday, period)) for weekday in Weekday.values])
+        (
+            label,
+            [
+                (
+                    period <= len(weekday_periods(weekday)),
+                    slots.get((weekday, period)),
+                )
+                for weekday in Weekday.values
+            ],
+        )
         for period, label in PERIODS
     ]
 

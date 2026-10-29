@@ -118,19 +118,23 @@ mensalidades.
 | Tipo de contrato | Curso, série e ano. Ao escolher, a lista de turmas se atualiza. |
 | Turma | Só aparecem turmas do mesmo ano, curso e série do contrato. |
 | Situação | Ativa (padrão), Transferida, Desistente, Concluída, Cancelada. |
-| Desconto | Tipo de desconto, se houver. |
+| Descontos | Marque um ou mais tipos de desconto, se houver. Os percentuais são somados. |
+| Desconto avulso (%) e Observação | Para um percentual fora da tabela. A observação é obrigatória (ex.: "desconto autorizado pela direção"). |
 | Dia de vencimento | Dia do mês em que as mensalidades vencem (1 a 28; padrão 10). |
 | Data da matrícula, Valor bruto, Percentual de desconto | Preenchidos automaticamente. |
 
-Um aluno não pode ter duas matrículas no mesmo tipo de contrato.
+Um aluno não pode ter duas matrículas no mesmo tipo de contrato. A soma dos
+descontos não pode passar de 100%. Os descontos só podem ser escolhidos ao
+cadastrar: na edição eles aparecem apenas para consulta, porque a conta já foi
+gerada com eles.
 
 ### O que acontece ao salvar
 
 Ao criar a matrícula, o sistema faz sozinho:
 
 1. cria uma **conta a receber** na categoria "Mensalidade", em nome do
-   primeiro responsável financeiro do aluno, com o valor do contrato menos o
-   desconto;
+   primeiro responsável financeiro do aluno, com o valor do contrato menos a
+   soma dos descontos;
 2. gera as **mensalidades** (parcelas) dessa conta;
 3. cria a **lista de documentos** a entregar.
 
@@ -138,14 +142,14 @@ Depois de salvar, a tela de edição da matrícula é aberta.
 
 ### Mensalidades geradas automaticamente
 
-- A **1ª parcela** vence na data da matrícula.
-- As demais vencem no **dia de vencimento** escolhido, nos meses do ano
+- As parcelas vencem no **dia de vencimento** escolhido, nos meses do ano
   escolar, até dezembro. Se o dia cair em sábado ou domingo, passa para a
   segunda-feira.
-- Matrícula **durante o ano**: uma parcela por mês restante.
+- Matrícula **durante o ano**: a 1ª parcela vence na data da matrícula e as
+  demais, uma por mês restante.
   Ex.: matrícula em setembro → setembro, outubro, novembro e dezembro.
 - Matrícula **antecipada** (ex.: em novembro de 2026 para 2027): 12 parcelas,
-  a 1ª na data da matrícula e as outras de fevereiro a dezembro de 2027.
+  de janeiro a dezembro de 2027.
 - O valor é dividido igualmente; os centavos que sobram vão para a 1ª
   parcela, para que a soma bata exatamente com o valor do contrato.
 

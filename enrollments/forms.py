@@ -1,13 +1,17 @@
+from decimal import Decimal
+
 from django import forms
 from django.db.models import Count, Q
 from django.forms import inlineformset_factory
 from django.urls import reverse_lazy
 
-from accounts.models import Account, Installment
 from classes.models import Class
 from enrollments.models import (
+    ENDED_EARLY,
+    DiscountGroup,
     DiscountType,
     Enrollment,
+    EnrollmentDiscount,
     EnrollmentNeededDocument,
     EnrollmentStatus,
     EnrollmentType,
@@ -30,8 +34,16 @@ class SchoolYearForm(forms.ModelForm):
             "bi_3_ends",
             "bi_4_begins",
             "bi_4_ends",
+            "school_days",
+            "total_hours",
         ]
         widgets = {
+            "school_days": forms.NumberInput(
+                attrs={"class": "input input-neutral w-full"}
+            ),
+            "total_hours": forms.NumberInput(
+                attrs={"class": "input input-neutral w-full"}
+            ),
             "begins": forms.DateInput(
                 format="%Y-%m-%d",
                 attrs={
@@ -104,6 +116,12 @@ class SchoolYearForm(forms.ModelForm):
             ),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Nullable in the model only for years created before these fields.
+        self.fields["school_days"].required = True
+        self.fields["total_hours"].required = True
+
 
 class NeededDocumentTypeForm(forms.ModelForm):
     class Meta:
@@ -168,9 +186,12 @@ class EnrollmentForm(forms.ModelForm):
     readonly_fields = [
         "enrolled_at",
         "gross_value",
-        "discount_percent",
-        "installments_count",
+        "first_discount_percent",
+        "remaining_discount_percent",
     ]
+    # The account and installments are generated from these on creation, so
+    # they can't change afterwards.
+    locked_on_edit_fields = ["student", "enrollment_type", "due_day"]
 
     class Meta:
         model = Enrollment
@@ -180,10 +201,9 @@ class EnrollmentForm(forms.ModelForm):
             "school_class",
             "status",
             "enrolled_at",
-            "discount",
             "gross_value",
-            "discount_percent",
-            "installments_count",
+            "first_discount_percent",
+            "remaining_discount_percent",
             "due_day",
         ]
         widgets = {
@@ -199,7 +219,6 @@ class EnrollmentForm(forms.ModelForm):
                     "hx-target": "#school-class-field",
                 }
             ),
-            "discount": forms.Select(attrs={"class": "select select-neutral w-full"}),
             "status": forms.Select(attrs={"class": "select select-neutral w-full"}),
             "enrolled_at": forms.DateInput(
                 format="%Y-%m-%d",
@@ -211,10 +230,10 @@ class EnrollmentForm(forms.ModelForm):
             "gross_value": forms.NumberInput(
                 attrs={"class": "input input-neutral w-full"}
             ),
-            "discount_percent": forms.NumberInput(
+            "first_discount_percent": forms.NumberInput(
                 attrs={"class": "input input-neutral w-full"}
             ),
-            "installments_count": forms.NumberInput(
+            "remaining_discount_percent": forms.NumberInput(
                 attrs={"class": "input input-neutral w-full"}
             ),
             "due_day": forms.NumberInput(attrs={"class": "input input-neutral w-full"}),
@@ -224,12 +243,17 @@ class EnrollmentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for name in self.readonly_fields:
             self.fields[name].disabled = True
+        if self.instance.pk:
+            for name in self.locked_on_edit_fields:
+                self.fields[name].disabled = True
         self.fields["school_class"].queryset = self.school_classes_for(
             self.selected_enrollment_type()
         )
         self.fields["school_class"].label_from_instance = self.school_class_label
 
     def selected_enrollment_type(self):
+        if self.instance.pk:
+            return self.instance.enrollment_type
         if self.is_bound:
             pk = self.data.get(self.add_prefix("enrollment_type"))
         else:
@@ -238,6 +262,25 @@ class EnrollmentForm(forms.ModelForm):
         if not pk or not str(pk).isdigit():
             return None
         return EnrollmentType.objects.filter(pk=pk).first()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        # Ending the enrollment cancelled its future installments, and nothing
+        # brings them back.
+        status = cleaned_data.get("status")
+        if (
+            self.instance.pk
+            and self.instance.status in ENDED_EARLY
+            and status
+            and status not in ENDED_EARLY
+        ):
+            self.add_error(
+                "status",
+                f"A matrícula está {self.instance.get_status_display().lower()} e "
+                "suas parcelas futuras foram canceladas; ela não pode voltar a ficar "
+                "ativa ou concluída.",
+            )
+        return cleaned_data
 
     @staticmethod
     def school_classes_for(enrollment_type):
@@ -268,6 +311,111 @@ class EnrollmentForm(forms.ModelForm):
         return f"{school_class} ({school_class.student_count}/{capacity})"
 
 
+# Form field prefix of each discount group: first_discount_types, ...
+DISCOUNT_GROUP_PREFIXES = {
+    DiscountGroup.FIRST: "first",
+    DiscountGroup.REMAINING: "remaining",
+}
+
+
+class EnrollmentCreateForm(EnrollmentForm):
+    """Adds the discounts, which only make sense on creation: the account is
+    generated from them when the enrollment is first saved.
+
+    Each group (first installment, remaining installments) has its own set
+    of fields: discount types, custom percentage and its observation.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for prefix in DISCOUNT_GROUP_PREFIXES.values():
+            self.fields[f"{prefix}_discount_types"] = forms.ModelMultipleChoiceField(
+                label="Descontos",
+                queryset=DiscountType.objects.all(),
+                required=False,
+                widget=forms.CheckboxSelectMultiple(
+                    attrs={"class": "checkbox checkbox-sm checkbox-neutral"}
+                ),
+            )
+            self.fields[f"{prefix}_discount_types"].label_from_instance = (
+                lambda discount_type: f"{discount_type} ({discount_type.percentage}%)"
+            )
+            self.fields[f"{prefix}_custom_discount_percent"] = forms.DecimalField(
+                label="Desconto avulso (%)",
+                max_digits=5,
+                decimal_places=2,
+                min_value=Decimal("0.01"),
+                max_value=Decimal(100),
+                required=False,
+                widget=forms.NumberInput(
+                    attrs={"class": "input input-neutral w-full", "step": "0.01"}
+                ),
+            )
+            self.fields[f"{prefix}_custom_discount_observation"] = forms.CharField(
+                label="Observação do desconto avulso",
+                max_length=200,
+                required=False,
+                help_text="Ex.: desconto autorizado pela direção",
+                widget=forms.TextInput(attrs={"class": "input input-neutral w-full"}),
+            )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        for group, prefix in DISCOUNT_GROUP_PREFIXES.items():
+            percent = cleaned_data.get(f"{prefix}_custom_discount_percent")
+            observation = cleaned_data.get(f"{prefix}_custom_discount_observation")
+            if percent and not observation:
+                self.add_error(
+                    f"{prefix}_custom_discount_observation",
+                    "Informe quem autorizou ou o motivo do desconto avulso.",
+                )
+            elif observation and not percent:
+                self.add_error(
+                    f"{prefix}_custom_discount_percent",
+                    "Informe o percentual do desconto avulso.",
+                )
+            total = sum(d.percentage for d in self.build_discounts(group))
+            if total > 100:
+                self.add_error(
+                    f"{prefix}_discount_types",
+                    f"A soma dos descontos ({total}%) não pode passar de 100%.",
+                )
+        return cleaned_data
+
+    def build_discounts(self, group):
+        prefix = DISCOUNT_GROUP_PREFIXES[group]
+        discounts = [
+            EnrollmentDiscount(
+                discount_type=discount_type,
+                group=group,
+                percentage=discount_type.percentage,
+            )
+            for discount_type in self.cleaned_data.get(f"{prefix}_discount_types") or []
+        ]
+        percent = self.cleaned_data.get(f"{prefix}_custom_discount_percent")
+        if percent:
+            discounts.append(
+                EnrollmentDiscount(
+                    group=group,
+                    percentage=percent,
+                    observation=self.cleaned_data.get(
+                        f"{prefix}_custom_discount_observation"
+                    ),
+                )
+            )
+        return discounts
+
+    def save(self, commit=True):
+        self.instance.save_with_discounts(
+            [
+                discount
+                for group in DISCOUNT_GROUP_PREFIXES
+                for discount in self.build_discounts(group)
+            ]
+        )
+        return self.instance
+
+
 class EnrollmentNeededDocumentForm(forms.ModelForm):
     class Meta:
         model = EnrollmentNeededDocument
@@ -285,33 +433,4 @@ EnrollmentNeededDocumentFormSet = inlineformset_factory(
     form=EnrollmentNeededDocumentForm,
     extra=0,
     can_delete=False,
-)
-
-
-class InstallmentForm(forms.ModelForm):
-    class Meta:
-        model = Installment
-        fields = ["due_date", "amount"]
-        widgets = {
-            "due_date": forms.DateInput(
-                format="%Y-%m-%d",
-                attrs={"type": "date", "class": "input input-sm input-neutral"},
-            ),
-            "amount": forms.NumberInput(
-                attrs={"class": "input input-sm input-neutral", "step": "0.01"}
-            ),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["due_date"].disabled = True
-
-
-InstallmentFormSet = inlineformset_factory(
-    Account,
-    Installment,
-    form=InstallmentForm,
-    extra=0,
-    can_delete=False,
-    exclude=["amount"],
 )

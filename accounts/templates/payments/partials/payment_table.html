@@ -2,7 +2,8 @@
   <table class="data-table">
     <thead>
       <tr>
-        <th>Data</th>
+        <th>Vencimento</th>
+        <th>Pago em</th>
         <th>Natureza</th>
         <th>Conta</th>
         <th>Parcela</th>
@@ -15,6 +16,9 @@
     <tbody>
     {% for payment in payments %}
       <tr class="hover:bg-slate-50">
+        <td class="whitespace-nowrap" >
+            {{ payment.installment.due_date|date:"d/m/Y" }}
+        </td>
         <td class="whitespace-nowrap" >
             {{ payment.paid_at|date:"d/m/Y" }}
         </td>
@@ -47,7 +51,7 @@
         </td>
       </tr>
       {% empty %}
-      {% include 'components/table/empty_table.html' with collspan=8%}
+      {% include 'components/table/empty_table.html' with collspan=9%}
       {% endfor %}
     </tbody>
   </table>

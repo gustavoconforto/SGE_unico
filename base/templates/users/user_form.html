@@ -13,6 +13,19 @@
     </div>
   </section>
 
+  {% if form.password1 %}
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Senha</h2>
+      <p>Senha usada no primeiro acesso.</p>
+    </div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
+      {% include 'components/form/field.html' with field=form.password1 %}
+      {% include 'components/form/field.html' with field=form.password2 %}
+    </div>
+  </section>
+  {% endif %}
+
   <section class="form-section">
     <div class="form-section-intro">
       <h2>Nome</h2>
@@ -22,19 +35,20 @@
       {% include 'components/form/field.html' with field=form.last_name %}
     </div>
   </section>
-
+  {% if request.user.is_superuser %}
   <section class="form-section">
     <div class="form-section-intro">
       <h2>Situação</h2>
       <p>Usuários inativos não entram no sistema; superusuários têm todas as permissões.</p>
     </div>
     <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-3">
+    
       {% include 'components/form/field.html' with field=form.is_active %}
       {% include 'components/form/field.html' with field=form.is_staff %}
       {% include 'components/form/field.html' with field=form.is_superuser %}
     </div>
   </section>
-
+  {% endif %}
   <div class="form-actions">
     <p class="text-[13px] text-slate-500">Campos sem “opcional” são obrigatórios.</p>
     <div class="ml-auto flex gap-2">

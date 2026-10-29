@@ -14,6 +14,7 @@ from lessons.models import (
     TimetableSlot,
     Weekday,
     lecture_date_error,
+    weekday_periods,
 )
 
 CELL = "select select-neutral select-sm w-full"
@@ -65,7 +66,7 @@ class TimetableSelectForm(forms.Form):
 
 class TimetableForm(forms.Form):
     """The class's whole timetable: one "Matéria — Professor" select per
-    weekday and period. A blank cell has no lesson."""
+    weekday and period the weekday has. A blank cell has no lesson."""
 
     def __init__(self, *args, school_class, **kwargs):
         super().__init__(*args, **kwargs)
@@ -84,7 +85,7 @@ class TimetableForm(forms.Form):
                 self.options[value] = (subject, teacher)
                 choices.append((value, f"{subject.subject.name} — {teacher.name}"))
         for weekday, weekday_label in Weekday.choices:
-            for period, period_label in PERIODS:
+            for period, period_label in weekday_periods(weekday):
                 slot = self.existing.get((weekday, period))
                 self.fields[self.field_name(weekday, period)] = forms.ChoiceField(
                     label=f"{weekday_label}, {period_label}",
@@ -99,11 +100,17 @@ class TimetableForm(forms.Form):
         return f"slot_{weekday}_{period}"
 
     def rows(self):
-        """(period label, [bound field per weekday])."""
+        """(period label, [bound field per weekday, or None where the weekday
+        has no such period])."""
         for period, label in PERIODS:
             yield (
                 label,
-                [self[self.field_name(weekday, period)] for weekday in Weekday.values],
+                [
+                    self[name]
+                    if (name := self.field_name(weekday, period)) in self.fields
+                    else None
+                    for weekday in Weekday.values
+                ],
             )
 
     def clean(self):
@@ -111,7 +118,7 @@ class TimetableForm(forms.Form):
         self.changed_slots = []
         self.removed_slots = []
         for weekday in Weekday.values:
-            for period, _ in PERIODS:
+            for period, _ in weekday_periods(weekday):
                 name = self.field_name(weekday, period)
                 value = cleaned_data.get(name)
                 slot = self.existing.get((weekday, period))
@@ -169,6 +176,7 @@ class LectureDayForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.school_class = school_class
         self.date = date
+        self.periods = weekday_periods(date.isoweekday())
         self.existing = {
             lecture.period: lecture
             for lecture in Lecture.objects.filter(school_class=school_class, date=date)
@@ -177,7 +185,7 @@ class LectureDayForm(forms.Form):
             slot.period: slot
             for slot in school_class.timetable_slots.filter(weekday=date.isoweekday())
         }
-        # Plain choices, so the selects of the 7 rows share two queries.
+        # Plain choices, so the selects of all rows share two queries.
         self.subjects = {
             subject.pk: subject for subject in level_subjects(school_class.grade_level)
         }
@@ -190,7 +198,7 @@ class LectureDayForm(forms.Form):
         teacher_choices = [("", "—")] + [
             (pk, teacher.name) for pk, teacher in self.teachers.items()
         ]
-        for period, label in PERIODS:
+        for period, label in self.periods:
             lecture = self.existing.get(period)
             source = lecture or planned.get(period)
             self.fields[f"subject_{period}"] = forms.TypedChoiceField(
@@ -223,7 +231,7 @@ class LectureDayForm(forms.Form):
 
     def rows(self):
         """(period label, subject, teacher and topic bound fields, saved?)."""
-        for period, label in PERIODS:
+        for period, label in self.periods:
             yield (
                 label,
                 self[f"subject_{period}"],
@@ -236,7 +244,7 @@ class LectureDayForm(forms.Form):
         cleaned_data = super().clean()
         self.changed_lectures = []
         self.removed_lectures = []
-        for period, _ in PERIODS:
+        for period, _ in self.periods:
             topic = cleaned_data.get(f"topic_{period}", "").strip()
             subject_id = cleaned_data.get(f"subject_{period}")
             teacher_id = cleaned_data.get(f"teacher_{period}")

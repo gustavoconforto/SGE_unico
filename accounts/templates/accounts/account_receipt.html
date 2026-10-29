@@ -1,0 +1,159 @@
+{% load static ui %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Comprovante de pagamento - {{ object }}</title>
+  <style>
+    @page { size: A4 landscape; margin: 12mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #e5e7eb;
+      color: #111827;
+      font-family: "Times New Roman", Times, serif;
+      font-size: 11pt;
+    }
+    .toolbar {
+      position: sticky; top: 0; display: flex; justify-content: flex-end; gap: 8px;
+      padding: 12px 16px; background: #111827;
+    }
+    .toolbar button, .toolbar a {
+      padding: 8px 16px; border: 0; border-radius: 6px; background: #2563eb; color: #fff;
+      font: 600 14px/1 system-ui, sans-serif; cursor: pointer; text-decoration: none;
+    }
+    .toolbar button.secondary { background: #4b5563; }
+    .page {
+      max-width: 297mm; margin: 24px auto; padding: 12mm; background: #fff;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, .15);
+    }
+    .receipt { border: 1px solid #111827; }
+    .letterhead {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 8px; border-bottom: 1px solid #111827;
+    }
+    .letterhead p { margin: 0; font-size: 13pt; }
+    .letterhead .school { font-weight: bold; font-size: 14pt; }
+    .letterhead .logo { height: 64px; width: auto; }
+    h1 {
+      margin: 0; padding: 4px; border-bottom: 1px solid #111827; background: #e5e7eb;
+      text-align: center; font: bold 16pt Arial, Helvetica, sans-serif;
+    }
+    .summary { padding: 6px 8px; border-bottom: 1px solid #111827; }
+    .summary table { border-collapse: collapse; }
+    .summary td { padding: 2px 16px 2px 0; vertical-align: top; }
+    .summary .intro { font-weight: bold; margin: 0 0 6px; }
+    .summary .total td { font-size: 15pt; font-weight: bold; }
+    .summary .bold td { font-weight: bold; }
+    .line { margin: 0; padding: 3px 8px; border-bottom: 1px solid #111827; }
+    .line.title { font-weight: bold; font-size: 12pt; }
+    .payments { width: 100%; border-collapse: collapse; }
+    .payments th, .payments td { padding: 3px 6px; border: 1px solid #111827; text-align: right; }
+    .payments th { background: #e5e7eb; text-align: center; }
+    .payments .center { text-align: center; }
+    .payments .empty { text-align: center; color: #4b5563; }
+    .date { margin: 20px 8px 64px; text-align: right; }
+    .signature { width: 50%; margin: 0 auto; padding-top: 4px; border-top: 1px solid #111827; text-align: center; }
+    @media print {
+      body { background: #fff; }
+      .toolbar { display: none; }
+      .page { max-width: none; margin: 0; padding: 0; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+
+  {% if not pdf %}
+  <div class="toolbar">
+    <button type="button" class="secondary" onclick="history.back()">Voltar</button>
+    <a href="{% url urls.pdf object.pk %}">Baixar PDF</a>
+  </div>
+  {% endif %}
+
+  <main class="page">
+    <div class="receipt">
+      <header class="letterhead">
+        <div>
+          <p class="school">ASA SUL (MATRIZ)</p>
+          <p>CNPJ: 34.270.139/0001-77</p>
+          <p>SGAS 606 BLOCO F PARTE A, ASA SUL, Brasília - DF, CEP: 70200-660</p>
+        </div>
+        <img class="logo" src="{% if logo_src %}{{ logo_src }}{% else %}{% static 'img/Logo_light.png' %}{% endif %}" alt="Único Educacional">
+      </header>
+
+      <h1>COMPROVANTE DE PAGAMENTO (RECIBO)</h1>
+
+      <section class="summary">
+        <p class="intro">{% if object.direction == 'R' %}Recebemos do(s) responsável(eis) abaixo:{% else %}Pagamos ao fornecedor abaixo:{% endif %}</p>
+        <table>
+          <tr class="total">
+            <td>{% if object.direction == 'R' %}Valor recebido:{% else %}Valor pago:{% endif %}</td>
+            <td>{{ total|floatformat:"2g" }} ({{ total_in_words }})</td>
+          </tr>
+          <tr class="bold">
+            <td>Forma pagamento:</td>
+            <td>{% for method, amount in by_method.items %}{{ method }}: R$ {{ amount|floatformat:"2g" }}{% if not forloop.last %}<br>{% endif %}{% empty %}-{% endfor %}</td>
+          </tr>
+          <tr><td>Lançamento Nº:</td><td>{{ object.pk }}</td></tr>
+          <tr><td>Descrição:</td><td>{{ object.description }}</td></tr>
+        </table>
+      </section>
+
+      {% if object.direction == 'R' %}
+        {% if object.enrollment %}<p class="line title">{{ object.enrollment }}</p>
+        {% elif object.student %}<p class="line title">Aluno(a): {{ object.student }}</p>{% endif %}
+        {% with person=object.guardian %}
+        {% if person %}
+        <p class="line">Responsável(eis): CPF/CNPJ: {{ person.cpf|document }} {{ person.name }}</p>
+        <p class="line">Endereço: {{ person.address }}{% if person.neighborhood %}, {{ person.neighborhood }}{% endif %}{% if person.city %}, {{ person.city }} - {{ person.state }}{% endif %}{% if person.zip_code %} CEP: {{ person.zip_code|slice:":5" }}-{{ person.zip_code|slice:"5:" }}{% endif %}</p>
+        {% endif %}
+        {% endwith %}
+      {% elif object.supplier %}
+        <p class="line title">Fornecedor: {{ object.supplier.name }}{% if object.supplier.document %} - CPF/CNPJ: {{ object.supplier.document|document }}{% endif %}</p>
+      {% endif %}
+
+      <table class="payments">
+        <thead>
+          <tr>
+            <th>Parcela</th>
+            <th>Vencimento</th>
+            <th>Pagamento</th>
+            <th>Valor</th>
+            <th>Multa</th>
+            <th>Juros</th>
+            <th>Desconto</th>
+            <th>Correção</th>
+            <th>Vlr Pago</th>
+            <th>Saldo</th>
+            <th>Finalidade</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for payment in payments %}
+          <tr>
+            <td class="center">{{ payment.installment.number }}ª</td>
+            <td class="center">{{ payment.installment.due_date|date:"d/m/Y" }}</td>
+            <td class="center">{{ payment.paid_at|date:"d/m/Y" }}</td>
+            <td>{{ payment.installment.amount|floatformat:"2g" }}</td>
+            <td>{{ payment.penalty|floatformat:"2g" }}</td>
+            <td>{{ payment.interest|floatformat:"2g" }}</td>
+            <td>{{ payment.discount|floatformat:"2g" }}</td>
+            <td>{{ payment.monetary_adjust|floatformat:"2g" }}</td>
+            <td>{{ payment.amount|floatformat:"2g" }}</td>
+            <td>{{ payment.balance_after|floatformat:"2g" }}</td>
+            <td class="center">{{ object.category }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="11" class="empty">Nenhum pagamento registrado para esta conta.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <p class="date">Brasília-DF, {{ today|date:"j \d\e F \d\e Y"|lower }}.</p>
+    <p class="signature">Departamento Financeiro</p>
+  </main>
+
+</body>
+</html>

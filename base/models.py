@@ -1,3 +1,4 @@
+from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models import Q
 
@@ -23,7 +24,12 @@ class Person(TimeStampedModel):
         "Sexo", max_length=1, choices=SexType.choices, blank=True, help_text="M ou F"
     )
     cpf = models.CharField(
-        "CPF", max_length=11, blank=False, help_text="Sem ponto nem `-` ", unique=True
+        "CPF",
+        max_length=11,
+        blank=False,
+        help_text="Sem ponto nem `-` ",
+        unique=True,
+        validators=[RegexValidator(r"^\d{11}$", "O CPF deve ter 11 dígitos.")],
     )
     rg = models.CharField(
         "RG", max_length=20, blank=False, help_text="Sem ponto nem `-` ", unique=True

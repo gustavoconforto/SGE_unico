@@ -3,13 +3,7 @@ from django.dispatch import receiver
 
 from accounts.services import cancel_future_installments, create_enrollment_account
 
-from .models import Enrollment, EnrollmentStatus
-
-ENDED_EARLY = (
-    EnrollmentStatus.TRANSFERRED,
-    EnrollmentStatus.DROPPED,
-    EnrollmentStatus.CANCELLED,
-)
+from .models import ENDED_EARLY, Enrollment
 
 
 @receiver(post_save, sender=Enrollment)

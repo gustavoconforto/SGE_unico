@@ -13,6 +13,7 @@
          hx-target="next ul"
          hx-on:input="document.getElementById('{{ widget.attrs.id }}_value').value = ''">
   <ul class="absolute z-10 mt-1 w-full max-h-72 overflow-y-auto rounded-box bg-base-100 shadow empty:hidden"
+      hx-on:mousedown="event.preventDefault()"
       hx-on:click="
         const option = event.target.closest('[data-pk]');
         if (!option) return;

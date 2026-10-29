@@ -1,6 +1,6 @@
 from django import forms
 from django.db.models import Max
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 
 from accounts.models import (
@@ -15,6 +15,7 @@ from accounts.models import (
     PaymentMethod,
     Supplier,
 )
+from students.models import Guardian
 
 
 def date_input(css="input input-neutral w-full"):
@@ -155,14 +156,60 @@ class AccountForm(forms.ModelForm):
         return cleaned_data
 
 
+def financial_guardians(student_id):
+    return Guardian.objects.filter(
+        student_links__student=student_id, student_links__is_financial=True
+    )
+
+
 class AccountReceivableForm(AccountForm):
     direction = Direction.RECEIVABLE
 
     class Meta(AccountForm.Meta):
-        fields = AccountForm.Meta.fields + ["guardian"]
+        fields = AccountForm.Meta.fields + ["student", "guardian"]
         widgets = AccountForm.Meta.widgets | {
+            "student": forms.Select(
+                attrs={
+                    "class": "select select-neutral w-full",
+                    "hx-get": reverse_lazy("accounts:receivable_guardian_options"),
+                    "hx-trigger": "change",
+                    "hx-target": "#guardian-field",
+                }
+            ),
             "guardian": forms.Select(attrs={"class": "select select-neutral w-full"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # The contract account belongs to its enrollment's student.
+        if self.instance.enrollment_id:
+            self.fields["student"].disabled = True
+        student_id = self.selected_student_id()
+        if student_id:
+            self.fields["guardian"].queryset = financial_guardians(student_id)
+            self.fields[
+                "guardian"
+            ].help_text = "Somente os responsáveis financeiros do aluno"
+
+    def selected_student_id(self):
+        if self.is_bound and not self.fields["student"].disabled:
+            pk = self.data.get(self.add_prefix("student"))
+        else:
+            pk = self.initial.get("student") or self.instance.student_id
+        pk = getattr(pk, "pk", pk)
+        return int(pk) if pk and str(pk).isdigit() else None
+
+    def clean(self):
+        cleaned_data = super().clean()
+        student = cleaned_data.get("student")
+        if student and not cleaned_data.get("guardian"):
+            guardian = financial_guardians(student.pk).first()
+            if guardian is None:
+                self.add_error(
+                    "student", "O aluno não possui responsável financeiro cadastrado."
+                )
+            cleaned_data["guardian"] = guardian
+        return cleaned_data
 
 
 class AccountPayableForm(AccountForm):

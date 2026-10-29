@@ -1,11 +1,24 @@
+from pathlib import Path
+
 from django.contrib import messages
+from django.contrib.staticfiles import finders
 from django.db import transaction
 from django.db.models import Count, ProtectedError, Q, Sum
+from django.http import HttpResponse
 from django.shortcuts import redirect
-from django.urls import reverse_lazy
+from django.template.loader import render_to_string
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.text import format_lazy
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
+from weasyprint import HTML
 
 from accounts.forms import (
     AccountPayableFilterForm,
@@ -22,10 +35,12 @@ from accounts.forms import (
     PaymentFilterForm,
     PaymentForm,
     SupplierForm,
+    financial_guardians,
     installment_label,
 )
 from accounts.models import (
     PENDING_STATUSES,
+    ZERO,
     Account,
     AccountPayable,
     AccountReceivable,
@@ -38,6 +53,8 @@ from accounts.models import (
 )
 from accounts.services import build_installments
 from base.search import HtmxFilterMixin, HtmxSearchMixin
+from enrollments.models import Enrollment
+from utils.format.number_values import amount_in_words
 
 
 class SuccessMessageMixin:
@@ -162,7 +179,7 @@ class AccountContextMixin:
                 "counterpart_label": self.counterpart_label,
                 "urls": {
                     action: f"accounts:{self.url_prefix}_{action}"
-                    for action in ("list", "add", "edit", "delete")
+                    for action in ("list", "add", "edit", "delete", "print", "pdf")
                 },
             }
         )
@@ -212,13 +229,19 @@ class AccountCreateMixin(AccountContextMixin):
         messages.success(self.request, "Registro cadastrado com sucesso")
         return response
 
+    def get_success_url(self):
+        # Straight to the new account, where installments are paid and printed.
+        return reverse(
+            f"accounts:{self.url_prefix}_edit", kwargs={"pk": self.object.pk}
+        )
+
 
 class AccountUpdateMixin(AccountContextMixin):
     template_name = "accounts/account_edit.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["installments"] = self.object.installments.all()
+        context["installments"] = self.object.installments.with_balance()
         return context
 
     def form_valid(self, form):
@@ -236,11 +259,70 @@ class AccountDeleteMixin(AccountContextMixin):
                 "Esta conta possui baixas registradas. Exclua as baixas antes.",
             )
             return redirect(self.get_success_url())
-        with transaction.atomic():
-            self.object.installments.all().delete()
-            self.object.delete()
+        try:
+            with transaction.atomic():
+                self.object.installments.all().delete()
+                self.object.delete()
+        except ProtectedError:
+            messages.error(
+                self.request,
+                "Esta conta possui parcelas em uso (ex.: boletos) e não pode ser "
+                "deletada.",
+            )
+            return redirect(self.get_success_url())
         messages.warning(self.request, "Registro deletado com sucesso")
         return redirect(self.get_success_url())
+
+
+class AccountReceiptMixin(AccountContextMixin):
+    """Payment receipt for an account; `pdf = True` downloads it via WeasyPrint."""
+
+    template_name = "accounts/account_receipt.html"
+    pdf = False
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        payments = (
+            Payment.objects.filter(installment__account=self.object)
+            .select_related("installment")
+            .order_by("paid_at", "installment__number", "pk")
+        )
+        total = sum((p.amount for p in payments), ZERO)
+        by_method = {}
+        paid = {}
+        for payment in payments:
+            label = payment.get_method_display()
+            by_method[label] = by_method.get(label, ZERO) + payment.amount
+            # Balance right after this payment, not today's balance.
+            installment = payment.installment
+            paid[installment.pk] = paid.get(installment.pk, ZERO) + payment.principal
+            payment.balance_after = max(installment.amount - paid[installment.pk], ZERO)
+        context.update(
+            {
+                "payments": payments,
+                "total": total,
+                "total_in_words": amount_in_words(total),
+                "by_method": by_method,
+                "today": timezone.localdate(),
+                "pdf": self.pdf,
+            }
+        )
+        if self.pdf:
+            context["logo_src"] = Path(finders.find("img/Logo_light.png")).as_uri()
+        return context
+
+    def render_to_response(self, context, **response_kwargs):
+        if not self.pdf:
+            return super().render_to_response(context, **response_kwargs)
+        html = render_to_string(self.template_name, context, request=self.request)
+        pdf = HTML(
+            string=html, base_url=self.request.build_absolute_uri("/")
+        ).write_pdf()
+        response = HttpResponse(pdf, content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'attachment; filename="recibo-{self.object.pk}.pdf"'
+        )
+        return response
 
 
 # ACCOUNT RECEIVABLE VIEWS
@@ -249,21 +331,21 @@ class AccountDeleteMixin(AccountContextMixin):
 class AccountReceivableMixin:
     model = AccountReceivable
     url_prefix = "receivable"
-    title = "Contas a receber"
-    noun = "conta a receber"
+    title = "A receber"
+    noun = "duplicata a receber"
     counterpart_label = "Responsável"
 
 
 class AccountReceivableListView(AccountReceivableMixin, AccountListMixin, ListView):
     queryset = AccountReceivable.objects.select_related(
-        "category", "guardian", "enrollment__student"
+        "category", "guardian", "student"
     )
     filter_form_class = AccountReceivableFilterForm
     search_fields = (
         "description",
         "guardian__name",
-        "enrollment__student__name",
-        "enrollment__student__registration",
+        "student__name",
+        "student__registration",
         "notes",
     )
 
@@ -272,6 +354,49 @@ class AccountReceivableCreateView(
     AccountReceivableMixin, AccountCreateMixin, CreateView
 ):
     form_class = AccountReceivableForm
+
+    def get_enrollment(self):
+        # "Nova conta a receber" on the enrollment page: ?enrollment=<pk>
+        pk = self.request.GET.get("enrollment", "")
+        if not pk.isdigit():
+            return None
+        return Enrollment.objects.select_related("student").filter(pk=pk).first()
+
+    def get_initial(self):
+        initial = super().get_initial()
+        enrollment = self.get_enrollment()
+        if enrollment:
+            initial.update(
+                student=enrollment.student,
+                guardian=financial_guardians(enrollment.student_id).first(),
+            )
+        return initial
+
+    def get_back_url(self):
+        enrollment = self.get_enrollment()
+        if enrollment:
+            return reverse("enrollments:enrollment_edit", kwargs={"pk": enrollment.pk})
+        return reverse(f"accounts:{self.url_prefix}_list")
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(back_url=self.get_back_url(), **kwargs)
+
+
+class ReceivableGuardianOptionsView(TemplateView):
+    """htmx endpoint: the guardian select filtered by ?student=<pk>."""
+
+    template_name = "accounts/partials/guardian_field.html"
+
+    def get_context_data(self, **kwargs):
+        student = self.request.GET.get("student", "")
+        initial = {}
+        if student.isdigit():
+            initial = {
+                "student": student,
+                "guardian": financial_guardians(student).first(),
+            }
+        form = AccountReceivableForm(initial=initial)
+        return super().get_context_data(form=form, **kwargs)
 
 
 class AccountReceivableUpdateView(
@@ -286,14 +411,24 @@ class AccountReceivableDeleteView(
     pass
 
 
+class AccountReceivableReceiptView(
+    AccountReceivableMixin, AccountReceiptMixin, DetailView
+):
+    pass
+
+
+class AccountReceivablePdfView(AccountReceivableReceiptView):
+    pdf = True
+
+
 # ACCOUNT PAYABLE VIEWS
 
 
 class AccountPayableMixin:
     model = AccountPayable
     url_prefix = "payable"
-    title = "Contas a pagar"
-    noun = "conta a pagar"
+    title = "A pagar"
+    noun = "duplicata a pagar"
     counterpart_label = "Fornecedor"
 
 
@@ -301,6 +436,10 @@ class AccountPayableListView(AccountPayableMixin, AccountListMixin, ListView):
     queryset = AccountPayable.objects.select_related("category", "supplier")
     filter_form_class = AccountPayableFilterForm
     search_fields = ("description", "supplier__name", "supplier__document", "notes")
+    extra_context = {"show_payment_dates": True}
+
+    def get_queryset(self):
+        return super().get_queryset().with_payment_dates()
 
 
 class AccountPayableCreateView(AccountPayableMixin, AccountCreateMixin, CreateView):
@@ -313,6 +452,14 @@ class AccountPayableUpdateView(AccountPayableMixin, AccountUpdateMixin, UpdateVi
 
 class AccountPayableDeleteView(AccountPayableMixin, AccountDeleteMixin, DeleteView):
     pass
+
+
+class AccountPayableReceiptView(AccountPayableMixin, AccountReceiptMixin, DetailView):
+    pass
+
+
+class AccountPayablePdfView(AccountPayableReceiptView):
+    pdf = True
 
 
 # INSTALLMENT VIEWS
@@ -476,6 +623,16 @@ class PaymentCreateView(CreateView):
                 paid_at=timezone.localdate(),
             )
         return initial
+
+    def get_success_url(self):
+        # "Baixar" came from an account page: go back there to print the receipt.
+        if "installment" in self.request.GET:
+            account = self.object.installment.account
+            prefix = (
+                "receivable" if account.direction == Direction.RECEIVABLE else "payable"
+            )
+            return reverse(f"accounts:{prefix}_edit", kwargs={"pk": account.pk})
+        return super().get_success_url()
 
     def form_valid(self, form):
         messages.success(self.request, self.success_message)

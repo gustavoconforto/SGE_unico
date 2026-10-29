@@ -470,6 +470,20 @@ class ConceptGradeTests(LoggedInTestCase):
         self.assertContains(response, "0,70")
         self.assertNotContains(response, "Ana Souza")
 
+    def test_all_shows_the_bimester_select_and_calculates_after_picking_one(self):
+        url = reverse("incidents:incident_grades_all")
+        response = self.client.get(url)
+        self.assertContains(response, 'name="bimester"')
+        self.assertContains(response, "Selecione um bimestre")
+        self.assertNotContains(response, "Calcular para todos os alunos")
+
+        response = self.client.get(url, {"bimester": 2}, **HTMX)
+        self.assertTemplateUsed(
+            response, "incident_grades/partials/incident_grades_table.html"
+        )
+        self.assertContains(response, "Calcular para todos os alunos")
+        self.assertContains(response, 'name="bimester" value="2"')
+
     def test_all_without_a_school_year_for_today(self):
         url = reverse("incidents:incident_grades_all")
         with patch("django.utils.timezone.localdate", return_value=date(2029, 3, 1)):
