@@ -73,6 +73,7 @@ def create_enrollment_account(enrollment, category=None):
         description=f"Contrato {enrollment}"[:200],
         category=category or tuition_category(),
         enrollment=enrollment,
+        student_id=enrollment.student_id,
         guardian=Guardian.objects.filter(
             student_links__student=enrollment.student_id,
             student_links__is_financial=True,

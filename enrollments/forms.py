@@ -190,6 +190,9 @@ class EnrollmentForm(forms.ModelForm):
         "remaining_discount_percent",
         "installments_count",
     ]
+    # The account and installments are generated from these on creation, so
+    # they can't change afterwards.
+    locked_on_edit_fields = ["student", "enrollment_type"]
 
     class Meta:
         model = Enrollment
@@ -245,12 +248,17 @@ class EnrollmentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for name in self.readonly_fields:
             self.fields[name].disabled = True
+        if self.instance.pk:
+            for name in self.locked_on_edit_fields:
+                self.fields[name].disabled = True
         self.fields["school_class"].queryset = self.school_classes_for(
             self.selected_enrollment_type()
         )
         self.fields["school_class"].label_from_instance = self.school_class_label
 
     def selected_enrollment_type(self):
+        if self.instance.pk:
+            return self.instance.enrollment_type
         if self.is_bound:
             pk = self.data.get(self.add_prefix("enrollment_type"))
         else:

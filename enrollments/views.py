@@ -18,7 +18,7 @@ from django.views.generic import (
 )
 from weasyprint import HTML
 
-from accounts.models import Account
+from accounts.models import Account, AccountReceivable
 from accounts.views import ProtectedDeleteMixin, SuccessMessageMixin
 from base.search import HtmxSearchMixin
 from enrollments.forms import (
@@ -253,6 +253,11 @@ class EnrollmentUpdateView(UpdateView):
     def get_context_data(self, **kwargs):
         if "documents_formset" not in kwargs:
             kwargs.update(self.get_formsets())
+        kwargs["receivables"] = (
+            AccountReceivable.objects.filter(student=self.object.student_id)
+            .select_related("category", "guardian")
+            .with_installment_summary()
+        )
         return super().get_context_data(**kwargs)
 
     def post(self, request, *args, **kwargs):

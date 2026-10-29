@@ -23,6 +23,7 @@
         </td>
         <td>
             {{ account.description }}
+            {% if account.student %}<span class="block text-xs text-slate-500">{{ account.student }}</span>{% endif %}
         </td>
         <td>
             {{ account.category }}

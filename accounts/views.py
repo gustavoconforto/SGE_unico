@@ -2,10 +2,16 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models import Count, ProtectedError, Q, Sum
 from django.shortcuts import redirect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.text import format_lazy
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
 
 from accounts.forms import (
     AccountPayableFilterForm,
@@ -22,6 +28,7 @@ from accounts.forms import (
     PaymentFilterForm,
     PaymentForm,
     SupplierForm,
+    financial_guardians,
     installment_label,
 )
 from accounts.models import (
@@ -38,6 +45,7 @@ from accounts.models import (
 )
 from accounts.services import build_installments
 from base.search import HtmxFilterMixin, HtmxSearchMixin
+from enrollments.models import Enrollment
 
 
 class SuccessMessageMixin:
@@ -256,14 +264,14 @@ class AccountReceivableMixin:
 
 class AccountReceivableListView(AccountReceivableMixin, AccountListMixin, ListView):
     queryset = AccountReceivable.objects.select_related(
-        "category", "guardian", "enrollment__student"
+        "category", "guardian", "student"
     )
     filter_form_class = AccountReceivableFilterForm
     search_fields = (
         "description",
         "guardian__name",
-        "enrollment__student__name",
-        "enrollment__student__registration",
+        "student__name",
+        "student__registration",
         "notes",
     )
 
@@ -272,6 +280,52 @@ class AccountReceivableCreateView(
     AccountReceivableMixin, AccountCreateMixin, CreateView
 ):
     form_class = AccountReceivableForm
+
+    def get_enrollment(self):
+        # "Nova conta a receber" on the enrollment page: ?enrollment=<pk>
+        pk = self.request.GET.get("enrollment", "")
+        if not pk.isdigit():
+            return None
+        return Enrollment.objects.select_related("student").filter(pk=pk).first()
+
+    def get_initial(self):
+        initial = super().get_initial()
+        enrollment = self.get_enrollment()
+        if enrollment:
+            initial.update(
+                student=enrollment.student,
+                guardian=financial_guardians(enrollment.student_id).first(),
+            )
+        return initial
+
+    def get_back_url(self):
+        enrollment = self.get_enrollment()
+        if enrollment:
+            return reverse("enrollments:enrollment_edit", kwargs={"pk": enrollment.pk})
+        return reverse(f"accounts:{self.url_prefix}_list")
+
+    def get_success_url(self):
+        return self.get_back_url()
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(back_url=self.get_back_url(), **kwargs)
+
+
+class ReceivableGuardianOptionsView(TemplateView):
+    """htmx endpoint: the guardian select filtered by ?student=<pk>."""
+
+    template_name = "accounts/partials/guardian_field.html"
+
+    def get_context_data(self, **kwargs):
+        student = self.request.GET.get("student", "")
+        initial = {}
+        if student.isdigit():
+            initial = {
+                "student": student,
+                "guardian": financial_guardians(student).first(),
+            }
+        form = AccountReceivableForm(initial=initial)
+        return super().get_context_data(form=form, **kwargs)
 
 
 class AccountReceivableUpdateView(

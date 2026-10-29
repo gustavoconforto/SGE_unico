@@ -56,7 +56,9 @@ employees ◀── departments ◀── grades ──▶ enrollments, classes,
 
 `accounts` imports `Enrollment` and `Guardian`. `enrollments` reaches
 `accounts` only through **signals** (`enrollments/signals.py`) and the
-installment formset on the enrollment edit page. `classes.Class.year` refers to
+installment formset and the student's receivables on the enrollment edit
+page, which links to `receivable/add/?enrollment=<pk>` to charge the student
+something else. `classes.Class.year` refers to
 `enrollments.SchoolYear` by string to avoid a circular import. The one
 exception to the arrow is `classes/views.py`, which imports `SchoolYear`,
 `EnrollmentStatus` and `Student` for the class roster page. Keep those imports
@@ -276,7 +278,7 @@ constant). Never use floats.
 |---|---|
 | `AccountType` | financial category, with `direction` `R` (receivable) or `P` (payable). Name unique |
 | `Supplier` | name, CPF/CNPJ (digits, unique when filled), contacts |
-| `Account` | `direction`, description, category, issue date, `gross_value`, `discount_value`, notes. Counterpart: `guardian` and/or `enrollment` for receivables, `supplier` for payables, enforced by a DB check constraint. `net_value = gross − discount` |
+| `Account` | `direction`, description, category, issue date, `gross_value`, `discount_value`, notes. Counterpart: `student`, `guardian` and/or `enrollment` for receivables, `supplier` for payables, enforced by a DB check constraint. When a receivable has a student, its guardian must be one of the student's financial guardians (the form fills in the first one if left empty). `net_value = gross − discount` |
 | `AccountReceivable`, `AccountPayable` | **proxy models** of `Account`, each with a manager filtered by direction and a `save()` that sets it. Views and forms use these |
 | `Installment` | account, `number` (unique per account), `due_date`, `amount`, `status`: `A` open, `P` partially paid, `Q` paid, `C` cancelled, `E` expired (bank wrote off the unpaid slip; still owed). `PENDING_STATUSES` = open, partial, expired |
 | `Payment` (baixa) | installment, `paid_at`, `amount` (total received, **including** penalty, interest and monetary adjustment), the three charges, `discount` (e.g. punctuality; settles principal without being received), method (PIX, boleto, cash, card, transfer, check) |
@@ -314,8 +316,8 @@ Implemented in `enrollments/signals.py` and `accounts/services.py`.
 
 1. **Enrollment created** (`post_save`, `created=True`):
    - `create_enrollment_account()` creates an `AccountReceivable` in category
-     "Mensalidade" (created if missing), linked to the enrollment and the
-     student's first financial guardian, using the contract's values.
+     "Mensalidade" (created if missing), linked to the enrollment, its
+     student and the student's first financial guardian, using the contract's values.
    - It generates monthly installments, with due dates from
      `enrollment_due_dates()`. They fall on `due_day` of the **school year**,
      moved to Monday when that day is a weekend

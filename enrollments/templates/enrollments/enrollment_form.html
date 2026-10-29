@@ -162,6 +162,59 @@
     </div>
   </section>
 
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Contas a receber</h2>
+      <p>Todas as cobranças do aluno, incluindo o contrato.</p>
+      <a href="{% url 'accounts:receivable_add' %}?enrollment={{ object.pk }}" class="mt-3 inline-block">
+        {% include 'components/button/button_primary.html' with label='Nova conta a receber' icon='add' %}
+      </a>
+    </div>
+    <div class="min-w-0 flex-[999_1_26rem] space-y-2">
+      <div class="table-wrap">
+      <table class="data-table">
+          <thead>
+              <tr>
+                  <th>Emissão</th>
+                  <th>Descrição</th>
+                  <th>Responsável</th>
+                  <th class="text-right">Valor líquido</th>
+                  <th>Situação</th>
+              </tr>
+          </thead>
+          <tbody>
+              {% for account in receivables %}
+              <tr>
+                  <td class="whitespace-nowrap">{{ account.issue_date|date:"d/m/Y" }}</td>
+                  <td>
+                      <a href="{% url 'accounts:receivable_edit' account.pk %}" class="hover:underline">{{ account.description }}</a>
+                      <span class="block text-xs text-slate-500">{{ account.category }}</span>
+                  </td>
+                  <td>{{ account.guardian|default:"-" }}</td>
+                  <td class="text-right whitespace-nowrap">R$ {{ account.net_value|floatformat:"2g" }}</td>
+                  <td>
+                      {% with situation=account.situation %}
+                      <span class="badge badge-sm whitespace-nowrap
+                          {% if situation == 'Quitada' %}badge-success
+                          {% elif situation == 'Vencida' %}badge-error
+                          {% elif situation == 'Em aberto' %}badge-neutral badge-outline
+                          {% else %}badge-ghost{% endif %}">
+                          {{ situation }}
+                      </span>
+                      {% endwith %}
+                  </td>
+              </tr>
+              {% empty %}
+              <tr>
+                  <td colspan="5" class="text-center text-slate-500">Nenhuma conta a receber para este aluno.</td>
+              </tr>
+              {% endfor %}
+          </tbody>
+      </table>
+      </div>
+    </div>
+  </section>
+
   <div class="form-actions">
     <p class="text-[13px] text-slate-500">Campos sem “opcional” são obrigatórios.</p>
     <div class="ml-auto flex gap-2">

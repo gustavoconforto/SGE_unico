@@ -1854,6 +1854,7 @@ class Command(BaseCommand):
                         :200
                     ],
                     category=category,
+                    student_id=enrollment.student_id,
                     guardian_id=enrollment.account.guardian_id,
                     issue_date=date(self.year, 1, 15),
                     gross_value=value,

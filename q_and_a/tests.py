@@ -1,9 +1,10 @@
 from datetime import date
 
 from django.urls import reverse
+from django.utils import timezone
 
 from base.testing import LoggedInTestCase
-from enrollments.models import EnrollmentStatus
+from enrollments.models import EnrollmentStatus, SchoolYear
 from grades.models import Subject
 from incidents.tests import create_enrollment
 from q_and_a.forms import QandAForm
@@ -16,6 +17,9 @@ class QandAViewsTests(LoggedInTestCase):
     @classmethod
     def setUpTestData(cls):
         cls.enrollment = create_enrollment()
+        # create_enrollment uses 2027; the form offers only the current year.
+        year = timezone.localdate().year
+        SchoolYear.objects.update(begins=date(year, 1, 10), ends=date(year, 12, 15))
         cls.math = Subject.objects.create(name="Matemática")
         cls.physics = Subject.objects.create(name="Física")
 
@@ -90,6 +94,23 @@ class QandAViewsTests(LoggedInTestCase):
     def test_form_lists_only_active_enrollments(self):
         self.enrollment.status = EnrollmentStatus.DROPPED
         self.enrollment.save()
+        self.assertNotIn(self.enrollment, QandAForm().fields["enrollment"].queryset)
+
+        q_and_a = QandA.objects.create(
+            enrollment=self.enrollment,
+            subject=self.math,
+            q_and_a_date=date(2027, 3, 1),
+        )
+        self.assertIn(
+            self.enrollment,
+            QandAForm(instance=q_and_a).fields["enrollment"].queryset,
+        )
+
+    def test_form_lists_only_current_year_enrollments(self):
+        last_year = SchoolYear.objects.get()
+        last_year.begins = last_year.begins.replace(year=last_year.begins.year - 1)
+        last_year.ends = last_year.ends.replace(year=last_year.ends.year - 1)
+        last_year.save()
         self.assertNotIn(self.enrollment, QandAForm().fields["enrollment"].queryset)
 
         q_and_a = QandA.objects.create(

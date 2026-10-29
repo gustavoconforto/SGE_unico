@@ -377,3 +377,38 @@ class EnrollmentDiscountTests(LoggedInTestCase):
             EnrollmentDiscount.objects.create(
                 enrollment=enrollment, group=DiscountGroup.FIRST, percentage=Decimal(5)
             )
+
+    def test_edit_form_locks_student_and_enrollment_type(self):
+        enrollment = Enrollment.objects.create(
+            student=self.student, enrollment_type=self.enrollment_type, due_day=10
+        )
+        other_student = Student.objects.create(
+            name="Bruno Lima", cpf="98765432100", rg="7777777", issuing_authority="SSP"
+        )
+        other_type = EnrollmentType.objects.create(
+            program=self.enrollment_type.program,
+            school_year=self.enrollment_type.school_year,
+            total_price=Decimal("500.00"),
+        )
+        form = EnrollmentForm(
+            instance=enrollment,
+            data={
+                "student": other_student.pk,
+                "enrollment_type": other_type.pk,
+                "status": "A",
+                "due_day": 15,
+            },
+        )
+        self.assertTrue(form.fields["student"].disabled)
+        self.assertTrue(form.fields["enrollment_type"].disabled)
+        self.assertTrue(form.is_valid(), form.errors)
+        enrollment = form.save()
+
+        self.assertEqual(enrollment.student, self.student)
+        self.assertEqual(enrollment.enrollment_type, self.enrollment_type)
+        self.assertEqual(enrollment.due_day, 15)
+
+    def test_create_form_leaves_student_and_enrollment_type_editable(self):
+        form = self.form()
+        self.assertFalse(form.fields["student"].disabled)
+        self.assertFalse(form.fields["enrollment_type"].disabled)

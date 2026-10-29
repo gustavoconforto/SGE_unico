@@ -18,7 +18,7 @@ from django.utils import timezone
 
 from base.models import TimeStampedModel
 from enrollments.models import Enrollment
-from students.models import Guardian
+from students.models import Guardian, Student
 
 MONEY = {"max_digits": 10, "decimal_places": 2}
 ZERO = Decimal("0.00")
@@ -120,6 +120,14 @@ class Account(TimeStampedModel):
         related_name="account",
         verbose_name="Matrícula",
     )
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="accounts",
+        verbose_name="Aluno",
+    )
     guardian = models.ForeignKey(
         Guardian,
         on_delete=models.PROTECT,
@@ -187,6 +195,7 @@ class Account(TimeStampedModel):
                     direction=Direction.PAYABLE,
                     guardian__isnull=True,
                     enrollment__isnull=True,
+                    student__isnull=True,
                 ),
                 name="account_counterpart_matches_direction",
             ),

@@ -1,9 +1,10 @@
-from datetime import timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.urls import reverse
 from django.utils import timezone
 
+from accounts.forms import AccountReceivableForm
 from accounts.models import (
     AccountPayable,
     AccountReceivable,
@@ -14,6 +15,9 @@ from accounts.models import (
     Supplier,
 )
 from base.testing import LoggedInTestCase
+from enrollments.models import Enrollment, EnrollmentType, SchoolYear
+from programs.models import Program
+from students.models import Guardian, GuardianAssociation, Relationship, Student
 
 HTMX = {"HTTP_HX_REQUEST": "true"}
 
@@ -560,3 +564,121 @@ class AccountTypeViewsTests(LoggedInTestCase):
 
         self.client.post(reverse("accounts:account_type_delete", args=[category.pk]))
         self.assertTrue(AccountType.objects.filter(pk=category.pk).exists())
+
+
+class StudentReceivableTests(LoggedInTestCase):
+    @classmethod
+    def setUpTestData(cls):
+        year = timezone.localdate().year + 1
+        enrollment_type = EnrollmentType.objects.create(
+            program=Program.objects.create(name="Pré ENEM"),
+            school_year=SchoolYear.objects.create(
+                begins=date(year, 1, 10), ends=date(year, 12, 15)
+            ),
+            total_price=Decimal("1200.00"),
+        )
+        cls.student = Student.objects.create(
+            name="Ana Souza", cpf="12345678901", rg="1"
+        )
+        cls.mother = Guardian.objects.create(
+            name="Maria Souza", cpf="00275010198", rg="2"
+        )
+        cls.father = Guardian.objects.create(
+            name="João Souza", cpf="11144477735", rg="3"
+        )
+        cls.other = Guardian.objects.create(
+            name="Pedro Lima", cpf="52998224725", rg="4"
+        )
+        GuardianAssociation.objects.create(
+            student=cls.student,
+            guardian=cls.mother,
+            relationship=Relationship.MOTHER,
+            is_financial=True,
+        )
+        GuardianAssociation.objects.create(
+            student=cls.student, guardian=cls.father, relationship=Relationship.FATHER
+        )
+        cls.enrollment = Enrollment.objects.create(
+            student=cls.student, enrollment_type=enrollment_type
+        )
+        cls.category = AccountType.objects.create(
+            name="Material didático", direction=Direction.RECEIVABLE
+        )
+
+    def post_receivable(self, query="", **extra):
+        data = {
+            "description": "Apostilas",
+            "category": self.category.pk,
+            "issue_date": timezone.localdate().isoformat(),
+            "gross_value": "300.00",
+            "discount_value": "0",
+            "installments_count": 1,
+            "first_due_date": timezone.localdate().isoformat(),
+            **extra,
+        }
+        return self.client.post(reverse("accounts:receivable_add") + query, data)
+
+    def test_contract_account_belongs_to_student(self):
+        self.assertEqual(self.enrollment.account.student, self.student)
+
+    def test_guardian_options_list_only_financial_guardians(self):
+        response = self.client.get(
+            reverse("accounts:receivable_guardian_options"),
+            {"student": self.student.pk},
+            **HTMX,
+        )
+        self.assertTemplateUsed(response, "accounts/partials/guardian_field.html")
+        self.assertQuerySetEqual(
+            response.context["form"].fields["guardian"].queryset, [self.mother]
+        )
+        self.assertEqual(response.context["form"]["guardian"].value(), self.mother.pk)
+
+    def test_guardian_defaults_to_financial_guardian(self):
+        response = self.post_receivable(student=self.student.pk)
+        self.assertRedirects(response, reverse("accounts:receivable_list"))
+        account = AccountReceivable.objects.get(description="Apostilas")
+        self.assertEqual(account.student, self.student)
+        self.assertEqual(account.guardian, self.mother)
+
+    def test_rejects_guardian_not_financial_for_student(self):
+        response = self.post_receivable(
+            student=self.student.pk, guardian=self.father.pk
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("guardian", response.context["form"].errors)
+        self.assertFalse(AccountReceivable.objects.filter(description="Apostilas"))
+
+    def test_without_student_any_guardian(self):
+        response = self.post_receivable(guardian=self.other.pk)
+        self.assertRedirects(response, reverse("accounts:receivable_list"))
+
+    def test_prefill_from_enrollment_and_return_to_it(self):
+        query = f"?enrollment={self.enrollment.pk}"
+        response = self.client.get(reverse("accounts:receivable_add") + query)
+        form = response.context["form"]
+        self.assertEqual(form["student"].value(), self.student.pk)
+        self.assertEqual(form["guardian"].value(), self.mother.pk)
+        response = self.post_receivable(
+            query, student=self.student.pk, guardian=self.mother.pk
+        )
+        self.assertRedirects(
+            response, reverse("enrollments:enrollment_edit", args=[self.enrollment.pk])
+        )
+
+    def test_enrollment_page_lists_student_receivables(self):
+        self.post_receivable(student=self.student.pk)
+        self.post_receivable(description="Uniforme", guardian=self.other.pk)
+        response = self.client.get(
+            reverse("enrollments:enrollment_edit", args=[self.enrollment.pk])
+        )
+        self.assertContains(response, "Apostilas")
+        self.assertContains(response, self.enrollment.account.description)
+        self.assertNotContains(response, "Uniforme")
+        self.assertContains(
+            response,
+            reverse("accounts:receivable_add") + f"?enrollment={self.enrollment.pk}",
+        )
+
+    def test_contract_account_student_is_locked(self):
+        form = AccountReceivableForm(instance=self.enrollment.account)
+        self.assertTrue(form.fields["student"].disabled)

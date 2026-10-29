@@ -11,7 +11,10 @@
       <div class="sm:col-span-full">{% include 'components/form/field.html' with field=form.description %}</div>
       {% include 'components/form/field.html' with field=form.category %}
       {% if form.guardian %}
-      {% include 'components/form/field.html' with field=form.guardian %}
+      {% include 'components/form/field.html' with field=form.student %}
+      <div id="guardian-field">
+        {% include 'accounts/partials/guardian_field.html' %}
+      </div>
       {% else %}
       {% include 'components/form/field.html' with field=form.supplier %}
       {% endif %}
@@ -52,7 +55,7 @@
   <div class="form-actions">
     <p class="text-[13px] text-slate-500">Campos sem “opcional” são obrigatórios.</p>
     <div class="ml-auto flex gap-2">
-      <a href="{% url urls.list %}">
+      <a href="{% if back_url %}{{ back_url }}{% else %}{% url urls.list %}{% endif %}">
         {% include 'components/button/button_cancel.html' with label='Cancelar' %}
       </a>
       {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar conta' %}
