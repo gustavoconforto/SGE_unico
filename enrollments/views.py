@@ -18,7 +18,7 @@ from django.views.generic import (
 )
 from weasyprint import HTML
 
-from accounts.models import Account, AccountReceivable
+from accounts.models import Account, AccountReceivable, Installment
 from accounts.views import ProtectedDeleteMixin, SuccessMessageMixin
 from base.search import HtmxSearchMixin
 from enrollments.forms import (
@@ -295,7 +295,11 @@ def build_report_context(pk):
     enrollment = get_object_or_404(Enrollment, pk=pk)
     student_name = enrollment.student.name
     school_year = enrollment.enrollment_type.school_year.begins.year
-    grade = enrollment.school_class.grade_level
+    grade = (
+        enrollment.school_class.grade_level
+        if enrollment.school_class
+        else enrollment.enrollment_type.level
+    )
     student_cpf = enrollment.student.cpf
     student_zip_code = format_zip_code(enrollment.student.zip_code)
     student_mobile = enrollment.student.mobile
@@ -310,14 +314,16 @@ def build_report_context(pk):
     financial_guardian_mobile = financial_guardian.mobile
     financial_guardian_email = financial_guardian.email
     program = enrollment.enrollment_type
-    installment_price = enrollment.enrollment_type.total_price / 12
+    # The installments actually billed (see accounts.services), not a 1/12 estimate.
+    installments = Installment.objects.filter(account__enrollment=enrollment).order_by(
+        "number"
+    )
     discount_percentage = enrollment.overall_discount_percent
     has_discount = bool(discount_percentage)
     discount_amount = enrollment.discount_value
     sign_date = enrollment.enrolled_at
     start_date_of_the_contract = enrollment.enrollment_type.start_date
     end_date_of_the_contract = enrollment.enrollment_type.end_date
-    ultima_parcela = f"{enrollment.due_day}/12/{school_year}"
     context = {
         "student_name": student_name,
         "school_year": school_year,
@@ -332,14 +338,12 @@ def build_report_context(pk):
         "financial_guardian_mobile": financial_guardian_mobile,
         "financial_guardian_email": financial_guardian_email,
         "program": program,
-        "installment_price": installment_price,
+        "installments": installments,
         "has_discount": has_discount,
         "discount_percentage": discount_percentage,
         "discount_amount": discount_amount,
         "start_date_of_the_contract": start_date_of_the_contract,
         "end_date_of_the_contract": end_date_of_the_contract,
-        "numero_de_parcelas": 12,
-        "ultima_parcela": ultima_parcela,
         "sign_date": sign_date,
     }
     return context

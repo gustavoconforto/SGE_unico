@@ -244,9 +244,17 @@ class AccountDeleteMixin(AccountContextMixin):
                 "Esta conta possui baixas registradas. Exclua as baixas antes.",
             )
             return redirect(self.get_success_url())
-        with transaction.atomic():
-            self.object.installments.all().delete()
-            self.object.delete()
+        try:
+            with transaction.atomic():
+                self.object.installments.all().delete()
+                self.object.delete()
+        except ProtectedError:
+            messages.error(
+                self.request,
+                "Esta conta possui parcelas em uso (ex.: boletos) e não pode ser "
+                "deletada.",
+            )
+            return redirect(self.get_success_url())
         messages.warning(self.request, "Registro deletado com sucesso")
         return redirect(self.get_success_url())
 

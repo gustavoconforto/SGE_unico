@@ -230,13 +230,6 @@ class Enrollment(TimeStampedModel):
         validators=[MinValueValidator(0), MaxValueValidator(100)],
         help_text="Preenchido automáticamente",
     )
-    installments_count = models.PositiveSmallIntegerField(
-        "Número de parcelas",
-        default=12,
-        validators=[MinValueValidator(1), MaxValueValidator(24)],
-        help_text="Preenchido automáticamente",
-        blank=True,
-    )
     due_day = models.PositiveSmallIntegerField(
         "Dia de vencimento",
         default=10,

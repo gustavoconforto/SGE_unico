@@ -188,7 +188,6 @@ class EnrollmentForm(forms.ModelForm):
         "gross_value",
         "first_discount_percent",
         "remaining_discount_percent",
-        "installments_count",
     ]
     # The account and installments are generated from these on creation, so
     # they can't change afterwards.
@@ -205,7 +204,6 @@ class EnrollmentForm(forms.ModelForm):
             "gross_value",
             "first_discount_percent",
             "remaining_discount_percent",
-            "installments_count",
             "due_day",
         ]
         widgets = {
@@ -236,9 +234,6 @@ class EnrollmentForm(forms.ModelForm):
                 attrs={"class": "input input-neutral w-full"}
             ),
             "remaining_discount_percent": forms.NumberInput(
-                attrs={"class": "input input-neutral w-full"}
-            ),
-            "installments_count": forms.NumberInput(
                 attrs={"class": "input input-neutral w-full"}
             ),
             "due_day": forms.NumberInput(attrs={"class": "input input-neutral w-full"}),

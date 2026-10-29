@@ -153,6 +153,50 @@ class EnrollmentSettingsRedirectTests(LoggedInTestCase):
         self.assertTrue(NeededDocumentType.objects.exists())
 
 
+class EnrollmentContractTests(LoggedInTestCase):
+    @classmethod
+    def setUpTestData(cls):
+        school_year = SchoolYear.objects.create(
+            begins=date(2027, 1, 10), ends=date(2027, 12, 15)
+        )
+        student = Student.objects.create(
+            name="Ana Souza", cpf="12345678901", rg="1234567", issuing_authority="SSP"
+        )
+        GuardianAssociation.objects.create(
+            student=student,
+            guardian=Guardian.objects.create(
+                name="Maria Souza", cpf="00275010198", rg="7654321"
+            ),
+            relationship=Relationship.MOTHER,
+            is_financial=True,
+        )
+        # Mid-year and without a class: 4 installments, not 12.
+        cls.enrollment = Enrollment.objects.create(
+            student=student,
+            enrollment_type=EnrollmentType.objects.create(
+                program=Program.objects.create(name="Pré ENEM"),
+                school_year=school_year,
+                level="2",
+                total_price=Decimal("14999.00"),
+            ),
+            enrolled_at=date(2027, 9, 15),
+            due_day=10,
+        )
+
+    def test_contract_lists_the_billed_installments(self):
+        response = self.client.get(
+            reverse("enrollments:enrollment_preview", args=[self.enrollment.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "2ª Série - 2027")
+        self.assertEqual(len(response.context["installments"]), 4)
+        self.assertContains(response, "<td>4/4</td>", html=True)
+        self.assertContains(response, "10/12/2027")
+        self.assertContains(response, "R$ 1.249,92")
+        self.assertContains(response, "R$ 4.583,04")
+        self.assertContains(response, "R$ 4.583,02", count=2)
+
+
 class SchoolClassOptionsTests(LoggedInTestCase):
     @classmethod
     def setUpTestData(cls):

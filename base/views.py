@@ -54,7 +54,8 @@ def user_edit_view(request, pk):
             messages.success(request, "Registro cadastrado com sucesso")
             return redirect("base:user_list")
 
-    form = UserForm(instance=user)
+    else:
+        form = UserForm(instance=user)
 
     context = {"form": form}
     return render(request, "users/user_edit.html", context)
@@ -120,7 +121,8 @@ def group_edit_view(request, pk):
             messages.success(request, "Registro cadastrado com sucesso")
             return redirect("base:group_list")
 
-    form = GroupForm(instance=group)
+    else:
+        form = GroupForm(instance=group)
 
     context = {"form": form}
     return render(request, "users/group_edit.html", context)
@@ -188,7 +190,8 @@ def permission_edit_view(request, pk):
             messages.success(request, "Registro cadastrado com sucesso")
             return redirect("base:permission_list")
 
-    form = PermissionForm(instance=permission)
+    else:
+        form = PermissionForm(instance=permission)
 
     context = {"form": form}
     return render(request, "users/permission_edit.html", context)

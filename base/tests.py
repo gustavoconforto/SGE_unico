@@ -205,6 +205,20 @@ class LayoutTests(LoggedInTestCase):
         self.assertContains(response, "<title>Fornecedores</title>")
 
 
+class UserEditTests(LoggedInTestCase):
+    def test_invalid_post_keeps_errors_and_input(self):
+        user = User.objects.create_user(username="ana")
+        response = self.client.post(
+            reverse("base:user_edit", args=[user.pk]),
+            {"username": "", "first_name": "Ana Maria"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["form"].errors)
+        self.assertContains(response, "Ana Maria")
+        user.refresh_from_db()
+        self.assertEqual(user.username, "ana")
+
+
 class PageSmokeTests(LoggedInTestCase):
     """Every screen renders against seeded data: list, add, edit, delete and
     detail pages of each app, reached through the URLconf."""

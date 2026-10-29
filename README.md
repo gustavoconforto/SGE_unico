@@ -77,16 +77,10 @@ uv run python manage.py clean                # (re)seed reference data
 uv run python manage.py seed                 # reference data + fake employees, students and guardians
 uv run ruff check <files>                    # lint (the repo isn't clean yet)
 uv run ruff format <files>                   # format
-uv run python reset_db.py                    # see warning below
 ```
 
 `seed` takes `--students N` (default 10) and `--random-seed` (default 42). It
 skips the fake people if students already exist.
-
-> **`reset_db.py` is destructive.** It deletes `db.sqlite3` **and every
-> migration file** in the project, then regenerates them. Only use it while the
-> schema is still throwaway, and never once there's a database you care about.
-> Option 1 then runs `clean`, option 2 runs `seed`.
 
 ## Project layout
 

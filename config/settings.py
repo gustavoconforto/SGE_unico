@@ -179,6 +179,15 @@ LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "base:main"
 LOGOUT_REDIRECT_URL = "login"
 
+if not DEBUG:
+    # nginx terminates HTTPS and redirects plain HTTP.
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    CSRF_TRUSTED_ORIGINS = [
+        "https://gestaounico.com.br",
+        "https://www.gestaounico.com.br",
+    ]
+
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration

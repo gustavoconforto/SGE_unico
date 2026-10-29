@@ -687,9 +687,6 @@ style.
   every screen (the "Professor" group `full_seed` creates is not enforced).
 - **Production hardening is incomplete:** CDN assets aren't pinned or
   self-hosted.
-- `Enrollment.installments_count` exists (default 12) but isn't used:
-  the number of installments comes from the enrollment date (see
-  [workflow](#enrollment--finance-workflow)).
 - `enrollments/forms.py` and `accounts/forms.py` each define an
   `InstallmentForm` with different purposes.
 - `tailwind.config.js` and `src/gestao/` (uv scaffolding) are empty or unused.

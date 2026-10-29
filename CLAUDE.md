@@ -18,8 +18,7 @@ uv run python manage.py full_seed          # FLUSHES the database, then fills a 
 ```
 
 `.env` needs `SECRET_KEY` and `DJANGO_DEBUG=true` (without debug it connects
-to PostgreSQL through `DATABASE_URL`). Never run `reset_db.py`: it deletes the
-database and all migration files. Ask before running `full_seed` on the dev
+to PostgreSQL through `DATABASE_URL`). Ask before running `full_seed` on the dev
 database; to try it, point a settings override at a scratch SQLite file.
 
 ## Language

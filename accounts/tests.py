@@ -15,6 +15,7 @@ from accounts.models import (
     Supplier,
 )
 from base.testing import LoggedInTestCase
+from billing.models import BankSlip, Remittance
 from enrollments.models import Enrollment, EnrollmentType, SchoolYear
 from programs.models import Program
 from students.models import Guardian, GuardianAssociation, Relationship, Student
@@ -131,6 +132,25 @@ class AccountViewsTests(LoggedInTestCase):
         )
         self.client.post(reverse("accounts:receivable_delete", args=[account.pk]))
         self.assertTrue(AccountReceivable.objects.filter(pk=account.pk).exists())
+
+    def test_delete_blocked_when_installment_has_bank_slip(self):
+        self.create_receivable(count=1)
+        account = AccountReceivable.objects.get()
+        BankSlip.objects.create(
+            remittance=Remittance.objects.create(
+                number=1, generated_at=timezone.localdate()
+            ),
+            installment=account.installments.get(),
+            nosso_numero="20000000001",
+            nosso_numero_dv="1",
+            due_date=timezone.localdate(),
+            amount=Decimal(10),
+        )
+        response = self.client.post(
+            reverse("accounts:receivable_delete", args=[account.pk]), follow=True
+        )
+        self.assertContains(response, "parcelas em uso")
+        self.assertTrue(account.installments.exists())
 
     def test_delete_removes_installments(self):
         self.create_receivable()

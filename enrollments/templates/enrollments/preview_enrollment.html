@@ -478,21 +478,19 @@
       <table class="price-table no-break">
         <thead>
           <tr>
-            <th>Serviço</th>
-            <th>Parcelas</th>
-            <th>Valor Bruto</th>
-            <th>1º Vencimento</th>
-            <th>Último Vencimento</th>
+            <th>Parcela</th>
+            <th>Vencimento</th>
+            <th>Valor</th>
           </tr>
         </thead>
         <tbody>
+          {% for installment in installments %}
           <tr>
-            <td>Parcela Mensal</td>
-            <td>{{ numero_de_parcelas }}</td>
-            <td>R$ {{installment_price}}</td>
-            <td>Ato da Matrícula</td>
-            <td>{{ultima_parcela}}</td>
+            <td>{{ installment.number }}/{{ installments|length }}</td>
+            <td>{{ installment.due_date|date:"d/m/Y" }}</td>
+            <td>R$ {{ installment.amount|floatformat:"2g" }}</td>
           </tr>
+          {% endfor %}
         </tbody>
       </table>
       {% if has_discount %}

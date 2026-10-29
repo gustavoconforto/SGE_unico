@@ -6,6 +6,3 @@ migrations:
 
 migrate:
     uv run manage.py migrate
-
-reset:
-    uv run reset_db.py
