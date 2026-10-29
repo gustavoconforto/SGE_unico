@@ -51,8 +51,10 @@ class AccountViewsTests(LoggedInTestCase):
 
     def test_create_receivable_generates_installments(self):
         response = self.create_receivable()
-        self.assertRedirects(response, reverse("accounts:receivable_list"))
         account = AccountReceivable.objects.get()
+        self.assertRedirects(
+            response, reverse("accounts:receivable_edit", args=[account.pk])
+        )
         self.assertEqual(account.direction, Direction.RECEIVABLE)
         self.assertEqual(account.installments.count(), 3)
         self.assertEqual(
@@ -190,7 +192,7 @@ class PaymentViewsTests(LoggedInTestCase):
             number=1, due_date=timezone.localdate(), amount=Decimal(100)
         )
 
-    def post_payment(self, amount, **extra):
+    def post_payment(self, amount, query="", **extra):
         data = {
             "installment": self.installment.pk,
             "paid_at": timezone.localdate().isoformat(),
@@ -201,7 +203,7 @@ class PaymentViewsTests(LoggedInTestCase):
             "method": "PIX",
             **extra,
         }
-        return self.client.post(reverse("accounts:payment_add"), data)
+        return self.client.post(reverse("accounts:payment_add") + query, data)
 
     def test_payment_updates_installment_status(self):
         self.assertRedirects(self.post_payment("40"), reverse("accounts:payment_list"))
@@ -210,6 +212,13 @@ class PaymentViewsTests(LoggedInTestCase):
         self.post_payment("65", penalty="5")
         self.installment.refresh_from_db()
         self.assertEqual(self.installment.status, InstallmentStatus.PAID)
+
+    def test_payment_from_account_page_returns_to_it(self):
+        response = self.post_payment("40", f"?installment={self.installment.pk}")
+        self.assertRedirects(
+            response,
+            reverse("accounts:receivable_edit", args=[self.installment.account_id]),
+        )
 
     def test_list_shows_due_date_and_paid_at(self):
         due_date = timezone.localdate() - timedelta(days=10)
@@ -302,7 +311,7 @@ class PaymentViewsTests(LoggedInTestCase):
             f'name="installment" id="id_installment_value" value="{self.installment.pk}"',
         )
 
-    def post_payable_payment(self, amount, **extra):
+    def post_payable_payment(self, amount, query="", **extra):
         data = {
             "installment": self.payable_installment.pk,
             "paid_at": timezone.localdate().isoformat(),
@@ -313,7 +322,7 @@ class PaymentViewsTests(LoggedInTestCase):
             "method": "TED",
             **extra,
         }
-        return self.client.post(reverse("accounts:payable_payment_add"), data)
+        return self.client.post(reverse("accounts:payable_payment_add") + query, data)
 
     def test_payable_payment_updates_installment_status(self):
         response = self.post_payable_payment("100")
@@ -322,6 +331,16 @@ class PaymentViewsTests(LoggedInTestCase):
         )
         self.payable_installment.refresh_from_db()
         self.assertEqual(self.payable_installment.status, InstallmentStatus.PAID)
+
+    def test_payable_payment_from_account_page_returns_to_it(self):
+        query = f"?installment={self.payable_installment.pk}"
+        response = self.post_payable_payment("100", query)
+        self.assertRedirects(
+            response,
+            reverse(
+                "accounts:payable_edit", args=[self.payable_installment.account_id]
+            ),
+        )
 
     def test_payable_form_rejects_receivable_installment(self):
         response = self.post_payable_payment("10", installment=self.installment.pk)
@@ -715,8 +734,10 @@ class StudentReceivableTests(LoggedInTestCase):
 
     def test_guardian_defaults_to_financial_guardian(self):
         response = self.post_receivable(student=self.student.pk)
-        self.assertRedirects(response, reverse("accounts:receivable_list"))
         account = AccountReceivable.objects.get(description="Apostilas")
+        self.assertRedirects(
+            response, reverse("accounts:receivable_edit", args=[account.pk])
+        )
         self.assertEqual(account.student, self.student)
         self.assertEqual(account.guardian, self.mother)
 
@@ -730,19 +751,24 @@ class StudentReceivableTests(LoggedInTestCase):
 
     def test_without_student_any_guardian(self):
         response = self.post_receivable(guardian=self.other.pk)
-        self.assertRedirects(response, reverse("accounts:receivable_list"))
+        self.assertEqual(response.status_code, 302)
 
-    def test_prefill_from_enrollment_and_return_to_it(self):
+    def test_prefill_from_enrollment_then_open_account(self):
         query = f"?enrollment={self.enrollment.pk}"
         response = self.client.get(reverse("accounts:receivable_add") + query)
         form = response.context["form"]
         self.assertEqual(form["student"].value(), self.student.pk)
         self.assertEqual(form["guardian"].value(), self.mother.pk)
+        self.assertEqual(
+            response.context["back_url"],
+            reverse("enrollments:enrollment_edit", args=[self.enrollment.pk]),
+        )
         response = self.post_receivable(
             query, student=self.student.pk, guardian=self.mother.pk
         )
+        account = AccountReceivable.objects.get(description="Apostilas")
         self.assertRedirects(
-            response, reverse("enrollments:enrollment_edit", args=[self.enrollment.pk])
+            response, reverse("accounts:receivable_edit", args=[account.pk])
         )
 
     def test_enrollment_page_lists_student_receivables(self):

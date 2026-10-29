@@ -229,6 +229,12 @@ class AccountCreateMixin(AccountContextMixin):
         messages.success(self.request, "Registro cadastrado com sucesso")
         return response
 
+    def get_success_url(self):
+        # Straight to the new account, where installments are paid and printed.
+        return reverse(
+            f"accounts:{self.url_prefix}_edit", kwargs={"pk": self.object.pk}
+        )
+
 
 class AccountUpdateMixin(AccountContextMixin):
     template_name = "accounts/account_edit.html"
@@ -371,9 +377,6 @@ class AccountReceivableCreateView(
         if enrollment:
             return reverse("enrollments:enrollment_edit", kwargs={"pk": enrollment.pk})
         return reverse(f"accounts:{self.url_prefix}_list")
-
-    def get_success_url(self):
-        return self.get_back_url()
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(back_url=self.get_back_url(), **kwargs)
@@ -620,6 +623,16 @@ class PaymentCreateView(CreateView):
                 paid_at=timezone.localdate(),
             )
         return initial
+
+    def get_success_url(self):
+        # "Baixar" came from an account page: go back there to print the receipt.
+        if "installment" in self.request.GET:
+            account = self.object.installment.account
+            prefix = (
+                "receivable" if account.direction == Direction.RECEIVABLE else "payable"
+            )
+            return reverse(f"accounts:{prefix}_edit", kwargs={"pk": account.pk})
+        return super().get_success_url()
 
     def form_valid(self, form):
         messages.success(self.request, self.success_message)
