@@ -21,13 +21,13 @@ from weasyprint import HTML
 from accounts.models import Account, AccountReceivable, Installment
 from accounts.views import ProtectedDeleteMixin, SuccessMessageMixin
 from base.search import HtmxSearchMixin
+from base.templatetags.ui import document
 from enrollments.forms import (
     DiscountTypeForm,
     EnrollmentCreateForm,
     EnrollmentForm,
     EnrollmentNeededDocumentFormSet,
     EnrollmentTypeForm,
-    InstallmentFormSet,
     NeededDocumentTypeForm,
     SchoolYearForm,
 )
@@ -40,7 +40,7 @@ from enrollments.models import (
     SchoolYear,
 )
 from students.models import Guardian
-from utils.format.number_values import format_cpf, format_zip_code
+from utils.format.number_values import format_zip_code
 
 # SCHOOL YEAR VIEWS
 
@@ -234,25 +234,21 @@ class EnrollmentUpdateView(UpdateView):
         except Account.DoesNotExist:
             return None
 
-    def get_formsets(self, data=None):
-        account = self.get_account()
-        return {
-            "documents_formset": EnrollmentNeededDocumentFormSet(
-                data,
-                instance=self.object,
-                prefix="documents",
-                queryset=EnrollmentNeededDocument.objects.select_related("type"),
-            ),
-            "installment_formset": (
-                InstallmentFormSet(data, instance=account, prefix="installments")
-                if account
-                else None
-            ),
-        }
+    def get_documents_formset(self, data=None):
+        return EnrollmentNeededDocumentFormSet(
+            data,
+            instance=self.object,
+            prefix="documents",
+            queryset=EnrollmentNeededDocument.objects.select_related("type"),
+        )
 
     def get_context_data(self, **kwargs):
         if "documents_formset" not in kwargs:
-            kwargs.update(self.get_formsets())
+            kwargs["documents_formset"] = self.get_documents_formset()
+        account = self.get_account()
+        kwargs["installments"] = (
+            account.installments.with_balance().order_by("number") if account else None
+        )
         kwargs["receivables"] = (
             AccountReceivable.objects.filter(student=self.object.student_id)
             .select_related("category", "guardian")
@@ -263,16 +259,16 @@ class EnrollmentUpdateView(UpdateView):
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         form = self.get_form()
-        formsets = self.get_formsets(request.POST)
-        active = [fs for fs in formsets.values() if fs is not None]
-        if form.is_valid() and all(fs.is_valid() for fs in active):
+        documents_formset = self.get_documents_formset(request.POST)
+        if form.is_valid() and documents_formset.is_valid():
             with transaction.atomic():
                 self.object = form.save()
-                for fs in active:
-                    fs.save()
+                documents_formset.save()
             messages.success(request, "Registro atualizado com sucesso")
             return redirect(self.get_success_url())
-        return self.render_to_response(self.get_context_data(form=form, **formsets))
+        return self.render_to_response(
+            self.get_context_data(form=form, documents_formset=documents_formset)
+        )
 
 
 class SchoolClassOptionsView(TemplateView):
@@ -308,6 +304,8 @@ def build_report_context(pk):
         student_links__student=enrollment.student,
         student_links__is_financial=True,
     ).first()
+    if financial_guardian is None:
+        return None
     financial_guardian_name = financial_guardian.name
     financial_guardian_cpf = financial_guardian.cpf
     financial_guardian_address = f"{financial_guardian.address}, {financial_guardian.neighborhood}, {financial_guardian.city} - {financial_guardian.state}"
@@ -328,12 +326,12 @@ def build_report_context(pk):
         "student_name": student_name,
         "school_year": school_year,
         "grade": grade,
-        "student_cpf": format_cpf(student_cpf),
+        "student_cpf": document(student_cpf),
         "student_zip_code": student_zip_code,
         "student_mobile": student_mobile,
         "student_address": student_address,
         "financial_guardian_name": financial_guardian_name,
-        "financial_guardian_cpf": format_cpf(financial_guardian_cpf),
+        "financial_guardian_cpf": document(financial_guardian_cpf),
         "financial_guardian_address": financial_guardian_address,
         "financial_guardian_mobile": financial_guardian_mobile,
         "financial_guardian_email": financial_guardian_email,
@@ -349,14 +347,27 @@ def build_report_context(pk):
     return context
 
 
+def no_guardian_redirect(request, pk):
+    messages.error(
+        request,
+        "O aluno não possui responsável financeiro cadastrado; cadastre-o antes de "
+        "gerar o contrato.",
+    )
+    return redirect("enrollments:enrollment_edit", pk=pk)
+
+
 def generate_report_view(request, pk):
     context = build_report_context(pk)
+    if context is None:
+        return no_guardian_redirect(request, pk)
     context["object_id"] = pk
     return TemplateResponse(request, "enrollments/preview_enrollment.html", context)
 
 
 def generate_report_pdf_view(request, pk):
     context = build_report_context(pk)
+    if context is None:
+        return no_guardian_redirect(request, pk)
     context["pdf"] = True
     context["logo_src"] = Path(finders.find("img/unico_logo_stamp.png")).as_uri()
     html = render_to_string(

@@ -86,7 +86,7 @@
                 <tr>
                     <td>
                         {{ f.id }}
-                        {{ f.instance.type }}
+                        {{ installment.type }}
                         {% for error in f.non_field_errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
                     </td>
                     <td class="text-center">
@@ -110,9 +110,7 @@
       <h2>Parcelas</h2>
     </div>
     <div class="min-w-0 flex-[999_1_26rem] space-y-2">
-      {% if installment_formset %}
-        {{ installment_formset.management_form }}
-        {{ installment_formset.non_form_errors }}
+      {% if installments is not None %}
         <div class="table-wrap">
         <table class="data-table">
             <thead>
@@ -124,33 +122,29 @@
                 </tr>
             </thead>
             <tbody>
-                {% for f in installment_formset %}
+                {% for installment in installments %}
                 <tr>
                     <td>
-                        {{ f.id }}
-                        {{ f.instance.number }}ª
+                        {{ installment.number }}ª
                     </td>
                     <td class="whitespace-nowrap">
-                        {{ f.instance.due_date|date:"d/m/Y" }}
-                        {% if f.instance.is_overdue %}<span class="block text-xs font-medium text-red-700">Vencida</span>{% endif %}
+                        {{ installment.due_date|date:"d/m/Y" }}
+                        {% if installment.is_overdue %}<span class="block text-xs font-medium text-red-700">Vencida</span>{% endif %}
                     </td>
                     <td>
                         <span class="badge badge-sm whitespace-nowrap
-                            {% if f.instance.status == 'Q' %}badge-success
-                            {% elif f.instance.status == 'P' %}badge-warning
-                            {% elif f.instance.status == 'C' %}badge-ghost
-                            {% elif f.instance.status == 'E' %}badge-error
+                            {% if installment.status == 'Q' %}badge-success
+                            {% elif installment.status == 'P' %}badge-warning
+                            {% elif installment.status == 'C' %}badge-ghost
+                            {% elif installment.status == 'E' %}badge-error
                             {% else %}badge-neutral badge-outline{% endif %}">
-                            {{ f.instance.get_status_display }}
+                            {{ installment.get_status_display }}
                         </span>
                     </td>
                     <td class="text-right whitespace-nowrap">
-                        R$ {{ f.instance.balance|floatformat:"2g" }}
+                        R$ {{ installment.outstanding|floatformat:"2g" }}
                     </td>
                 </tr>
-                {% for error in f.non_field_errors %}
-                <tr><td colspan="5" class="text-xs text-red-600">{{ error }}</td></tr>
-                {% endfor %}
                 {% endfor %}
             </tbody>
         </table>

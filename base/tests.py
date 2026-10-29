@@ -3,7 +3,7 @@ from io import StringIO
 
 from django import forms
 from django.contrib.auth.models import User
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.core.management import call_command
 from django.template import Context, Template
 from django.test import RequestFactory, TestCase
@@ -176,7 +176,6 @@ class UiTagsTests(TestCase):
             self.render(source, form=FilterForm({"status": "A", "year": ""})), "1"
         )
 
-
     def test_optional_marker_only_on_model_forms(self):
         class PickerForm(forms.Form):
             school_class = forms.CharField(required=False)
@@ -192,6 +191,7 @@ class UiTagsTests(TestCase):
         )
         self.assertIn("(opcional)", self.render(source, field=UserForm()["email"]))
 
+
 class LayoutTests(LoggedInTestCase):
     def test_sidebar_marks_the_current_section(self):
         response = self.client.get(reverse("accounts:supplier_list"))
@@ -203,6 +203,68 @@ class LayoutTests(LoggedInTestCase):
     def test_page_title_names_the_browser_tab(self):
         response = self.client.get(reverse("accounts:supplier_list"))
         self.assertContains(response, "<title>Fornecedores</title>")
+
+
+class UserAddTests(LoggedInTestCase):
+    def test_new_user_can_log_in_with_the_password_given(self):
+        response = self.client.post(
+            reverse("base:user_add"),
+            {
+                "username": "joana",
+                "first_name": "Joana",
+                "password1": "Cad3rno-azul",
+                "password2": "Cad3rno-azul",
+            },
+        )
+        self.assertRedirects(response, reverse("base:user_list"))
+        self.client.logout()
+        self.assertTrue(self.client.login(username="joana", password="Cad3rno-azul"))
+
+    def test_passwords_must_match(self):
+        response = self.client.post(
+            reverse("base:user_add"),
+            {"username": "joana", "password1": "Cad3rno-azul", "password2": "outra"},
+        )
+        self.assertIn("password2", response.context["form"].errors)
+        self.assertFalse(User.objects.filter(username="joana").exists())
+
+
+class UserEditStatusTests(LoggedInTestCase):
+    def test_non_superuser_save_keeps_status_flags(self):
+        user = User.objects.create_user(
+            username="ana", is_staff=True, is_superuser=True
+        )
+        self.client.post(
+            reverse("base:user_edit", args=[user.pk]),
+            {"username": "ana", "first_name": "Ana", "is_superuser": "false"},
+        )
+        user.refresh_from_db()
+        self.assertEqual(user.first_name, "Ana")
+        self.assertTrue(user.is_active)
+        self.assertTrue(user.is_superuser)
+
+    def test_superuser_can_change_status_flags(self):
+        self.client.force_login(
+            User.objects.create_user(username="admin", is_superuser=True)
+        )
+        user = User.objects.create_user(username="ana")
+        self.client.post(
+            reverse("base:user_edit", args=[user.pk]),
+            {"username": "ana", "is_active": "false", "is_staff": "true"},
+        )
+        user.refresh_from_db()
+        self.assertFalse(user.is_active)
+        self.assertTrue(user.is_staff)
+
+
+class CpfValidationTests(TestCase):
+    def test_cpf_must_have_eleven_digits(self):
+        for cpf in ("1234", "123.456.789", "1234567890a"):
+            with self.subTest(cpf=cpf):
+                student = Student(name="Ana", cpf=cpf, rg="1", issuing_authority="SSP")
+                with self.assertRaises(ValidationError) as caught:
+                    student.full_clean()
+                self.assertIn("cpf", caught.exception.message_dict)
 
 
 class UserEditTests(LoggedInTestCase):
@@ -260,7 +322,7 @@ class PageSmokeTests(LoggedInTestCase):
                 view.kwargs = {}
                 try:
                     queryset = view.get_queryset()
-                except (AttributeError, KeyError, ImproperlyConfigured):
+                except AttributeError, KeyError, ImproperlyConfigured:
                     # Views that filter on URL kwargs or other request state.
                     queryset = model._default_manager.all()
                 obj = queryset.order_by("pk").first()
@@ -269,7 +331,17 @@ class PageSmokeTests(LoggedInTestCase):
                 url = reverse(f"{namespace}:{pattern.name}", args=[obj.pk])
             else:
                 url = reverse(f"{namespace}:{pattern.name}")
-            if any(word in url for word in ("download", "pdf", "preview", "report", "options", "lookup")):
+            if any(
+                word in url
+                for word in (
+                    "download",
+                    "pdf",
+                    "preview",
+                    "report",
+                    "options",
+                    "lookup",
+                )
+            ):
                 continue
             with self.subTest(url=url):
                 response = self.client.get(url)

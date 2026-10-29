@@ -85,6 +85,14 @@ class EnrollmentStatus(models.TextChoices):
     CANCELLED = "X", "Cancelada"
 
 
+# Ending an enrollment early cancels its future installments (see signals).
+ENDED_EARLY = (
+    EnrollmentStatus.TRANSFERRED,
+    EnrollmentStatus.DROPPED,
+    EnrollmentStatus.CANCELLED,
+)
+
+
 class LevelTypes(models.TextChoices):
     GRADE_1 = "1", "1ª Série"
     GRADE_2 = "2", "2ª Série"

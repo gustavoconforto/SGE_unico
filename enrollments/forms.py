@@ -5,9 +5,9 @@ from django.db.models import Count, Q
 from django.forms import inlineformset_factory
 from django.urls import reverse_lazy
 
-from accounts.models import Account, Installment
 from classes.models import Class
 from enrollments.models import (
+    ENDED_EARLY,
     DiscountGroup,
     DiscountType,
     Enrollment,
@@ -191,7 +191,7 @@ class EnrollmentForm(forms.ModelForm):
     ]
     # The account and installments are generated from these on creation, so
     # they can't change afterwards.
-    locked_on_edit_fields = ["student", "enrollment_type"]
+    locked_on_edit_fields = ["student", "enrollment_type", "due_day"]
 
     class Meta:
         model = Enrollment
@@ -262,6 +262,25 @@ class EnrollmentForm(forms.ModelForm):
         if not pk or not str(pk).isdigit():
             return None
         return EnrollmentType.objects.filter(pk=pk).first()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        # Ending the enrollment cancelled its future installments, and nothing
+        # brings them back.
+        status = cleaned_data.get("status")
+        if (
+            self.instance.pk
+            and self.instance.status in ENDED_EARLY
+            and status
+            and status not in ENDED_EARLY
+        ):
+            self.add_error(
+                "status",
+                f"A matrícula está {self.instance.get_status_display().lower()} e "
+                "suas parcelas futuras foram canceladas; ela não pode voltar a ficar "
+                "ativa ou concluída.",
+            )
+        return cleaned_data
 
     @staticmethod
     def school_classes_for(enrollment_type):
@@ -414,33 +433,4 @@ EnrollmentNeededDocumentFormSet = inlineformset_factory(
     form=EnrollmentNeededDocumentForm,
     extra=0,
     can_delete=False,
-)
-
-
-class InstallmentForm(forms.ModelForm):
-    class Meta:
-        model = Installment
-        fields = ["due_date", "amount"]
-        widgets = {
-            "due_date": forms.DateInput(
-                format="%Y-%m-%d",
-                attrs={"type": "date", "class": "input input-sm input-neutral"},
-            ),
-            "amount": forms.NumberInput(
-                attrs={"class": "input input-sm input-neutral", "step": "0.01"}
-            ),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["due_date"].disabled = True
-
-
-InstallmentFormSet = inlineformset_factory(
-    Account,
-    Installment,
-    form=InstallmentForm,
-    extra=0,
-    can_delete=False,
-    exclude=["amount"],
 )

@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.models import Group, Permission, User
 from django.shortcuts import get_object_or_404, redirect, render
 
-from base.forms import GroupForm, PermissionForm, UserForm
+from base.forms import GroupForm, PermissionForm, UserCreateForm, UserForm
 from base.search import apply_search, is_htmx_partial
 
 
@@ -29,7 +29,7 @@ def user_list_view(request):
 
 def user_add_view(request):
     if request.method == "POST":
-        form = UserForm(request.POST)
+        form = UserCreateForm(request.POST, can_set_status=request.user.is_superuser)
 
         if form.is_valid():
             form.save()
@@ -37,7 +37,7 @@ def user_add_view(request):
             return redirect("base:user_list")
 
     else:
-        form = UserForm()
+        form = UserCreateForm(can_set_status=request.user.is_superuser)
 
     context = {"form": form}
     return render(request, "users/user_add.html", context)
@@ -47,15 +47,17 @@ def user_edit_view(request, pk):
     user = get_object_or_404(User, pk=pk)
 
     if request.method == "POST":
-        form = UserForm(request.POST, instance=user)
+        form = UserForm(
+            request.POST, instance=user, can_set_status=request.user.is_superuser
+        )
 
         if form.is_valid():
             form.save()
-            messages.success(request, "Registro cadastrado com sucesso")
+            messages.success(request, "Registro atualizado com sucesso")
             return redirect("base:user_list")
 
     else:
-        form = UserForm(instance=user)
+        form = UserForm(instance=user, can_set_status=request.user.is_superuser)
 
     context = {"form": form}
     return render(request, "users/user_edit.html", context)
@@ -118,7 +120,7 @@ def group_edit_view(request, pk):
 
         if form.is_valid():
             form.save()
-            messages.success(request, "Registro cadastrado com sucesso")
+            messages.success(request, "Registro atualizado com sucesso")
             return redirect("base:group_list")
 
     else:
@@ -187,7 +189,7 @@ def permission_edit_view(request, pk):
 
         if form.is_valid():
             form.save()
-            messages.success(request, "Registro cadastrado com sucesso")
+            messages.success(request, "Registro atualizado com sucesso")
             return redirect("base:permission_list")
 
     else:

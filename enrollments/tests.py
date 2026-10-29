@@ -13,6 +13,7 @@ from enrollments.models import (
     DiscountType,
     Enrollment,
     EnrollmentDiscount,
+    EnrollmentStatus,
     EnrollmentType,
     NeededDocumentType,
     SchoolYear,
@@ -195,6 +196,30 @@ class EnrollmentContractTests(LoggedInTestCase):
         self.assertContains(response, "R$ 1.249,92")
         self.assertContains(response, "R$ 4.583,04")
         self.assertContains(response, "R$ 4.583,02", count=2)
+        self.assertContains(response, "123.456.789-01")
+
+    def test_contract_without_financial_guardian_redirects_with_message(self):
+        GuardianAssociation.objects.filter(student=self.enrollment.student).update(
+            is_financial=False
+        )
+        for name in ("enrollment_preview", "enrollment_pdf"):
+            with self.subTest(name=name):
+                response = self.client.get(
+                    reverse(f"enrollments:{name}", args=[self.enrollment.pk]),
+                    follow=True,
+                )
+                self.assertRedirects(
+                    response,
+                    reverse("enrollments:enrollment_edit", args=[self.enrollment.pk]),
+                )
+                self.assertContains(response, "não possui responsável financeiro")
+
+    def test_edit_page_lists_installments_with_balance(self):
+        response = self.client.get(
+            reverse("enrollments:enrollment_edit", args=[self.enrollment.pk])
+        )
+        self.assertEqual(len(response.context["installments"]), 4)
+        self.assertContains(response, "R$ 1.249,92")
 
 
 class SchoolClassOptionsTests(LoggedInTestCase):
@@ -422,7 +447,7 @@ class EnrollmentDiscountTests(LoggedInTestCase):
                 enrollment=enrollment, group=DiscountGroup.FIRST, percentage=Decimal(5)
             )
 
-    def test_edit_form_locks_student_and_enrollment_type(self):
+    def test_edit_form_locks_student_enrollment_type_and_due_day(self):
         enrollment = Enrollment.objects.create(
             student=self.student, enrollment_type=self.enrollment_type, due_day=10
         )
@@ -445,12 +470,28 @@ class EnrollmentDiscountTests(LoggedInTestCase):
         )
         self.assertTrue(form.fields["student"].disabled)
         self.assertTrue(form.fields["enrollment_type"].disabled)
+        self.assertTrue(form.fields["due_day"].disabled)
         self.assertTrue(form.is_valid(), form.errors)
         enrollment = form.save()
 
         self.assertEqual(enrollment.student, self.student)
         self.assertEqual(enrollment.enrollment_type, self.enrollment_type)
-        self.assertEqual(enrollment.due_day, 15)
+        # The installments were dated from it on creation.
+        self.assertEqual(enrollment.due_day, 10)
+
+    def test_ended_enrollment_cannot_become_active_again(self):
+        enrollment = Enrollment.objects.create(
+            student=self.student, enrollment_type=self.enrollment_type, due_day=10
+        )
+        enrollment.status = EnrollmentStatus.DROPPED
+        enrollment.save()
+
+        form = EnrollmentForm(instance=enrollment, data={"status": "A"})
+        self.assertFalse(form.is_valid())
+        self.assertIn("status", form.errors)
+
+        form = EnrollmentForm(instance=enrollment, data={"status": "T"})
+        self.assertTrue(form.is_valid(), form.errors)
 
     def test_create_form_leaves_student_and_enrollment_type_editable(self):
         form = self.form()
