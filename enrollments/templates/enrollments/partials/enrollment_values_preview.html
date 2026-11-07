@@ -1,0 +1,42 @@
+{% if enrollment %}
+<div class="grid grid-cols-1 rounded-xl border border-slate-200 bg-white tabular-nums sm:grid-cols-3">
+  <div class="border-b border-slate-200 p-4 sm:border-r sm:border-b-0 sm:px-5">
+    <p class="text-[13px] text-slate-600">Valor do contrato</p>
+    <p class="mt-1 text-xl font-semibold whitespace-nowrap text-slate-900">R$ {{ enrollment.gross_value|floatformat:"2g" }}</p>
+  </div>
+  <div class="border-b border-slate-200 p-4 sm:border-r sm:border-b-0 sm:px-5">
+    <p class="text-[13px] text-slate-600">Descontos</p>
+    <p class="mt-1 text-xl font-semibold whitespace-nowrap text-slate-900">R$ {{ enrollment.discount_value|floatformat:"2g" }}</p>
+    <p class="text-xs text-slate-500">1ª parcela {{ enrollment.first_discount_percent|floatformat:"-2" }}% · demais {{ enrollment.remaining_discount_percent|floatformat:"-2" }}%</p>
+  </div>
+  <div class="p-4 sm:px-5">
+    <p class="text-[13px] text-slate-600">Valor a receber</p>
+    <p class="mt-1 text-xl font-semibold whitespace-nowrap text-slate-900">R$ {{ enrollment.net_value|floatformat:"2g" }}</p>
+    <p class="text-xs text-slate-500">em {{ installments|length }} parcela{{ installments|length|pluralize }}</p>
+  </div>
+</div>
+<div class="table-wrap mt-3">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="w-20">Parcela</th>
+        <th>Vencimento</th>
+        <th class="text-right">Valor</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for number, due_date, amount in installments %}
+      <tr>
+        <td>{{ number }}ª</td>
+        <td class="whitespace-nowrap">{{ due_date|date:"d/m/Y" }}</td>
+        <td class="text-right whitespace-nowrap">R$ {{ amount|floatformat:"2g" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% elif needs_input %}
+<p class="rounded-xl border border-dashed border-slate-300 px-5 py-6 text-sm text-slate-500">Escolha o contrato e o dia de vencimento para ver as parcelas que serão geradas.</p>
+{% else %}
+<p class="rounded-xl border border-dashed border-slate-300 px-5 py-6 text-sm text-slate-500">Corrija os campos de desconto ou de vencimento para ver as parcelas.</p>
+{% endif %}

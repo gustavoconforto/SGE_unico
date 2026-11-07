@@ -19,7 +19,7 @@
         </label>
         {{ form.photo }}
         {% for error in form.photo.errors %}
-        <p class="ui-error"><span class="material-symbols-outlined text-[16px]">error</span>{{ error }}</p>
+        <p class="ui-error"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">error</span>{{ error }}</p>
         {% endfor %}
       </div>
     </div>
@@ -32,7 +32,7 @@
     <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
       <div class="sm:col-span-full">{% include 'components/form/field.html' with field=form.name %}</div>
       <div class="sm:col-span-full">{% include 'components/form/checkbox.html' with field=form.use_social_name %}</div>
-      {% include 'components/form/field.html' with field=form.social_name %}
+      <div id="social-name-field"{% if not form.use_social_name.value %} class="hidden"{% endif %}>{% include 'components/form/field.html' with field=form.social_name %}</div>
       {% include 'components/form/field.html' with field=form.sex %}
     </div>
   </section>
@@ -77,7 +77,7 @@
         {% include 'students/student_guardian_form.html' with guardian_form=formset.empty_form %}
       </template>
       <button type="button" id="add-guardian" class="ui-btn ui-btn-secondary my-2">
-        <span class="material-symbols-outlined">add</span>Adicionar responsável
+        <span class="material-symbols-outlined" aria-hidden="true">add</span>Adicionar responsável
       </button>
     </div>
   </section>
@@ -127,15 +127,30 @@
         const html = document
             .getElementById("guardian-empty-form")
             .innerHTML.replace(/__prefix__/g, index);
-        document.getElementById("guardian-forms").insertAdjacentHTML("beforeend", html);
+        const guardians = document.getElementById("guardian-forms");
+        guardians.insertAdjacentHTML("beforeend", html);
         total.value = Number(index) + 1;
+        enhanceSearchableSelects(guardians.lastElementChild);
     });
 
+    // Remover marks the row for deletion and keeps it, with Desfazer, until saving.
     document.getElementById("guardian-forms").addEventListener("click", (event) => {
         const button = event.target.closest(".remove-guardian");
         if (!button) return;
         const row = button.closest(".guardian-row");
-        row.querySelector('input[name$="-DELETE"]').checked = true;
-        row.classList.add("hidden");
+        const remove = row.querySelector('input[name$="-DELETE"]');
+        remove.checked = !remove.checked;
+        row.querySelector(".guardian-fields").classList.toggle("hidden", remove.checked);
+        row.querySelector(".guardian-removed").classList.toggle("hidden", !remove.checked);
+        button.classList.toggle("ui-btn-danger-text", !remove.checked);
+        button.classList.toggle("ui-btn-secondary", remove.checked);
+        button.innerHTML = remove.checked
+            ? "Desfazer"
+            : '<span class="material-symbols-outlined" aria-hidden="true">close</span>Remover';
+    });
+
+    // The social name only matters when it is in use; it stays filled while hidden.
+    document.getElementById("{{ form.use_social_name.id_for_label }}").addEventListener("change", (event) => {
+        document.getElementById("social-name-field").classList.toggle("hidden", !event.target.checked);
     });
 </script>

@@ -9,7 +9,7 @@
     <div class="flex flex-wrap items-end justify-between gap-4">
       {% include 'components/page/heading.html' with title='Editar matrícula' %}
       <a href="{% url "enrollments:enrollment_preview" object.pk %}" target="_blank" rel="noopener" class="ui-btn ui-btn-secondary">
-        <span class="material-symbols-outlined">print</span>Imprimir
+        <span class="material-symbols-outlined" aria-hidden="true">print</span>Imprimir
       </a>
     </div>
 

@@ -19,10 +19,12 @@ from django.views.generic import (
 from weasyprint import HTML
 
 from accounts.models import Account, AccountReceivable, Installment
+from accounts.services import enrollment_amounts, enrollment_due_dates
 from accounts.views import ProtectedDeleteMixin, SuccessMessageMixin
 from base.search import HtmxSearchMixin
 from base.templatetags.ui import document
 from enrollments.forms import (
+    DISCOUNT_GROUP_PREFIXES,
     DiscountTypeForm,
     EnrollmentCreateForm,
     EnrollmentForm,
@@ -281,6 +283,57 @@ class SchoolClassOptionsView(TemplateView):
             initial={"enrollment_type": self.request.GET.get("enrollment_type")}
         )
         return super().get_context_data(form=form, **kwargs)
+
+
+class EnrollmentValuesPreviewView(TemplateView):
+    """htmx endpoint: the account and installments the add form would create.
+
+    Uses the same rules as the post_save signal (fill_contract_values,
+    enrollment_due_dates, enrollment_amounts), without saving anything.
+    """
+
+    template_name = "enrollments/partials/enrollment_values_preview.html"
+    # Fields the values depend on; errors in any of them hide the preview.
+    value_fields = [
+        "enrollment_type",
+        "due_day",
+        *(
+            f"{prefix}_{name}"
+            for prefix in DISCOUNT_GROUP_PREFIXES.values()
+            for name in (
+                "discount_types",
+                "custom_discount_percent",
+                "custom_discount_observation",
+            )
+        ),
+    ]
+
+    def get_context_data(self, **kwargs):
+        form = EnrollmentCreateForm(self.request.GET)
+        form.is_valid()
+        context = super().get_context_data(**kwargs)
+        missing = not self.request.GET.get("enrollment_type") or not (
+            self.request.GET.get("due_day")
+        )
+        if missing or any(name in form.errors for name in self.value_fields):
+            context["needs_input"] = missing
+            return context
+        enrollment = Enrollment(
+            enrollment_type=form.cleaned_data["enrollment_type"],
+            due_day=form.cleaned_data["due_day"],
+        )
+        enrollment.set_discount_percents(form.all_discounts())
+        enrollment.fill_contract_values()
+        due_dates = enrollment_due_dates(enrollment)
+        context["enrollment"] = enrollment
+        context["installments"] = list(
+            zip(
+                range(1, len(due_dates) + 1),
+                due_dates,
+                enrollment_amounts(enrollment, len(due_dates)),
+            )
+        )
+        return context
 
 
 # PRINT REPORT

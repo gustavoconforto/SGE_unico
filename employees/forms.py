@@ -61,25 +61,21 @@ class EmployeeForm(forms.ModelForm):
             "name": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "rg": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "cpf": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "issuing_authority": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "sex": forms.Select(
@@ -97,61 +93,51 @@ class EmployeeForm(forms.ModelForm):
             "nationality": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "place_of_birth": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "phone": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "mobile": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "email": forms.EmailInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "address": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "neighborhood": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "city": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "state": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "zip_code": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "role": forms.Select(

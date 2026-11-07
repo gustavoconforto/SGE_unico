@@ -12,6 +12,7 @@ from enrollments.views import (
     EnrollmentTypeListView,
     EnrollmentTypeUpdateView,
     EnrollmentUpdateView,
+    EnrollmentValuesPreviewView,
     NeededDocumentTypeCreateView,
     NeededDocumentTypeDeleteView,
     NeededDocumentTypeListView,
@@ -114,6 +115,11 @@ urlpatterns = [
         "edit/<int:pk>/",
         EnrollmentUpdateView.as_view(),
         name="enrollment_edit",
+    ),
+    path(
+        "values-preview/",
+        EnrollmentValuesPreviewView.as_view(),
+        name="enrollment_values_preview",
     ),
     path(
         "school-class-options/",

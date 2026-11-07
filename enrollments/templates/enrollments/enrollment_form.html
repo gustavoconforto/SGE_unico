@@ -86,11 +86,14 @@
                 <tr>
                     <td>
                         {{ f.id }}
-                        {{ installment.type }}
+                        {{ f.instance.type }}
                         {% for error in f.non_field_errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
                     </td>
                     <td class="text-center">
-                        {{ f.is_delivered }}
+                        <label class="inline-flex cursor-pointer p-1">
+                            <span class="sr-only">Entregue: {{ f.instance.type }}</span>
+                            {{ f.is_delivered }}
+                        </label>
                         {% for error in f.is_delivered.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
                     </td>
                 </tr>
@@ -159,8 +162,8 @@
     <div class="form-section-intro">
       <h2>Contas a receber</h2>
       <p>Todas as cobranças do aluno, incluindo o contrato.</p>
-      <a href="{% url 'accounts:receivable_add' %}?enrollment={{ object.pk }}" class="mt-3 inline-block">
-        {% include 'components/button/button_primary.html' with label='Nova duplicata a receber' icon='add' %}
+      <a href="{% url 'accounts:receivable_add' %}?enrollment={{ object.pk }}" class="ui-btn ui-btn-secondary ui-btn-sm mt-3">
+        <span class="material-symbols-outlined" aria-hidden="true">add</span>Nova duplicata a receber
       </a>
     </div>
     <div class="min-w-0 flex-[999_1_26rem] space-y-2">

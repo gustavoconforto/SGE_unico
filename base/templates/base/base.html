@@ -25,7 +25,9 @@
             .nav-group > summary .nav-chevron { @apply ml-auto text-[18px] text-slate-400 transition-transform; }
             .nav-group[open] > summary .nav-chevron { transform: rotate(180deg); }
             .nav-group .nav-group { @apply mt-0.5; }
-            .nav-group .nav-group > summary { @apply font-medium text-slate-600; }
+            .nav-group .nav-group > summary { @apply font-semibold text-slate-700; }
+            /* Nested sections hang their links off a guide line so they don't read as plain entries. */
+            .nav-group .nav-group > .nav-list { @apply ml-[1.1rem] border-l border-slate-300 pl-2; }
             .nav-list { @apply flex flex-col gap-px pb-2 pl-3; }
             .nav-link { @apply flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900; }
             .nav-link .material-symbols-outlined { @apply text-[18px] text-slate-400; }
@@ -40,7 +42,7 @@
             .ui-btn-danger { @apply bg-red-700 font-semibold text-white hover:bg-red-800; }
             .ui-btn-danger-text { @apply border border-slate-200 bg-white text-red-700 hover:border-red-200 hover:bg-red-50; }
             .ui-btn-sm { @apply h-8 rounded-md px-3 text-[13px]; }
-            .ui-icon-btn { @apply inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900; }
+            .ui-icon-btn { @apply inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700; }
 
             /* Page headers */
             .page-title { @apply text-[28px] leading-tight font-semibold tracking-tight text-slate-900; }
@@ -107,10 +109,12 @@
         }
         .material-symbols-outlined { font-size: 20px; font-variation-settings: "wght" 300, "opsz" 20; line-height: 1; }
         a:focus-visible, summary:focus-visible { outline: 2px solid #334155; outline-offset: 2px; border-radius: 6px; }
+        /* Button components are wrapped in <a>: let the link take the button's box so the focus ring fits it. */
+        a:has(> .ui-btn) { display: inline-flex; border-radius: 0.5rem; }
 
-        /* Inputs: light border, dark border and soft ring on focus, red when invalid. */
+        /* Inputs: slate-500 border (3:1 on white, WCAG 1.4.11), solid ring on focus, red when invalid. */
         body .input, body .select, body .textarea {
-            border-color: #cbd5e1;
+            border-color: #64748b;
             background-color: #ffffff;
             box-shadow: none;
             color: #0f172a;
@@ -119,9 +123,11 @@
         body .input:focus, body .input:focus-within, body .select:focus, body .select:focus-within, body .textarea:focus {
             outline: none;
             border-color: #334155;
-            box-shadow: 0 0 0 3px rgb(51 65 85 / 0.14);
+            box-shadow: 0 0 0 1px #334155, 0 0 0 4px rgb(51 65 85 / 0.25);
         }
         body .input[aria-invalid="true"], body .select[aria-invalid="true"], body .textarea[aria-invalid="true"] { border-color: #dc2626; }
+        body .checkbox:not(:checked), body .toggle:not(:checked) { border-color: #64748b; }
+        body .input::placeholder, body .textarea::placeholder, body input::placeholder { color: #64748b; opacity: 1; }
 
         /* Badges: soft fills, readable text. */
         body .badge { border-radius: 9999px; font-weight: 600; font-size: 0.75rem; }
@@ -186,6 +192,43 @@
             menu.style.top = `${r.top - 4 - menu.offsetHeight}px`;
         }
     }, true);
+</script>
+<script>
+    // After a failed submit, start the user at the first field with an error.
+    document.querySelector('form [aria-invalid="true"]')?.focus();
+
+    // Long selects (students, guardians) get a filter box above them: typing
+    // narrows the options and picks the first match.
+    // shortcut: Safari ignores hidden <option>s in the native dropdown; the
+    // auto-pick still works there. Swap for a combobox if Safari users complain.
+    function enhanceSearchableSelects(root = document) {
+        const plain = text => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+        root.querySelectorAll('select[data-searchable]:not([data-enhanced])').forEach(select => {
+            select.dataset.enhanced = '';
+            const filter = document.createElement('input');
+            filter.type = 'search';
+            filter.className = 'input input-neutral input-sm w-full';
+            filter.placeholder = 'Filtrar por nome';
+            const label = select.labels[0]?.textContent.trim().split('\n')[0] || '';
+            filter.setAttribute('aria-label', `Filtrar ${label}`.trim());
+            filter.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
+            filter.addEventListener('input', () => {
+                const query = plain(filter.value.trim());
+                let first = null;
+                for (const option of select.options) {
+                    if (!option.value) continue;
+                    option.hidden = Boolean(query) && !plain(option.text).includes(query);
+                    if (!option.hidden && !first) first = option;
+                }
+                if (query && first && (!select.value || select.selectedOptions[0].hidden)) {
+                    select.value = first.value;
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+            select.before(filter);
+        });
+    }
+    enhanceSearchableSelects();
 </script>
 {% include 'base/sidebar/js/sidebar_js.html' %}
 {% block extra_js %}{% endblock %}

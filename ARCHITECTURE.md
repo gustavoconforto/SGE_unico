@@ -597,6 +597,7 @@ introduce new colors or components without a reason.
 | `form/field.html` | label, widget, help text, errors. Use for every form field. On model forms a non-required field gets "(opcional)"; pickers on plain forms don't |
 | `form/non_field_errors.html` | the form's non-field errors, at the top of the form |
 | `form/checkbox.html`, `form/checkbox_list.html` | checkbox with label; multiple-choice grid |
+| `data-searchable` on a `Select` widget's attrs | adds a "Filtrar por nome" box above long selects (students, guardians); typing narrows the options and picks the first match. Script in `base.html` (`enhanceSearchableSelects(root)`, call it on rows added by JS) |
 | `button/button_primary.html` | main page action, wrapped in `<a>`; optional `icon` |
 | `button/button_submit_form.html` | primary submit |
 | `button/button_delete_form.html` | destructive submit (red-700) |

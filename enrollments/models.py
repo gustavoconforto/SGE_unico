@@ -302,14 +302,8 @@ class Enrollment(TimeStampedModel):
         self.fill_contract_values()
         super().save(*args, **kwargs)
 
-    @transaction.atomic
-    def save_with_discounts(self, discounts):
-        """Create the enrollment with these unsaved EnrollmentDiscount rows.
-
-        Each group's percentage is the sum of its discounts and must be set
-        before the first save: the post_save signal creates the account from
-        them.
-        """
+    def set_discount_percents(self, discounts):
+        """Each group's percentage is the sum of its discounts."""
         for discount in discounts:
             if discount.percentage is None:
                 discount.percentage = discount.discount_type.percentage
@@ -321,6 +315,16 @@ class Enrollment(TimeStampedModel):
             (d.percentage for d in discounts if d.group == DiscountGroup.REMAINING),
             Decimal(0),
         )
+
+    @transaction.atomic
+    def save_with_discounts(self, discounts):
+        """Create the enrollment with these unsaved EnrollmentDiscount rows.
+
+        Each group's percentage is the sum of its discounts and must be set
+        before the first save: the post_save signal creates the account from
+        them.
+        """
+        self.set_discount_percents(discounts)
         self.save()
         for discount in discounts:
             discount.enrollment = self

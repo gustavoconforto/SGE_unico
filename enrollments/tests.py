@@ -449,6 +449,61 @@ class EnrollmentDiscountTests(LoggedInTestCase):
         self.assertContains(response, "ALUNO ANTIGO")
         self.assertContains(response, "Demais parcelas")
 
+    def test_values_preview_matches_the_saved_installments(self):
+        data = {
+            "enrollment_type": self.enrollment_type.pk,
+            "due_day": 10,
+            "first_discount_types": [self.siblings.pk, self.former.pk],
+            "remaining_discount_types": [self.siblings.pk],
+        }
+        response = self.client.get(
+            reverse("enrollments:enrollment_values_preview"),
+            data,
+            **{"HTTP_HX_REQUEST": "true"},
+        )
+        self.assertTemplateUsed(
+            response, "enrollments/partials/enrollment_values_preview.html"
+        )
+        self.assertFalse(Enrollment.objects.exists())
+        preview = response.context["installments"]
+
+        form = self.form(**data)
+        self.assertTrue(form.is_valid(), form.errors)
+        saved = form.save().account.installments.order_by("number")
+        self.assertEqual(
+            [(due_date, amount) for _, due_date, amount in preview],
+            list(saved.values_list("due_date", "amount")),
+        )
+        # 30% of 83.33 + 10% of 916.67
+        self.assertContains(response, "R$ 883,33")
+
+    def test_values_preview_waits_for_valid_input(self):
+        url = reverse("enrollments:enrollment_values_preview")
+        response = self.client.get(url, {"due_day": 10})
+        self.assertTrue(response.context["needs_input"])
+        self.assertContains(response, "Escolha o contrato")
+
+        response = self.client.get(
+            url,
+            {
+                "enrollment_type": self.enrollment_type.pk,
+                "due_day": 10,
+                "first_custom_discount_percent": "5",
+            },
+        )
+        self.assertNotIn("installments", response.context)
+        self.assertContains(response, "Corrija os campos")
+
+    def test_edit_page_names_each_needed_document(self):
+        NeededDocumentType.objects.create(description="Histórico escolar")
+        enrollment = Enrollment.objects.create(
+            student=self.student, enrollment_type=self.enrollment_type, due_day=10
+        )
+        response = self.client.get(
+            reverse("enrollments:enrollment_edit", args=[enrollment.pk])
+        )
+        self.assertContains(response, "Entregue: Histórico escolar")
+
     def test_database_requires_observation_on_custom_discount(self):
         enrollment = Enrollment.objects.create(
             student=self.student, enrollment_type=self.enrollment_type, due_day=10

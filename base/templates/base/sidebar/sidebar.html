@@ -9,7 +9,7 @@
             <p class="text-xs text-slate-500">Gestão escolar</p>
         </div>
         <button type="button" data-sidebar-close class="ui-icon-btn ml-auto lg:hidden" aria-label="Fechar menu">
-            <span class="material-symbols-outlined">close</span>
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
         </button>
     </div>
     <nav aria-label="Menu principal" class="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
@@ -29,16 +29,16 @@
                 </span>
                 <span class="block truncate text-xs text-slate-500">{{ user.email|default:"" }}</span>
             </span>
-            <span class="material-symbols-outlined text-[18px] text-slate-500">unfold_more</span>
+            <span class="material-symbols-outlined text-[18px] text-slate-500" aria-hidden="true">unfold_more</span>
         </button>
         <div tabindex="0" class="dropdown-content z-50 mb-1 w-[calc(100%-1.5rem)] rounded-lg border border-slate-200 bg-white p-1 shadow-lg shadow-slate-900/10">
             <form method="post" action="{% url 'logout' %}">
                 {% csrf_token %}
                 <button type="submit" class="nav-link w-full cursor-pointer text-left">
-                    <span class="material-symbols-outlined">logout</span>Sair
+                    <span class="material-symbols-outlined" aria-hidden="true">logout</span>Sair
                 </button>
             </form>
-            <p class="px-2.5 pt-1 pb-1.5 text-xs text-slate-400">Versão 0.0.1</p>
+            <p class="px-2.5 pt-1 pb-1.5 text-xs text-slate-500">Versão 0.0.1</p>
         </div>
     </div>
 </aside>

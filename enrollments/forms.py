@@ -207,7 +207,9 @@ class EnrollmentForm(forms.ModelForm):
             "due_day",
         ]
         widgets = {
-            "student": forms.Select(attrs={"class": "select select-neutral w-full"}),
+            "student": forms.Select(
+                attrs={"class": "select select-neutral w-full", "data-searchable": ""}
+            ),
             "school_class": forms.Select(
                 attrs={"class": "select select-neutral w-full"}
             ),
@@ -405,14 +407,15 @@ class EnrollmentCreateForm(EnrollmentForm):
             )
         return discounts
 
+    def all_discounts(self):
+        return [
+            discount
+            for group in DISCOUNT_GROUP_PREFIXES
+            for discount in self.build_discounts(group)
+        ]
+
     def save(self, commit=True):
-        self.instance.save_with_discounts(
-            [
-                discount
-                for group in DISCOUNT_GROUP_PREFIXES
-                for discount in self.build_discounts(group)
-            ]
-        )
+        self.instance.save_with_discounts(self.all_discounts())
         return self.instance
 
 

@@ -20,9 +20,7 @@ class Person(TimeStampedModel):
     """Personal, document, contact and address fields shared by people records."""
 
     name = models.CharField("Nome civil", max_length=200)
-    sex = models.CharField(
-        "Sexo", max_length=1, choices=SexType.choices, blank=True, help_text="M ou F"
-    )
+    sex = models.CharField("Sexo", max_length=1, choices=SexType.choices, blank=True)
     cpf = models.CharField(
         "CPF",
         max_length=11,
@@ -49,7 +47,7 @@ class Person(TimeStampedModel):
     mobile = models.CharField(
         "Celular", max_length=20, blank=True, help_text="(00) 0000-0000"
     )
-    email = models.EmailField("Email", blank=True)
+    email = models.EmailField("E-mail", blank=True)
     address = models.CharField(
         "Endereço", max_length=200, blank=True, help_text="Pode usar ponto e '-' "
     )
