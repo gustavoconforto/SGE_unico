@@ -1,5 +1,9 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import (
+    PasswordChangeForm,
+    SetPasswordForm,
+    UserCreationForm,
+)
 from django.contrib.auth.models import Group, Permission, User
 
 
@@ -114,18 +118,33 @@ class UserForm(UserStatusFieldsMixin, forms.ModelForm):
         }
 
 
-class UserCreateForm(UserStatusFieldsMixin, UserCreationForm):
+class PasswordStyleMixin:
+    """daisyUI class on every password input, plain-text rules on the new one."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            if isinstance(field.widget, forms.PasswordInput):
+                field.widget.attrs["class"] = "input input-neutral w-full"
+        # Django's help text is an HTML list, which the field component escapes.
+        for name in ("password1", "new_password1"):
+            if name in self.fields:
+                self.fields[name].help_text = (
+                    "Mínimo de 8 caracteres, não pode ser só números nem parecida "
+                    "com os dados do usuário."
+                )
+
+
+class UserCreateForm(UserStatusFieldsMixin, PasswordStyleMixin, UserCreationForm):
     """UserForm plus the password, so the new user can log in."""
 
     class Meta(UserForm.Meta):
         pass
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for name in ("password1", "password2"):
-            self.fields[name].widget.attrs["class"] = "input input-neutral w-full"
-        # Django's help text is an HTML list, which the field component escapes.
-        self.fields["password1"].help_text = (
-            "Mínimo de 8 caracteres, não pode ser só números nem parecida com os "
-            "dados do usuário."
-        )
+
+class OwnPasswordChangeForm(PasswordStyleMixin, PasswordChangeForm):
+    pass
+
+
+class AdminSetPasswordForm(PasswordStyleMixin, SetPasswordForm):
+    pass

@@ -1,8 +1,20 @@
 from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.auth.models import Group, Permission, User
+from django.contrib.auth.views import PasswordChangeView
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse_lazy
+from django.views.generic import FormView
 
-from base.forms import GroupForm, PermissionForm, UserCreateForm, UserForm
+from base.forms import (
+    AdminSetPasswordForm,
+    GroupForm,
+    OwnPasswordChangeForm,
+    PermissionForm,
+    UserCreateForm,
+    UserForm,
+)
 from base.search import apply_search, is_htmx_partial
 
 
@@ -213,3 +225,49 @@ def permission_delete_view(request, pk):
 
     context = {"form": form}
     return render(request, "users/permission_delete.html", context)
+
+
+class OwnPasswordChangeView(PasswordChangeView):
+    """The logged-in user changes their own password (asks for the current one)."""
+
+    form_class = OwnPasswordChangeForm
+    template_name = "users/password_form.html"
+    success_url = reverse_lazy("base:main")
+    extra_context = {"title": "Alterar senha", "cancel_url": reverse_lazy("base:main")}
+
+    def form_valid(self, form):
+        messages.success(self.request, "Senha alterada com sucesso")
+        return super().form_valid(form)
+
+
+class UserSetPasswordView(UserPassesTestMixin, FormView):
+    """A superuser sets any user's password, without the current one."""
+
+    form_class = AdminSetPasswordForm
+    template_name = "users/password_form.html"
+    success_url = reverse_lazy("base:user_list")
+
+    def test_func(self):
+        return self.request.user.is_superuser
+
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        self.target = get_object_or_404(User, pk=kwargs["pk"])
+
+    def get_form_kwargs(self):
+        return {**super().get_form_kwargs(), "user": self.target}
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(
+            title="Definir senha",
+            target=self.target,
+            cancel_url=reverse_lazy("base:user_edit", args=[self.target.pk]),
+            **kwargs,
+        )
+
+    def form_valid(self, form):
+        user = form.save()
+        if user == self.request.user:
+            update_session_auth_hash(self.request, user)  # don't log yourself out
+        messages.success(self.request, "Senha alterada com sucesso")
+        return super().form_valid(form)

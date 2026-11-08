@@ -261,6 +261,78 @@ class UserEditStatusTests(LoggedInTestCase):
         self.assertTrue(user.is_staff)
 
 
+class OwnPasswordChangeTests(LoggedInTestCase):
+    def setUp(self):
+        super().setUp()
+        self.user = User.objects.create_user(username="ana", password="Velha-senha1")
+        self.client.force_login(self.user)
+
+    def test_user_changes_own_password_and_stays_logged_in(self):
+        response = self.client.post(
+            reverse("base:password_change"),
+            {
+                "old_password": "Velha-senha1",
+                "new_password1": "Cad3rno-azul",
+                "new_password2": "Cad3rno-azul",
+            },
+        )
+        self.assertRedirects(response, reverse("base:main"))
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("Cad3rno-azul"))
+        self.assertEqual(self.client.get(reverse("base:main")).status_code, 200)
+
+    def test_wrong_current_password_is_rejected(self):
+        response = self.client.post(
+            reverse("base:password_change"),
+            {
+                "old_password": "errada",
+                "new_password1": "Cad3rno-azul",
+                "new_password2": "Cad3rno-azul",
+            },
+        )
+        self.assertIn("old_password", response.context["form"].errors)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("Velha-senha1"))
+
+
+class UserSetPasswordTests(LoggedInTestCase):
+    def setUp(self):
+        super().setUp()
+        self.target = User.objects.create_user(username="ana", password="Velha-senha1")
+        self.url = reverse("base:user_password", args=[self.target.pk])
+        self.data = {"new_password1": "Cad3rno-azul", "new_password2": "Cad3rno-azul"}
+
+    def test_superuser_sets_another_users_password(self):
+        self.client.force_login(
+            User.objects.create_user(username="admin", is_superuser=True)
+        )
+        response = self.client.post(self.url, self.data)
+        self.assertRedirects(response, reverse("base:user_list"))
+        self.client.logout()
+        self.assertTrue(self.client.login(username="ana", password="Cad3rno-azul"))
+
+    def test_superuser_setting_own_password_stays_logged_in(self):
+        admin = User.objects.create_user(username="admin", is_superuser=True)
+        self.client.force_login(admin)
+        self.client.post(reverse("base:user_password", args=[admin.pk]), self.data)
+        self.assertEqual(self.client.get(reverse("base:main")).status_code, 200)
+
+    def test_non_superuser_is_forbidden(self):
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+        self.assertEqual(self.client.post(self.url, self.data).status_code, 403)
+        self.target.refresh_from_db()
+        self.assertTrue(self.target.check_password("Velha-senha1"))
+
+    def test_new_passwords_must_match(self):
+        self.client.force_login(
+            User.objects.create_user(username="admin", is_superuser=True)
+        )
+        response = self.client.post(
+            self.url, {"new_password1": "Cad3rno-azul", "new_password2": "outra"}
+        )
+        self.assertIn("new_password2", response.context["form"].errors)
+
+
 class CpfValidationTests(TestCase):
     def test_cpf_must_have_eleven_digits(self):
         for cpf in ("1234", "123.456.789", "1234567890a"):

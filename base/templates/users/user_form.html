@@ -52,6 +52,11 @@
   <div class="form-actions">
     <p class="text-[13px] text-slate-500">Campos sem “opcional” são obrigatórios.</p>
     <div class="ml-auto flex gap-2">
+      {% if request.user.is_superuser and form.instance.pk %}
+      <a href="{% url 'base:user_password' form.instance.pk %}">
+        {% include 'components/button/button_cancel.html' with label='Definir senha' %}
+      </a>
+      {% endif %}
       <a href="{% url 'base:user_list' %}">
         {% include 'components/button/button_cancel.html' with label='Cancelar' %}
       </a>
