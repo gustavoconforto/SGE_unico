@@ -94,7 +94,7 @@ if DEBUG:
         }
     }
 else:
-    tmpPostgres = urlparse(os.getenv("DATABASE_URL"))
+    tmpPostgres = urlparse(os.environ["DATABASE_URL"])
 
     DATABASES = {
         "default": {
