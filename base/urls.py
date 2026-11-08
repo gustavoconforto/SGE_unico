@@ -1,6 +1,8 @@
 from django.urls import path
 
 from base.views import (
+    OwnPasswordChangeView,
+    UserSetPasswordView,
     group_add_view,
     group_delete_view,
     group_edit_view,
@@ -24,6 +26,16 @@ urlpatterns = [
     path("users/add/", user_add_view, name="user_add"),
     path("users/edit/<int:pk>/", user_edit_view, name="user_edit"),
     path("users/delete/<int:pk>/", user_delete_view, name="user_delete"),
+    path(
+        "users/password/<int:pk>/",
+        UserSetPasswordView.as_view(),
+        name="user_password",
+    ),
+    path(
+        "password/change/",
+        OwnPasswordChangeView.as_view(),
+        name="password_change",
+    ),
     path("groups/", group_list_view, name="group_list"),
     path("groups/add/", group_add_view, name="group_add"),
     path("groups/edit/<int:pk>/", group_edit_view, name="group_edit"),
