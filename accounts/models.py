@@ -48,7 +48,7 @@ class Supplier(TimeStampedModel):
         "CPF/CNPJ", max_length=14, blank=True, help_text="Somente números"
     )
     phone = models.CharField("Telefone", max_length=20, blank=True)
-    email = models.EmailField("Email", blank=True)
+    email = models.EmailField("E-mail", blank=True)
     notes = models.TextField("Observações", blank=True)
 
     def __str__(self):

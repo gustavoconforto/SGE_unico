@@ -20,7 +20,7 @@
   <section class="form-section">
     <div class="form-section-intro">
       <h2>Cobrança</h2>
-      <p>A conta e as parcelas são geradas ao salvar, com vencimento no dia escolhido.</p>
+      <p>As parcelas vencem no dia escolhido; o resumo abaixo mostra os valores.</p>
     </div>
     <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
       {% include 'components/form/field.html' with field=form.due_day %}
@@ -55,10 +55,22 @@
     </div>
   </section>
 
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Resumo da cobrança</h2>
+      <p>Confira os valores: ao salvar, a conta e estas parcelas são criadas.</p>
+    </div>
+    <div id="enrollment-values-preview" class="min-w-0 flex-[999_1_26rem]" aria-live="polite"
+         hx-get="{% url 'enrollments:enrollment_values_preview' %}"
+         hx-include="closest form"
+         hx-trigger="load, change from:closest form, input changed delay:400ms from:closest form">
+    </div>
+  </section>
+
   <div class="form-actions">
     <p class="text-[13px] text-slate-500">Campos sem “opcional” são obrigatórios.</p>
     <div class="ml-auto flex gap-2">
-      <a href="{% url 'classes:class_list' %}">
+      <a href="{% url 'enrollments:enrollment_list' %}">
         {% include 'components/button/button_cancel.html' with label='Cancelar' %}
       </a>
       {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar matrícula' %}

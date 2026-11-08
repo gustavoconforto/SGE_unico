@@ -4,9 +4,13 @@
         <label for="{{ field.id_for_label }}" class="ui-label cursor-pointer">{{ field.label }}</label>
     </span>
     {% if field.help_text %}
-    <p class="ui-help">{{ field.help_text }}</p>
+    <p id="{{ field.auto_id }}_helptext" class="ui-help">{{ field.help_text }}</p>
     {% endif %}
-    {% for error in field.errors %}
-    <p class="ui-error"><span class="material-symbols-outlined text-[16px]">error</span>{{ error }}</p>
-    {% endfor %}
+    {% if field.errors %}
+    <div id="{{ field.auto_id }}_error">
+        {% for error in field.errors %}
+        <p class="ui-error"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">error</span>{{ error }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
 </div>

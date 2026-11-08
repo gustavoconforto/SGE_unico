@@ -6,19 +6,19 @@ delete_title ("Deletar fornecedor?"), name (the record), detail (optional,
 shown after the name).
 {% endcomment %}
 <button type="button" class="ui-icon-btn" popovertarget="row-menu-{{ menu_id }}" aria-label="Ações de {{ name }}">
-  <span class="material-symbols-outlined">more_horiz</span>
+  <span class="material-symbols-outlined" aria-hidden="true">more_horiz</span>
 </button>
 <div id="row-menu-{{ menu_id }}" popover data-row-menu
      class="m-0 w-44 rounded-lg border border-slate-200 bg-white p-1 text-left text-sm shadow-lg shadow-slate-900/10">
   {% if edit_url %}
   <a href="{{ edit_url }}" class="nav-link">
-    <span class="material-symbols-outlined">edit</span>Editar
+    <span class="material-symbols-outlined" aria-hidden="true">edit</span>Editar
   </a>
   {% endif %}
   {% if delete_url %}
   <button type="button" class="nav-link w-full cursor-pointer !text-red-700"
           onclick="this.closest('[popover]').hidePopover(); document.getElementById('row-delete-{{ menu_id }}').showModal()">
-    <span class="material-symbols-outlined !text-red-700">delete</span>Deletar
+    <span class="material-symbols-outlined !text-red-700" aria-hidden="true">delete</span>Deletar
   </button>
   {% endif %}
 </div>

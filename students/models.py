@@ -49,7 +49,7 @@ class Guardian(Person):
 
 class Student(Person):
     social_name = models.CharField("Nome social", max_length=200, blank=True)
-    use_social_name = models.BooleanField("Usar Nome social", default=False)
+    use_social_name = models.BooleanField("Usar nome social", default=False)
     registration = models.CharField(
         "Matrícula",
         max_length=20,

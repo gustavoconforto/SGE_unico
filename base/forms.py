@@ -12,7 +12,6 @@ class GroupForm(forms.ModelForm):
             "name": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "permissions": forms.SelectMultiple(
@@ -33,19 +32,16 @@ class PermissionForm(forms.ModelForm):
             "name": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "content_type": forms.Select(
                 attrs={
                     "class": "select select-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "codename": forms.TextInput(
                 attrs={
                     "class": "input input-neutral  w-full",
-                    "placeholder": "Digite...",
                 }
             ),
         }
@@ -83,25 +79,21 @@ class UserForm(UserStatusFieldsMixin, forms.ModelForm):
             "first_name": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "last_name": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "username": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "email": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
-                    "placeholder": "Digite...",
                 }
             ),
             "is_staff": forms.NullBooleanSelect(

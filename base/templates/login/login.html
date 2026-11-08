@@ -39,7 +39,7 @@
     </div>
 
     <!-- Login panel -->
-    <div class="flex flex-1 items-center justify-center bg-red-600 p-8">
+    <div class="flex flex-1 items-center justify-center bg-red-700 p-8">
         <div class="w-full max-w-md">
             <div class="mb-8 text-center md:hidden">
                 <span class="text-4xl font-bold tracking-tight text-white">ÚNICO</span>
@@ -61,7 +61,7 @@
                                name="{{ form.username.html_name }}"
                                id="{{ form.username.id_for_label }}"
                                value="{{ form.username.value|default_if_none:'' }}"
-                               class="input h-12 w-full rounded-lg border-2 border-white bg-white text-black placeholder-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-white"
+                               class="input h-12 w-full rounded-lg border-2 border-white bg-white text-black placeholder-slate-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-white"
                                placeholder="seu.usuario"
                                autocomplete="username"
                                autofocus
@@ -78,7 +78,7 @@
                         <input type="password"
                                name="{{ form.password.html_name }}"
                                id="{{ form.password.id_for_label }}"
-                               class="input h-12 w-full rounded-lg border-2 border-white bg-white text-black placeholder-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-white"
+                               class="input h-12 w-full rounded-lg border-2 border-white bg-white text-black placeholder-slate-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-white"
                                placeholder="senha"
                                autocomplete="current-password"
                                required>

@@ -5,17 +5,17 @@
          class="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-white py-3 pr-2 pl-3.5 text-sm shadow-lg shadow-slate-900/10"
          {% if message.level_tag != 'alert-danger' %}data-autohide{% endif %}>
       {% if message.level_tag == 'alert-success' %}
-        <span class="material-symbols-outlined text-[22px] text-green-700">check_circle</span>
+        <span class="material-symbols-outlined text-[22px] text-green-700" aria-hidden="true">check_circle</span>
       {% elif message.level_tag == 'alert-danger' %}
-        <span class="material-symbols-outlined text-[22px] text-red-700">error</span>
+        <span class="material-symbols-outlined text-[22px] text-red-700" aria-hidden="true">error</span>
       {% elif message.level_tag == 'alert-warning' %}
-        <span class="material-symbols-outlined text-[22px] text-amber-700">info</span>
+        <span class="material-symbols-outlined text-[22px] text-amber-700" aria-hidden="true">info</span>
       {% else %}
-        <span class="material-symbols-outlined text-[22px] text-slate-500">info</span>
+        <span class="material-symbols-outlined text-[22px] text-slate-500" aria-hidden="true">info</span>
       {% endif %}
       <p class="flex-1 pt-0.5 font-medium text-slate-900">{{ message }}</p>
       <button type="button" class="ui-icon-btn size-7" aria-label="Fechar aviso" data-toast-close>
-        <span class="material-symbols-outlined text-[18px]">close</span>
+        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
       </button>
     </div>
   {% endfor %}

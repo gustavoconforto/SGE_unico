@@ -10,7 +10,7 @@
     <div class="flex flex-wrap items-end justify-between gap-4">
       {% include 'components/page/heading.html' with title='Editar '|add:noun %}
       <a href="{% url urls.print object.pk %}" target="_blank" rel="noopener" class="ui-btn ui-btn-secondary">
-        <span class="material-symbols-outlined">print</span>Imprimir recibo
+        <span class="material-symbols-outlined" aria-hidden="true">print</span>Imprimir recibo
       </a>
     </div>
 

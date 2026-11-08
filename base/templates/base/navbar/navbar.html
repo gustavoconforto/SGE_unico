@@ -1,10 +1,10 @@
 <header class="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 lg:px-8">
-    <button type="button" id="sidebar-toggle" class="ui-icon-btn size-9" aria-label="Alternar menu">
-        <span class="material-symbols-outlined">dock_to_right</span>
+    <button type="button" id="sidebar-toggle" class="ui-icon-btn size-9" aria-label="Alternar menu" aria-controls="sidebar">
+        <span class="material-symbols-outlined" aria-hidden="true">dock_to_right</span>
     </button>
     <form method="get" action="{% url 'students:student_list' %}" role="search" class="relative w-full max-w-md">
         <label for="global-student-search" class="sr-only">Buscar aluno</label>
-        <span class="material-symbols-outlined pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-slate-400">search</span>
+        <span class="material-symbols-outlined pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-slate-400" aria-hidden="true">search</span>
         <input id="global-student-search" type="search" name="q" autocomplete="off"
                placeholder="Buscar aluno por nome, matrícula ou CPF"
                class="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pr-14 pl-10 text-sm text-slate-900 placeholder:text-slate-500 focus:border-slate-700 focus:bg-white focus:ring-3 focus:ring-slate-700/15 focus:outline-none">

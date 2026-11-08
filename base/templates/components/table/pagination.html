@@ -9,7 +9,7 @@
            hx-get="{{ request.path }}{% querystring page=page_obj.previous_page_number %}"
            hx-target="#search-results" hx-push-url="true"
            class="ui-icon-btn" aria-label="Página anterior">
-          <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">chevron_left</span>
         </a>
       {% endif %}
       {% for num in page_obj.paginator.page_range %}
@@ -29,7 +29,7 @@
            hx-get="{{ request.path }}{% querystring page=page_obj.next_page_number %}"
            hx-target="#search-results" hx-push-url="true"
            class="ui-icon-btn" aria-label="Próxima página">
-          <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">chevron_right</span>
         </a>
       {% endif %}
     </div>

@@ -19,6 +19,7 @@ from lessons.models import Lecture, TimetableSlot
 from pathways.models import PathwayAttendance, PathwayEnrollment, PathwayGrade
 from students.models import Student
 
+from .management.commands.full_seed import DEPARTMENT_SUBJECTS, WEEKLY_CLASSES
 from .testing import LoggedInTestCase
 
 
@@ -120,7 +121,8 @@ class FullSeedTests(TestCase):
             ).exists()
         )
         # Every class gets all of its weekly periods, and a diary from them.
-        self.assertEqual(TimetableSlot.objects.count(), 31 * 27)
+        weekly = sum(int(WEEKLY_CLASSES[s]) for s in DEPARTMENT_SUBJECTS.values())
+        self.assertEqual(TimetableSlot.objects.count(), 31 * weekly)
         self.assertTrue(Lecture.objects.exists())
         self.assertTrue(PathwayEnrollment.objects.exists())
         self.assertTrue(PathwayAttendance.objects.exists())

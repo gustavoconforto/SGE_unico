@@ -4,14 +4,21 @@
         const overlay = document.getElementById('sidebar-overlay');
         const desktop = window.matchMedia('(min-width: 1024px)');
 
+        const toggle = document.getElementById('sidebar-toggle');
+
+        // Off-canvas below lg: a closed drawer is inert so Tab can't reach its hidden links.
         function setMobileOpen(open) {
             sidebar.classList.toggle('-translate-x-full', !open);
             overlay.classList.toggle('hidden', !open);
+            sidebar.inert = !open && !desktop.matches;
+            toggle.setAttribute('aria-expanded', desktop.matches ? String(!sidebar.classList.contains('lg:hidden')) : String(open));
+            if (open) sidebar.querySelector('[data-sidebar-close]').focus();
         }
 
-        document.getElementById('sidebar-toggle').addEventListener('click', function () {
+        toggle.addEventListener('click', function () {
             if (desktop.matches) {
                 sidebar.classList.toggle('lg:hidden');
+                toggle.setAttribute('aria-expanded', String(!sidebar.classList.contains('lg:hidden')));
             } else {
                 setMobileOpen(sidebar.classList.contains('-translate-x-full'));
             }
@@ -19,8 +26,11 @@
 
         overlay.addEventListener('click', () => setMobileOpen(false));
         document.querySelectorAll('[data-sidebar-close]').forEach(el => el.addEventListener('click', () => setMobileOpen(false)));
-        document.addEventListener('keydown', e => { if (e.key === 'Escape') setMobileOpen(false); });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && !desktop.matches && !sidebar.inert) { setMobileOpen(false); toggle.focus(); }
+        });
         desktop.addEventListener('change', () => setMobileOpen(false));
+        setMobileOpen(false);
 
         // Open every section that holds the current page.
         sidebar.querySelectorAll('.nav-link.active').forEach(link => {
