@@ -724,3 +724,31 @@ class BillingViewTests(BillingTestMixin, LoggedInTestCase):
         ):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
+
+
+class BillingListQueryTests(LoggedInTestCase):
+    """The lists aggregate per file; loading each file's CNAB text made them slow."""
+
+    def test_remittance_list_skips_file_content(self):
+        Remittance.objects.create(number=1, content="0" * 400)
+        response = self.assertQueriesDontGrow(
+            reverse("billing:remittance_list"),
+            lambda: [
+                Remittance.objects.create(number=n, content="0" * 400) for n in (2, 3)
+            ],
+        )
+        for remittance in response.context["remittances"]:
+            self.assertIn("content", remittance.get_deferred_fields())
+
+    def test_return_file_list_skips_file_content(self):
+        def add(n):
+            ReturnFile.objects.create(
+                name=f"r{n}.ret", sha256=f"{n:064}", content="0" * 400
+            )
+
+        add(1)
+        response = self.assertQueriesDontGrow(
+            reverse("billing:return_file_list"), lambda: [add(n) for n in (2, 3)]
+        )
+        for return_file in response.context["return_files"]:
+            self.assertIn("content", return_file.get_deferred_fields())

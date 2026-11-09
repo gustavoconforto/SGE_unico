@@ -321,7 +321,7 @@ class StudentDelayListView(HtmxFilterMixin, ListView):
         return (
             super()
             .get_queryset()
-            .select_related("enrollment__student", "enrollment__school_class")
+            .select_related("enrollment__student", "enrollment__school_class__year")
         )
 
 
@@ -365,7 +365,7 @@ class BathroomPermissionListView(HtmxSearchMixin, ListView):
         return (
             super()
             .get_queryset()
-            .select_related("enrollment__student", "enrollment__school_class")
+            .select_related("enrollment__student", "enrollment__school_class__year")
         )
 
 

@@ -71,7 +71,7 @@ class RemittanceListView(HtmxSearchMixin, ListView):
         slips_count=Count("slips"),
         total=Sum("slips__amount"),
         write_offs_count=_write_off_count(),
-    )
+    ).defer("content")  # the CNAB text is large and grouped by; the list never shows it
     template_name = "remittances/remittance_list.html"
     partial_template_name = "remittances/partials/remittance_table.html"
     context_object_name = "remittances"
@@ -201,7 +201,7 @@ class ReturnFileListView(HtmxSearchMixin, ListView):
         events_count=Count("events"),
         errors_count=Count("events", filter=Q(events__status=EventStatus.ERROR)),
         paid_total=Sum("events__payment__amount"),
-    )
+    ).defer("content")  # the CNAB text is large and grouped by; the list never shows it
     template_name = "return_files/return_file_list.html"
     partial_template_name = "return_files/partials/return_file_table.html"
     context_object_name = "return_files"

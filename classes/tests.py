@@ -107,3 +107,19 @@ class ClassDetailViewTests(LoggedInTestCase):
             response["HX-Push-Url"],
             f"{reverse('classes:class_detail')}?school_year={self.school_year.pk}",
         )
+
+
+class ClassListQueryTests(LoggedInTestCase):
+    def test_list_has_no_n_plus_one(self):
+        year = SchoolYear.objects.create(
+            begins=date(2027, 1, 10), ends=date(2027, 12, 15)
+        )
+        program = Program.objects.create(name="Ensino Médio")
+        Class.objects.create(program=program, year=year, name="A")
+
+        def add_rows():
+            for name in "BCD":
+                Class.objects.create(program=program, year=year, name=name)
+
+        response = self.assertQueriesDontGrow(reverse("classes:class_list"), add_rows)
+        self.assertContains(response, "Ensino Médio")
