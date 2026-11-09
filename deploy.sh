@@ -2,6 +2,7 @@
 {
 set -euo pipefail
 cd /srv/sge
+export PATH="$HOME/.local/bin:$PATH"  # non-interactive SSH skips the profile that adds uv
 
 git pull --ff-only
 uv sync --locked
