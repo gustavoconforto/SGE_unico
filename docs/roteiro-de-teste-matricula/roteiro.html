@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Roteiro de teste: da matrícula à baixa da 1ª parcela</title>
+<style>
+@page {
+  size: A4; margin: 16mm 18mm 20mm;
+  @bottom-left { content: "Único Educacional · Roteiro de teste"; font: 9pt Helvetica, Arial, sans-serif; color: #64748b; }
+  @bottom-right { content: "Página " counter(page) " de " counter(pages); font: 9pt Helvetica, Arial, sans-serif; color: #64748b; }
+}
+body { font: 10.5pt/1.5 Helvetica, Arial, sans-serif; color: #1e293b; }
+h1 { font-size: 26pt; margin: 0 0 4pt; color: #0f172a; }
+.subtitle { font-size: 12pt; color: #475569; margin: 0 0 14pt; }
+h2 { font-size: 16pt; color: #0f172a; border-bottom: 1.5pt solid #dc2626; padding-bottom: 6pt; margin: 0 0 10pt; page-break-before: always; }
+h3 { font-size: 11.5pt; color: #0f172a; margin: 14pt 0 5pt; page-break-after: avoid; }
+p { margin: 0 0 7pt; }
+ol { margin: 6pt 0 10pt; padding-left: 18pt; } ol li { margin-bottom: 3pt; }
+ul { margin: 3pt 0 0; padding-left: 14pt; } ul li { margin-bottom: 3pt; }
+.steps { display: flex; gap: 6pt; margin-bottom: 14pt; }
+.steps div { flex: 1; background: #f1f5f9; border-radius: 4pt; padding: 7pt 4pt; text-align: center; font-size: 9.5pt; }
+.steps b { display: block; color: #dc2626; font-size: 8.5pt; }
+table { width: 100%; border-collapse: collapse; margin: 4pt 0 8pt; font-size: 9.5pt; }
+th { background: #f1f5f9; text-align: left; padding: 5pt 7pt; border: 0.75pt solid #cbd5e1; }
+td { padding: 4pt 7pt; border: 0.75pt solid #e2e8f0; vertical-align: top; }
+tr { page-break-inside: avoid; }
+td.c, th.c { text-align: center; width: 34pt; }
+.req { color: #b91c1c; font-weight: bold; }
+.menu { background: #f1f5f9; border-left: 3pt solid #0f172a; padding: 6pt 10pt; font-weight: bold; margin: 8pt 0; }
+.ok { background: #f0fdf4; border-left: 3pt solid #16a34a; padding: 7pt 10pt; margin: 10pt 0; page-break-inside: avoid; }
+.note { background: #fffbeb; border-left: 3pt solid #d97706; padding: 7pt 10pt; margin: 10pt 0; page-break-inside: avoid; }
+figure { margin: 8pt 0 12pt; text-align: center; page-break-inside: avoid; }
+figure img { max-width: 100%; border: 0.75pt solid #cbd5e1; border-radius: 4pt; }
+figure img.tall { max-height: 205mm; }
+figcaption { font-size: 8.5pt; color: #64748b; margin-top: 4pt; }
+.small { font-size: 9pt; color: #475569; }
+.sheet td { height: 14pt; }
+</style>
+</head>
+<body>
+
+<h1>Roteiro de teste</h1>
+<p class="subtitle">Do cadastro do responsável à baixa da 1ª parcela da matrícula</p>
+<div class="steps">
+  <div><b>ETAPA 1</b>Cadastrar responsável</div>
+  <div><b>ETAPA 2</b>Cadastrar aluno</div>
+  <div><b>ETAPA 3</b>Criar matrícula</div>
+  <div><b>ETAPA 4</b>Dar baixa na 1ª parcela</div>
+</div>
+
+<h3>Para que serve este roteiro</h3>
+<p>Ele conduz você pelo fluxo completo de entrada de um aluno na escola. Siga as etapas <b>na ordem</b>, porque cada uma depende da anterior: o aluno precisa do responsável, a matrícula precisa do aluno e a parcela só existe depois da matrícula.</p>
+<p>Ao final de cada etapa, confira o quadro verde <b>Resultado esperado</b> e anote o resultado na folha da última página. O tempo estimado é de 20 a 30 minutos.</p>
+
+<h3>Antes de começar</h3>
+<table>
+  <tr><th>Item</th><th>O que você precisa</th></tr>
+  <tr><td>Endereço do sistema</td><td>______________________________________</td></tr>
+  <tr><td>Usuário e senha</td><td>Fornecidos pelo administrador do sistema</td></tr>
+  <tr><td>Navegador</td><td>Google Chrome atualizado, com a janela aberta em tamanho normal</td></tr>
+</table>
+
+<div class="note"><b>Como ler este roteiro</b>
+  <ul>
+    <li>Os <b>contornos vermelhos</b> nas imagens mostram onde clicar ou o que conferir.</li>
+    <li>Nas tabelas, <span class="req">Sim</span> indica campo obrigatório. Na tela, é todo campo que não traz a palavra “(opcional)”.</li>
+    <li>Os dados são fictícios. Use exatamente os valores indicados, para que o resultado seja igual ao esperado.</li>
+  </ul>
+</div>
+
+<h3>Conferência inicial: o sistema já precisa ter</h3>
+<p>Estes cadastros são a base da matrícula. Apenas confira se existem; não é preciso criar nada. Se algum estiver vazio, avise o administrador antes de continuar.</p>
+<table>
+  <tr><th>Onde olhar no menu</th><th>O que deve existir</th></tr>
+  <tr><td>Configuração de matrícula › Ano escolar</td><td>O ano em curso</td></tr>
+  <tr><td>Configuração de matrícula › Cursos oferecidos</td><td>Ensino Médio</td></tr>
+  <tr><td>Configuração de matrícula › Contratos</td><td>Ensino Médio - 1ª Série, do ano em curso</td></tr>
+  <tr><td>Acadêmico › Edição › Turmas</td><td>Ao menos uma turma de 1ª série do ano em curso</td></tr>
+</table>
+
+<h2>Acesso ao sistema</h2>
+<ol>
+  <li>Abra o endereço do sistema no Chrome.</li>
+  <li>Preencha <b>Usuário</b> e <b>Senha</b>.</li>
+  <li>Clique em <b>Entrar</b>.</li>
+</ol>
+<figure><img src="img/p-000.png" style="width:72%"><figcaption>Tela de login</figcaption></figure>
+<div class="ok"><b>Resultado esperado:</b> a tela inicial abre, com o menu lateral à esquerda.</div>
+<div class="note"><b>Como usar o menu lateral:</b> clique no nome de uma seção (por exemplo, <b>Acadêmico</b>) para abrir suas opções. Clique de novo para fechá-la. Neste roteiro, o símbolo › indica cada clique no menu.</div>
+
+<h2>Etapa 1: Cadastrar o responsável</h2>
+<p>O responsável é cadastrado primeiro porque, na etapa seguinte, ele é escolhido em uma lista dentro do cadastro do aluno.</p>
+<div class="menu">Menu: Acadêmico › Responsáveis</div>
+<ol>
+  <li>No menu lateral, clique em <b>Acadêmico</b> e depois em <b>Responsáveis</b>.</li>
+  <li>No canto superior direito, clique em <b>Novo responsável</b>.</li>
+  <li>Preencha o formulário com os dados da tabela abaixo.</li>
+  <li>Clique em <b>Salvar responsável</b>, no canto inferior direito.</li>
+</ol>
+<figure><img src="img/p-001.png"><figcaption>Lista de responsáveis: menu e botão “Novo responsável”</figcaption></figure>
+
+<h3>O que preencher</h3>
+<table>
+  <tr><th>Seção</th><th>Campo</th><th>Valor</th><th class="c">Obrig.</th></tr>
+  <tr><td>Identificação</td><td>Nome civil</td><td>Maria Teste da Silva</td><td class="c req">Sim</td></tr>
+  <tr><td></td><td>Sexo</td><td>Feminino</td><td class="c">Não</td></tr>
+  <tr><td></td><td>Estado civil</td><td>Casado(a)</td><td class="c">Não</td></tr>
+  <tr><td>Documentos</td><td>CPF</td><td>52998224725 (só números)</td><td class="c req">Sim</td></tr>
+  <tr><td></td><td>RG</td><td>123456789</td><td class="c req">Sim</td></tr>
+  <tr><td></td><td>Órgão expedidor</td><td>SSP-SP</td><td class="c req">Sim</td></tr>
+  <tr><td>Nascimento</td><td>Data de nascimento</td><td>15/03/1980</td><td class="c">Não</td></tr>
+  <tr><td></td><td>Nacionalidade</td><td>Brasileira</td><td class="c">Não</td></tr>
+  <tr><td></td><td>Naturalidade</td><td>São Paulo - SP</td><td class="c">Não</td></tr>
+  <tr><td>Contato</td><td>Telefone</td><td>(11) 3333-4444</td><td class="c">Não</td></tr>
+  <tr><td></td><td>Celular</td><td>(11) 98888-7777</td><td class="c">Não</td></tr>
+  <tr><td></td><td>E-mail</td><td>maria.teste@example.com</td><td class="c">Não</td></tr>
+  <tr><td>Endereço</td><td>Endereço</td><td>Rua das Flores, 100</td><td class="c">Não</td></tr>
+  <tr><td></td><td>Bairro</td><td>Centro</td><td class="c">Não</td></tr>
+  <tr><td></td><td>Cidade</td><td>São Paulo</td><td class="c">Não</td></tr>
+  <tr><td></td><td>UF</td><td>SP</td><td class="c">Não</td></tr>
+  <tr><td></td><td>CEP</td><td>01001000 (só números)</td><td class="c">Não</td></tr>
+</table>
+<figure><img class="tall" src="img/p-002.png"><figcaption>Formulário preenchido, com o botão “Salvar responsável” destacado</figcaption></figure>
+<div class="ok"><b>Resultado esperado</b>
+  <ul>
+    <li>Aparece a mensagem <b>“Registro cadastrado com sucesso”</b> no canto inferior direito.</li>
+    <li>O sistema volta para a lista de responsáveis.</li>
+    <li>Ao digitar <b>Maria Teste</b> no campo de pesquisa da lista, o nome aparece.</li>
+  </ul>
+</div>
+<figure><img src="img/p-003.png"><figcaption>Responsável encontrado na lista</figcaption></figure>
+
+<h3>Validação extra (opcional)</h3>
+<p>Em <b>Novo responsável</b>, digite o CPF com pontos (<b>529.982.247-25</b>) e tente salvar. O campo aceita só 11 caracteres, e o sistema deve mostrar <b>“O CPF deve ter 11 dígitos.”</b> abaixo do campo, já com o cursor nele. Clique em <b>Cancelar</b> depois de conferir.</p>
+
+<h2>Etapa 2: Cadastrar o aluno</h2>
+<p>Aqui o aluno é vinculado à responsável. O ponto mais importante é ligar <b>Responsável financeiro</b>: sem isso, a matrícula será recusada na etapa 3.</p>
+<div class="menu">Menu: Acadêmico › Alunos</div>
+<ol>
+  <li>No menu lateral, clique em <b>Acadêmico</b> e depois em <b>Alunos</b>.</li>
+  <li>Clique em <b>Novo aluno</b>.</li>
+  <li>Preencha o formulário com os dados da tabela abaixo.</li>
+  <li>Na seção <b>Responsáveis</b>, digite <b>Maria Teste</b> no campo <b>Filtrar por nome</b>, logo acima da lista Responsável: a responsável é escolhida sozinha. Depois escolha o parentesco e ligue as quatro chaves.</li>
+  <li>Clique em <b>Salvar aluno</b>.</li>
+</ol>
+<figure><img src="img/p-004.png"><figcaption>Lista de alunos: menu e botão “Novo aluno”</figcaption></figure>
+
+<h3>O que preencher</h3>
+<table>
+  <tr><th>Seção</th><th>Campo</th><th>Valor</th><th class="c">Obrig.</th></tr>
+  <tr><td>Foto</td><td>Enviar foto</td><td>Deixe em branco</td><td class="c">Não</td></tr>
+  <tr><td>Identificação</td><td>Nome civil</td><td>João Teste da Silva</td><td class="c req">Sim</td></tr>
+  <tr><td></td><td>Usar nome social</td><td>Deixe desligado (o campo Nome social só aparece com a chave ligada)</td><td class="c">Não</td></tr>
+  <tr><td></td><td>Sexo</td><td>Masculino</td><td class="c">Não</td></tr>
+  <tr><td>Documentos</td><td>CPF</td><td>11144477735 (só números)</td><td class="c req">Sim</td></tr>
+  <tr><td></td><td>RG</td><td>987654321</td><td class="c req">Sim</td></tr>
+  <tr><td></td><td>Órgão expedidor</td><td>SSP-SP</td><td class="c req">Sim</td></tr>
+  <tr><td>Nascimento</td><td>Data de nascimento</td><td>20/05/2011</td><td class="c">Não</td></tr>
+  <tr><td></td><td>Nacionalidade</td><td>Brasileira</td><td class="c">Não</td></tr>
+  <tr><td></td><td>Naturalidade</td><td>São Paulo - SP</td><td class="c">Não</td></tr>
+  <tr><td>Responsáveis</td><td>Responsável</td><td>Maria Teste da Silva (digite “Maria Teste” em Filtrar por nome)</td><td class="c req">Sim</td></tr>
+  <tr><td></td><td>Parentesco</td><td>Mãe</td><td class="c req">Sim</td></tr>
+  <tr><td></td><td><b>Responsável financeiro</b></td><td><b>Ligado</b> (necessário para matricular)</td><td class="c req">Sim*</td></tr>
+  <tr><td></td><td>Contato principal</td><td>Ligado</td><td class="c">Não</td></tr>
+  <tr><td></td><td>Mora com o aluno(a)</td><td>Ligado</td><td class="c">Não</td></tr>
+  <tr><td></td><td>Autorizado a buscar o aluno</td><td>Ligado</td><td class="c">Não</td></tr>
+  <tr><td>Contato</td><td>Celular</td><td>(11) 97777-6666</td><td class="c">Não</td></tr>
+  <tr><td></td><td>E-mail</td><td>joao.teste@example.com</td><td class="c">Não</td></tr>
+  <tr><td>Endereço</td><td>Endereço</td><td>Rua das Flores, 100</td><td class="c">Não</td></tr>
+  <tr><td></td><td>Bairro</td><td>Centro</td><td class="c">Não</td></tr>
+  <tr><td></td><td>Cidade</td><td>São Paulo</td><td class="c">Não</td></tr>
+  <tr><td></td><td>UF</td><td>SP</td><td class="c">Não</td></tr>
+  <tr><td></td><td>CEP</td><td>01001000 (só números)</td><td class="c">Não</td></tr>
+</table>
+<p class="small">* O cadastro do aluno salva sem esta chave, mas a matrícula será recusada. Para vincular a responsável, os campos Responsável e Parentesco devem ser preenchidos juntos. Se clicar em <b>Remover</b> por engano, clique em <b>Desfazer</b>: nada é apagado antes de salvar.</p>
+<figure><img class="tall" src="img/p-005.png"><figcaption>Formulário preenchido: as quatro chaves ficam ligadas na seção “Responsáveis”</figcaption></figure>
+<div class="ok"><b>Resultado esperado</b>
+  <ul>
+    <li>Aparece a mensagem <b>“Registro cadastrado com sucesso”</b>.</li>
+    <li>O sistema volta para a lista de alunos.</li>
+    <li>Ao pesquisar <b>João Teste</b>, o aluno aparece com um <b>número de matrícula gerado automaticamente</b>: o ano seguido de 5 dígitos. Anote esse número.</li>
+  </ul>
+</div>
+<figure><img src="img/p-006.png"><figcaption>Aluno encontrado na lista, com a matrícula gerada</figcaption></figure>
+
+<h2>Etapa 3: Criar a matrícula</h2>
+<p>Antes de salvar, a seção <b>Resumo da cobrança</b> mostra o valor do contrato e as parcelas que serão geradas. Ao salvar, o sistema cria sozinho a conta a receber, essas parcelas e a lista de documentos. Nada disso é digitado.</p>
+<div class="menu">Menu: Acadêmico › Matrículas</div>
+<ol>
+  <li>No menu lateral, clique em <b>Acadêmico</b> e depois em <b>Matrículas</b>.</li>
+  <li>Clique em <b>Nova matrícula</b>.</li>
+  <li>Em <b>Aluno</b>, digite <b>João Teste</b> no campo <b>Filtrar por nome</b>, acima da lista: o aluno é escolhido sozinho. Depois escolha o <b>Tipo de contrato</b>.</li>
+  <li>Aguarde um instante: a lista <b>Turma</b> é atualizada conforme o contrato escolhido. Só então escolha a turma.</li>
+  <li>Confira a <b>Situação</b> e o <b>Dia de vencimento</b>, e deixe os descontos em branco.</li>
+  <li>Desça até <b>Resumo da cobrança</b> e confira os valores e vencimentos com a tabela “Como conferir as parcelas”, mais abaixo.</li>
+  <li>Clique em <b>Salvar matrícula</b>.</li>
+</ol>
+<figure><img src="img/p-007.png"><figcaption>Lista de matrículas: menu e botão “Nova matrícula”</figcaption></figure>
+
+<h3 style="page-break-before: always">O que preencher</h3>
+<table>
+  <tr><th>Seção</th><th>Campo</th><th>Valor</th><th class="c">Obrig.</th></tr>
+  <tr><td>Matrícula</td><td>Aluno</td><td>João Teste da Silva (digite “João Teste” em Filtrar por nome)</td><td class="c req">Sim</td></tr>
+  <tr><td></td><td>Tipo de contrato</td><td>Ensino Médio - 1ª Série - (ano em curso)</td><td class="c req">Sim</td></tr>
+  <tr><td></td><td>Turma</td><td>Primeira turma da lista. Entre parênteses: alunos ativos / vagas</td><td class="c">Não</td></tr>
+  <tr><td></td><td>Situação</td><td>Ativa (já vem preenchida)</td><td class="c req">Sim</td></tr>
+  <tr><td>Cobrança</td><td>Dia de vencimento</td><td>10 (já vem preenchido; aceita de 1 a 28)</td><td class="c req">Sim</td></tr>
+  <tr><td>Descontos da 1ª parcela</td><td>Todos os campos</td><td>Deixe em branco</td><td class="c">Não</td></tr>
+  <tr><td>Descontos das demais parcelas</td><td>Todos os campos</td><td>Deixe em branco</td><td class="c">Não</td></tr>
+  <tr><td>Resumo da cobrança</td><td>Nada a preencher</td><td>Só conferir: atualiza sozinho a cada campo alterado</td><td class="c">—</td></tr>
+</table>
+<figure><img class="tall" src="img/p-008.png" style="width:80%"><figcaption>Formulário da nova matrícula preenchido (parte de cima)</figcaption></figure>
+<figure><img src="img/new-enrollment.png"><figcaption>Resumo da cobrança, antes de salvar (matrícula em 09/11/2026, contrato de R$ 52.800,00)</figcaption></figure>
+<div class="ok"><b>Resultado esperado</b>
+  <ul>
+    <li>Antes de salvar, o <b>Resumo da cobrança</b> mostra o valor do contrato, os descontos (R$ 0,00), o valor a receber e a lista de parcelas.</li>
+    <li>Ao salvar, aparece a mensagem <b>“Registro cadastrado com sucesso”</b>.</li>
+    <li>O sistema abre a tela <b>Editar matrícula</b>, com Data da matrícula igual a hoje e Valor bruto preenchido.</li>
+    <li>Descendo a tela, a seção <b>Parcelas</b> mostra todas as parcelas <b>Em aberto</b>, com os mesmos valores e vencimentos do resumo.</li>
+    <li>A seção <b>Documentos</b> lista o nome de cada documento, com uma caixa de marcar ao lado.</li>
+    <li>A seção <b>Contas a receber</b> mostra a conta “Contrato João Teste da Silva…”, categoria Mensalidade, com a responsável Maria.</li>
+  </ul>
+</div>
+<figure><img src="img/p-009.png"><figcaption>Parcelas geradas (matrícula feita em 30/10/2026, contrato de R$ 52.800,00)</figcaption></figure>
+
+<h3>Como conferir as parcelas</h3>
+<p>Com o contrato de R$ 52.800,00 e sem descontos, os valores dependem do mês em que você faz o teste. Eles devem ser iguais no <b>Resumo da cobrança</b> e na seção <b>Parcelas</b> depois de salvar:</p>
+<table>
+  <tr><th>Mês da matrícula</th><th>Parcelas</th><th>1ª parcela</th><th>Demais parcelas</th></tr>
+  <tr><td>Outubro</td><td>3</td><td>R$ 4.400,00, vencendo hoje</td><td>2 de R$ 24.200,00 (nov. e dez.)</td></tr>
+  <tr><td>Novembro</td><td>2</td><td>R$ 4.400,00, vencendo hoje</td><td>1 de R$ 48.400,00 (dez.)</td></tr>
+  <tr><td>Dezembro</td><td>1</td><td>R$ 52.800,00, vencendo hoje</td><td>Nenhuma</td></tr>
+</table>
+<p><b>A regra:</b> a 1ª parcela vale 1/12 do contrato e vence no dia da matrícula. Os outros 11/12 são divididos pelos meses restantes até dezembro, no dia de vencimento escolhido. Se esse dia cair em um sábado ou domingo, o vencimento passa para a segunda-feira seguinte.</p>
+
+<h3>Validação extra (opcional)</h3>
+<p>Cadastre outro aluno sem responsável financeiro (nome <b>Pedro Sem Financeiro</b>, CPF <b>12345678909</b>, RG <b>555</b>, órgão <b>SSP</b>) e tente matriculá-lo. O sistema deve recusar com <b>“O aluno precisa ter ao menos um responsável financeiro cadastrado.”</b></p>
+
+<h2>Etapa 4: Dar baixa na 1ª parcela</h2>
+<p>“Dar baixa” é registrar no sistema que a parcela foi paga. Continue na tela <b>Editar matrícula</b> da etapa anterior.</p>
+<div class="menu">Caminho: Editar matrícula › Contas a receber › nome da conta › Baixar</div>
+<p>Se você saiu da tela: <b>Acadêmico › Matrículas</b>, pesquise <b>João Teste</b> e clique em <b>Editar</b>.</p>
+<ol>
+  <li>Desça até a seção <b>Contas a receber</b>.</li>
+  <li>Clique no nome da conta: <b>Contrato João Teste da Silva…</b> Abre a tela <b>Editar duplicata a receber</b>.</li>
+  <li>Desça até a seção <b>Parcelas</b> e, na linha da 1ª parcela, clique em <b>Baixar</b>.</li>
+  <li>Na tela <b>Nova baixa</b>, confira a parcela e o valor, que já vêm preenchidos.</li>
+  <li>Escolha a <b>Forma de pagamento</b>: <b>PIX</b>.</li>
+  <li>Clique em <b>Salvar baixa</b>.</li>
+</ol>
+<figure><img src="img/p-010.png"><figcaption>Passo 2: clique no nome da conta</figcaption></figure>
+<figure><img src="img/p-011.png"><figcaption>Passo 3: clique em “Baixar” na 1ª parcela</figcaption></figure>
+
+<h3>O que preencher</h3>
+<table>
+  <tr><th>Campo</th><th>Valor</th><th class="c">Obrig.</th></tr>
+  <tr><td>Parcela</td><td>Já preenchida com a 1ª parcela. Não altere</td><td class="c req">Sim</td></tr>
+  <tr><td>Data do pagamento</td><td>Hoje (já preenchida)</td><td class="c req">Sim</td></tr>
+  <tr><td>Forma de pagamento</td><td>PIX (única escolha a fazer)</td><td class="c req">Sim</td></tr>
+  <tr><td>Valor pago</td><td>Saldo da parcela, já preenchido (R$ 4.400,00 no exemplo)</td><td class="c req">Sim</td></tr>
+  <tr><td>Multa, Juros, Correção</td><td>Deixe 0,00</td><td class="c req">Sim</td></tr>
+  <tr><td>Desconto</td><td>Deixe 0,00</td><td class="c">Não</td></tr>
+  <tr><td>Observações</td><td>Teste de baixa da 1ª parcela</td><td class="c">Não</td></tr>
+</table>
+<figure><img class="tall" src="img/p-012.png" style="width:80%"><figcaption>Tela “Nova baixa” preenchida</figcaption></figure>
+<div class="ok"><b>Resultado esperado</b>
+  <ul>
+    <li>Aparece a mensagem <b>“Baixa registrada com sucesso”</b>.</li>
+    <li>O sistema volta para a tela <b>Editar duplicata a receber</b>.</li>
+    <li>A 1ª parcela aparece como <b>Quitado</b>, com Faltante R$ 0,00 e sem o botão Baixar.</li>
+    <li>As demais parcelas continuam <b>Em aberto</b>.</li>
+  </ul>
+</div>
+<figure><img src="img/p-013.png"><figcaption>1ª parcela quitada</figcaption></figure>
+
+<h3>Conferências finais</h3>
+<table>
+  <tr><th>Onde olhar</th><th>O que deve aparecer</th></tr>
+  <tr><td>Botão <b>Imprimir recibo</b>, no topo da tela da conta</td><td>Abre o recibo em uma nova aba</td></tr>
+  <tr><td>Financeiro › Parcelas, pesquisando <b>João Teste</b></td><td>1ª parcela Quitado; o quadro <b>Recebido</b> mostra o valor pago</td></tr>
+  <tr><td>Acadêmico › Matrículas › Editar</td><td>Seção Parcelas com a 1ª Quitado. A conta a receber segue <b>Em aberto</b>, pois ainda há parcelas a pagar</td></tr>
+</table>
+
+<h3>Validação extra (opcional)</h3>
+<p>Em outra parcela, clique em <b>Baixar</b>, altere o Valor pago para <b>99999</b>, escolha PIX e tente salvar. O sistema deve recusar, com uma mensagem como <b>“O valor principal (R$ 99999.00) excede o saldo da parcela (R$ 24200.00).”</b> Clique em <b>Cancelar</b> depois de conferir.</p>
+
+<h3>Caminho alternativo</h3>
+<p>A baixa também pode ser feita em <b>Financeiro › Duplicatas › Baixa</b>. No campo <b>Parcela</b>, digite o nome da conta ou do responsável, escolha a parcela na lista e o Valor pago é preenchido sozinho. Depois de salvar, o sistema vai para a lista de baixas, e não para a tela da conta.</p>
+<figure><img src="img/p-014.png"><figcaption>Busca da parcela pelo menu Baixa</figcaption></figure>
+
+<h2>Se algo der errado</h2>
+<table>
+  <tr><th>Situação</th><th>O que fazer</th></tr>
+  <tr><td>“Responsável com este CPF já existe.” (ou RG)</td><td>O teste já foi feito antes com estes dados. Pesquise o nome na lista e continue com o cadastro existente, ou use outro CPF e RG.</td></tr>
+  <tr><td>Filtrar por nome não acha o nome</td><td>Confira a grafia; acentos não importam. Apague o filtro para ver a lista inteira.</td></tr>
+  <tr><td>Lista Turma vazia</td><td>Escolha o Tipo de contrato primeiro. Se continuar vazia, não há turma daquela série e ano.</td></tr>
+  <tr><td>Resumo da cobrança sem valores</td><td>Escolha o Tipo de contrato e o Dia de vencimento. Se pedir para corrigir campos, confira os descontos e o dia (de 1 a 28).</td></tr>
+  <tr><td>“Ano letivo encerrado”</td><td>O contrato é de um ano anterior. Escolha um contrato do ano em curso.</td></tr>
+  <tr><td>Campo em vermelho ao salvar</td><td>O cursor já fica no primeiro campo com erro. Leia a mensagem abaixo dele, corrija e salve de novo. Os demais dados continuam na tela.</td></tr>
+</table>
+
+<h3>Folha de resultado</h3>
+<p>Testador: ______________________________ &nbsp; Data: ____/____/______ &nbsp; Versão: ____________</p>
+<table class="sheet">
+  <tr><th style="width:18pt">#</th><th>Verificação</th><th class="c">OK</th><th class="c" style="width:40pt">Falhou</th><th style="width:150pt">Observações</th></tr>
+  <tr><td>1</td><td>Login e acesso ao menu</td><td></td><td></td><td></td></tr>
+  <tr><td>2</td><td>Responsável salvo e encontrado na lista</td><td></td><td></td><td></td></tr>
+  <tr><td>3</td><td>Aluno salvo, com número de matrícula gerado</td><td></td><td></td><td></td></tr>
+  <tr><td>4</td><td>Responsável financeiro vinculado ao aluno</td><td></td><td></td><td></td></tr>
+  <tr><td>5</td><td>Turma filtrada pelo contrato escolhido</td><td></td><td></td><td></td></tr>
+  <tr><td>6</td><td>Resumo da cobrança com valores e vencimentos corretos</td><td></td><td></td><td></td></tr>
+  <tr><td>7</td><td>Matrícula salva, com parcelas iguais ao resumo, conta e documentos</td><td></td><td></td><td></td></tr>
+  <tr><td>8</td><td>Baixa salva, com a 1ª parcela Quitado</td><td></td><td></td><td></td></tr>
+  <tr><td>9</td><td>Demais parcelas continuam Em aberto</td><td></td><td></td><td></td></tr>
+  <tr><td>10</td><td>Recibo abre e mostra os dados corretos</td><td></td><td></td><td></td></tr>
+</table>
+<p>Se algo falhar, anote o número da verificação, o que você fez, o que apareceu e, se possível, tire uma captura da tela.</p>
+
+</body>
+</html>
