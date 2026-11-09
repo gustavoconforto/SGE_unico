@@ -73,6 +73,9 @@
             .data-table { @apply min-w-full text-sm tabular-nums; }
             .data-table thead { @apply border-b border-slate-200; }
             .data-table th { @apply px-4 py-3 text-left text-[13px] font-medium whitespace-nowrap text-slate-500; }
+            /* The rule above outranks alignment utilities on <th>; keep headers over their numbers. */
+            .data-table th.text-right { @apply text-right; }
+            .data-table th.text-center { @apply text-center; }
             .data-table td { @apply px-4 py-3 text-slate-700; }
             .data-table td:first-child, .data-table th:first-child { @apply pl-5; }
             .data-table td:last-child, .data-table th:last-child { @apply pr-5; }
