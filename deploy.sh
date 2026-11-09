@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Redeploy production. Run on the server as the deploy user: /srv/sge/deploy.sh
-# Wrapped in { } so bash reads the whole file before `git pull` can rewrite it.
 {
 set -euo pipefail
 cd /srv/sge
