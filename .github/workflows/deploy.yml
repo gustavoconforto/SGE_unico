@@ -1,0 +1,27 @@
+name: Test and deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - run: uv run python manage.py test
+        env:
+          SECRET_KEY: ci-only-not-secret
+          DJANGO_DEBUG: "true"
+
+  deploy:
+    needs: test # only deploys if tests pass
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: deploy
+          key: ${{ secrets.SSH_KEY }}
+          script: bash /srv/sge/deploy.sh
