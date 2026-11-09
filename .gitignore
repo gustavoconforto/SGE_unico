@@ -15,4 +15,3 @@ wheels/
 #sqlite
 db.sqlite3
 
-base/management/
