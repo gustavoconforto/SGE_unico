@@ -18,6 +18,7 @@ from students.models import Student
 
 class ClassListView(HtmxSearchMixin, ListView):
     model = Class
+    queryset = Class.objects.select_related("program", "year")
     template_name = "classes/class_list.html"
     context_object_name = "classes"
     partial_template_name = "classes/partials/class_table.html"

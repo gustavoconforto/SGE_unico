@@ -11,6 +11,7 @@ from employees.models import Employee, EmployeeRoleType
 
 class EmployeeListView(HtmxSearchMixin, ListView):
     model = Employee
+    queryset = Employee.objects.select_related("role")
     template_name = "employees/employee_list.html"
     context_object_name = "employees"
     partial_template_name = "employees/partials/employee_table.html"

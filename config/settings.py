@@ -105,6 +105,11 @@ else:
             "HOST": tmpPostgres.hostname,
             "PORT": 5432,
             "OPTIONS": dict(parse_qsl(tmpPostgres.query)),
+            # Reuse connections: a new TLS + SCRAM handshake to Neon cost ~60 ms per request
+            "CONN_MAX_AGE": 60,
+            "CONN_HEALTH_CHECKS": True,
+            # Neon's -pooler endpoint is PgBouncer in transaction mode
+            "DISABLE_SERVER_SIDE_CURSORS": True,
         }
     }
 

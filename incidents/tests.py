@@ -495,3 +495,39 @@ class ConceptGradeTests(LoggedInTestCase):
             response = self.client.post(url, {"bimester": 1}, follow=True)
         self.assertContains(response, "Cadastre o ano letivo de 2029")
         self.assertEqual(self.concept_scores(self.enrollment), [])
+
+
+class IncidentListQueryTests(LoggedInTestCase):
+    """Rows print the class, whose __str__ reads its school year."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.enrollment = create_enrollment()
+
+    def test_delay_list_has_no_n_plus_one(self):
+        def add_delay():
+            StudentDelay.objects.create(
+                enrollment=self.enrollment,
+                delay_type=StudentDelayType.ACCEPTABLE,
+                incident_date=date(2027, 3, 1),
+            )
+
+        add_delay()
+        self.assertQueriesDontGrow(
+            reverse("incidents:student_delay_list"),
+            lambda: [add_delay() for _ in range(3)],
+        )
+
+    def test_bathroom_list_has_no_n_plus_one(self):
+        def add_permission():
+            BathroomPermission.objects.create(
+                enrollment=self.enrollment,
+                class_period=2,
+                incident_date=date(2027, 3, 1),
+            )
+
+        add_permission()
+        self.assertQueriesDontGrow(
+            reverse("incidents:bathroom_permission_list"),
+            lambda: [add_permission() for _ in range(3)],
+        )

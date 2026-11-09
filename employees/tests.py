@@ -43,3 +43,30 @@ class EmployeeRoleViewTests(LoggedInTestCase):
             EmployeeRoleType.objects.filter(pk=self.unused_role.pk).exists()
         )
         self.assertContains(response, "Registro deletado com sucesso")
+
+
+class EmployeeListQueryTests(LoggedInTestCase):
+    def test_list_has_no_n_plus_one(self):
+        role = EmployeeRoleType.objects.create(role="Professor")
+        Employee.objects.create(
+            name="Carlos Melo",
+            cpf="98765432101",
+            rg="1",
+            issuing_authority="SSP",
+            role=role,
+        )
+
+        def add_rows():
+            for i in range(3):
+                Employee.objects.create(
+                    name=f"Pessoa {i}",
+                    cpf=f"1111111110{i}",
+                    rg=f"77{i}",
+                    issuing_authority="SSP",
+                    role=role,
+                )
+
+        response = self.assertQueriesDontGrow(
+            reverse("employees:employee_list"), add_rows
+        )
+        self.assertContains(response, "Professor")
