@@ -1,0 +1,54 @@
+{% if form %}
+<form method="POST" action="{{ request.get_full_path }}">
+  {% csrf_token %}
+  <p class="px-2 pb-3 text-sm text-slate-500">
+    Itinerários de {{ form.enrollment.enrollment_type.school_year }}. Desmarcar registra a saída do aluno hoje; o histórico de presenças e notas é mantido.
+  </p>
+  <div class="overflow-x-auto">
+  <div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="w-12">Inscrito</th>
+        <th>Itinerário</th>
+        <th>Turma</th>
+        <th>Horário</th>
+        <th class="text-right whitespace-nowrap">Vagas</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for offering, field, member in form.rows %}
+      <tr class="hover:bg-slate-50">
+        <td>
+          <label class="sr-only" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+        </td>
+        <td>
+          {{ offering.pathway }}
+          {% if member.left_at %}<span class="badge badge-warning badge-sm">Saiu em {{ member.left_at|date:"d/m/Y" }}</span>{% endif %}
+          {% for error in field.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
+        </td>
+        <td>{{ offering.name|default:"-" }}</td>
+        <td>{{ offering.schedule|default:"-" }}</td>
+        <td class="text-right whitespace-nowrap">
+          {% if offering.capacity is None %}Sem limite{% else %}{{ offering.taken }}/{{ offering.capacity }}{% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr>
+        <td colspan="5" class="text-center">
+          Nenhuma turma de itinerário no ano escolar desta matrícula
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  </div>
+  {% if form.offerings %}
+  <div class="flex flex-row gap-4 pt-6">
+    {% include 'components/button/button_submit_form.html' with label='Salvar inscrições' %}
+  </div>
+  {% endif %}
+</form>
+{% endif %}

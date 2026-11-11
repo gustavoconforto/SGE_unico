@@ -1,0 +1,27 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Inscrever aluno{% endblock page_title %}
+
+{% block header %}
+
+{% endblock header %}
+
+{% block content %}
+<div class="page-form-wide">
+  <div class="w-full">
+    {% include 'components/page/heading.html' with section='Itinerários' subtitle='Selecione o aluno e marque os itinerários em que ele participa.' title='Inscrever aluno' %}
+    <div class="mb-6"></div>
+    <form hx-get="{{ request.path }}"
+          hx-trigger="change"
+          hx-target="#search-results"
+          hx-push-url="true"
+          class="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+      {% include 'components/form/field.html' with field=select_form.enrollment %}
+    </form>
+
+    <div id="search-results" class="mt-6">
+      {% include 'pathway_enrollments/partials/pathway_enrollment_by_student_sheet.html' %}
+    </div>
+  </div>
+</div>
+{% endblock content %}

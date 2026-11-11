@@ -1,0 +1,332 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Diário - {{ offering }}</title>
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 12mm 10mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #e5e7eb;
+      color: #111827;
+      font-family: "Times New Roman", Times, serif;
+      font-size: 11pt;
+      line-height: 1.35;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: #111827;
+    }
+
+    .toolbar button,
+    .toolbar select {
+      padding: 8px 16px;
+      border: 0;
+      border-radius: 6px;
+      background: #2563eb;
+      color: #fff;
+      font: 600 14px/1 system-ui, sans-serif;
+      cursor: pointer;
+    }
+
+    .toolbar .secondary,
+    .toolbar select {
+      background: #4b5563;
+    }
+
+    .sr-only {
+      position: absolute;
+      left: -9999px;
+    }
+
+    .page {
+      max-width: 297mm;
+      margin: 24px auto;
+      padding: 14mm 12mm;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, .15);
+    }
+
+    header.letterhead {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+      border-bottom: 2px solid #111827;
+    }
+
+    header.letterhead .school {
+      margin: 0;
+      font-size: 15pt;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    header.letterhead p {
+      margin: 2px 0;
+      font-size: 10pt;
+    }
+
+    header.letterhead .logo {
+      height: 56px;
+      width: auto;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      text-align: center;
+      font-size: 13pt;
+      text-transform: uppercase;
+    }
+
+    .info-table {
+      width: 100%;
+      margin-bottom: 12px;
+      border-collapse: collapse;
+      font-size: 10pt;
+    }
+
+    .info-table th,
+    .info-table td {
+      padding: 4px 8px;
+      border: 1px solid #9ca3af;
+      text-align: left;
+    }
+
+    .info-table th {
+      width: 110px;
+      background: #f9fafb;
+      white-space: nowrap;
+    }
+
+    .diary {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9pt;
+    }
+
+    .diary thead {
+      display: table-header-group;
+    }
+
+    .diary tr {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .diary th,
+    .diary td {
+      padding: 3px 4px;
+      border: 1px solid #6b7280;
+      text-align: center;
+    }
+
+    .diary th {
+      background: #f3f4f6;
+      font-weight: bold;
+    }
+
+    .diary .day small {
+      display: block;
+      font-weight: normal;
+      font-size: 7.5pt;
+    }
+
+    .diary .number {
+      width: 28px;
+    }
+
+    .diary .name {
+      min-width: 160px;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .diary td.name {
+      height: 22px;
+    }
+
+    .diary td.off {
+      background: #e5e7eb;
+      color: #6b7280;
+    }
+
+    .legend {
+      margin: 8px 0 0;
+      font-size: 9pt;
+    }
+
+    .message {
+      margin: 24px 0;
+      padding: 16px;
+      border: 1px dashed #9ca3af;
+      text-align: center;
+    }
+
+    .signatures {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      margin-top: 48px;
+      text-align: center;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .signature .line {
+      border-top: 1px solid #111827;
+      padding-top: 4px;
+      font-size: 10pt;
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        margin: 0;
+        padding: 20px 16px;
+        overflow-x: auto;
+      }
+
+      .signatures {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .toolbar {
+        display: none;
+      }
+
+      .page {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <form method="get">
+      <label for="bimester" class="sr-only">Bimestre</label>
+      <select id="bimester" name="bimester" onchange="this.form.submit()">
+        {% for value, label in bimesters %}
+        <option value="{{ value }}"{% if value == bimester %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    <button type="button" class="secondary" onclick="history.length > 1 ? history.back() : window.close()">Voltar</button>
+    <button type="button" onclick="window.print()">Imprimir</button>
+  </div>
+
+  <main class="page">
+
+    <header class="letterhead">
+      <div class="info">
+        <p class="school">ÚNICO EDUCACIONAL</p>
+        <p>SGAS 606 BLOCO F PARTE A ASA SUL - Brasília - DF CEP:70200-660</p>
+        <p>Telefone: (61)3244-0910</p>
+      </div>
+      <img class="logo" src="{% static 'img/unico_logo_stamp.png' %}" alt="Único Educacional">
+    </header>
+
+    <h1>Diário de classe – Itinerário</h1>
+
+    <table class="info-table">
+      <tbody>
+        <tr>
+          <th>ITINERÁRIO:</th>
+          <td>{{ offering.pathway }}{% if offering.name %} – {{ offering.name }}{% endif %}</td>
+          <th>ANO ESCOLAR:</th>
+          <td>{{ offering.school_year }}</td>
+        </tr>
+        <tr>
+          <th>PROFESSOR(A):</th>
+          <td>{{ offering.teachers.all|join:", "|default:"-" }}</td>
+          <th>BIMESTRE:</th>
+          <td>
+            {{ bimester }}º bimestre
+            {% if date_range %}({{ date_range.0|date:"d/m/Y" }} a {{ date_range.1|date:"d/m/Y" }}){% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th>HORÁRIO:</th>
+          <td colspan="3">{{ offering.schedule|default:"-" }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    {% if not date_range %}
+    <p class="message">O ano escolar não tem as datas deste bimestre. Preencha-as no cadastro do ano escolar.</p>
+    {% elif not offering.weekdays %}
+    <p class="message">
+      Defina os dias de aula da turma para montar o diário.
+      <a href="{% url 'pathways:pathway_offering_edit' offering.pk %}">Editar turma de itinerário</a>
+    </p>
+    {% elif not days %}
+    <p class="message">Nenhum dia de aula neste bimestre.</p>
+    {% elif not rows %}
+    <p class="message">Nenhum aluno inscrito nesta turma de itinerário no bimestre.</p>
+    {% else %}
+    <table class="diary">
+      <thead>
+        <tr>
+          <th class="number">Nº</th>
+          <th class="name">Aluno</th>
+          {% for day in days %}
+          <th class="day">{{ day|date:"d/m" }}<small>{{ day|date:"D" }}</small></th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for member, cells in rows %}
+        <tr>
+          <td class="number">{{ forloop.counter }}</td>
+          <td class="name">{{ member.enrollment.student }}</td>
+          {% for in_pathway in cells %}
+          {% if in_pathway %}<td></td>{% else %}<td class="off">—</td>{% endif %}
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="legend">Marque P (presente), F (falta) ou J (falta justificada). “—”: o aluno não estava inscrito no dia.</p>
+    {% endif %}
+
+    <section class="signatures">
+      <div class="signature">
+        <div class="line">Professor(a)</div>
+      </div>
+      <div class="signature">
+        <div class="line">Coordenação</div>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

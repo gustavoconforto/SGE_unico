@@ -1486,11 +1486,11 @@ class Command(BaseCommand):
                     name=name,
                     capacity=PATHWAY_CAPACITY,
                     schedule=f"{Weekday(weekday).label}, {PATHWAY_TIMES[name]}",
+                    weekdays=[weekday],
                 )
                 offering.teachers.set(
                     random.sample(all_teachers, k=random.choice([1, 1, 2]))
                 )
-                offering.weekday = weekday
                 offerings.append(offering)
         return offerings
 
@@ -1543,7 +1543,7 @@ class Command(BaseCommand):
         PathwayEnrollment.objects.bulk_create(members, batch_size=2000)
 
     def seed_pathway_sessions(self, offerings, school_year):
-        """A lesson every week on the offering's weekday, with its roll call.
+        """A lesson on each of the offering's weekdays, with its roll call.
 
         Each member has their own commitment; a quarter of the absences are
         excused.
@@ -1556,7 +1556,7 @@ class Command(BaseCommand):
         sessions = []
         for offering in offerings:
             for bimester, days in self.school_days(school_year).items():
-                lessons = [day for day in days if day.isoweekday() == offering.weekday]
+                lessons = [day for day in days if day.isoweekday() in offering.weekdays]
                 for number, day in enumerate(lessons, 1):
                     sessions.append(
                         PathwaySession(

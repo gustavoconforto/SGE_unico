@@ -10,6 +10,7 @@ from base.models import TimeStampedModel
 from employees.models import Employee
 from enrollments.models import Enrollment, SchoolYear
 from grades.models import SCORE, Bimester
+from lessons.models import Weekday
 
 
 class Pathway(models.Model):
@@ -74,6 +75,12 @@ class PathwayOffering(TimeStampedModel):
     schedule = models.CharField(
         "Horário", max_length=100, blank=True, help_text="Ex.: Terças, 14h às 15h40"
     )
+    weekdays = models.JSONField(
+        "Dias de aula",
+        default=list,
+        blank=True,
+        help_text="Dias da semana em que há aula; montam as datas do diário",
+    )
 
     class Meta:
         verbose_name = "Turma de itinerário"
@@ -89,6 +96,12 @@ class PathwayOffering(TimeStampedModel):
     def __str__(self):
         label = f"{self.pathway} {self.school_year}"
         return f"{label} - {self.name}" if self.name else label
+
+    def clean(self):
+        weekdays = self.weekdays
+        if not isinstance(weekdays, list) or not set(weekdays) <= set(Weekday.values):
+            raise ValidationError({"weekdays": "Escolha dias de segunda a sábado."})
+        self.weekdays = sorted(set(weekdays))
 
 
 class PathwayEnrollment(TimeStampedModel):

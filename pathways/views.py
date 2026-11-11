@@ -2,9 +2,11 @@ from django.contrib import messages
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.views.generic import (
     CreateView,
     DeleteView,
+    DetailView,
     ListView,
     TemplateView,
     UpdateView,
@@ -14,6 +16,8 @@ from accounts.views import ProtectedDeleteMixin, SuccessMessageMixin
 from base.search import HtmxFilterMixin, HtmxSearchMixin, is_htmx_partial
 from classes.views import get_int_param
 from enrollments.models import SchoolYear
+from grades.models import Bimester
+from incidents.services import bimester_range
 from incidents.views import IncidentGradesAll, IncidentGradesIndividual
 from pathways.forms import (
     AttendanceSheetForm,
@@ -27,6 +31,9 @@ from pathways.forms import (
     PathwayOfferingForm,
     PathwaySessionFilterForm,
     PathwaySessionForm,
+    StudentPathwaysForm,
+    StudentPathwaysSelectForm,
+    members_between,
 )
 from pathways.models import (
     AttendanceStatus,
@@ -36,7 +43,12 @@ from pathways.models import (
     PathwayOffering,
     PathwaySession,
 )
-from pathways.services import EXTRA_CODE, extra_exam_type, save_extra_grades
+from pathways.services import (
+    EXTRA_CODE,
+    extra_exam_type,
+    lesson_days,
+    save_extra_grades,
+)
 
 
 def list_url(name, offering_id):
@@ -147,6 +159,48 @@ class PathwayOfferingDeleteView(ProtectedDeleteMixin, DeleteView):
     )
 
 
+class PathwayDiaryView(DetailView):
+    """Printable attendance diary of an offering in a bimester (?bimester=N):
+    a row per student, a column per lesson day."""
+
+    model = PathwayOffering
+    template_name = "pathway_offerings/pathway_offering_diary.html"
+    context_object_name = "offering"
+    queryset = PathwayOffering.objects.select_related(
+        "pathway", "school_year"
+    ).prefetch_related("teachers")
+
+    def get_bimester(self, school_year):
+        bimester = get_int_param(self.request, "bimester")
+        if bimester in Bimester.values:
+            return bimester
+        today = timezone.localdate()
+        for value in Bimester.values:
+            date_range = bimester_range(school_year, value)
+            if date_range and date_range[0] <= today <= date_range[1]:
+                return value
+        return Bimester.values[0]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        offering = self.object
+        bimester = self.get_bimester(offering.school_year)
+        date_range = bimester_range(offering.school_year, bimester)
+        days = lesson_days(offering, *date_range) if date_range else []
+        rows = []
+        if days:
+            for member in members_between(offering, *date_range):
+                rows.append((member, [member.is_member_on(day) for day in days]))
+        context.update(
+            bimester=bimester,
+            bimesters=Bimester.choices,
+            date_range=date_range,
+            days=days,
+            rows=rows,
+        )
+        return context
+
+
 # PATHWAY ENROLLMENT VIEWS
 
 
@@ -215,6 +269,47 @@ class PathwayEnrollmentDeleteView(
         "Este aluno possui presenças ou notas no itinerário e não pode ser "
         "deletado. Registre a data de saída."
     )
+
+
+class PathwayEnrollmentByStudentView(TemplateView):
+    """The pathways of the enrollment picked in the query string, to sign the
+    student up for several at once."""
+
+    template_name = "pathway_enrollments/pathway_enrollment_by_student.html"
+    partial_template_name = (
+        "pathway_enrollments/partials/pathway_enrollment_by_student_sheet.html"
+    )
+
+    def get_template_names(self):
+        if is_htmx_partial(self.request):
+            return [self.partial_template_name]
+        return [self.template_name]
+
+    def get_sheet_form(self, data=None):
+        select_form = StudentPathwaysSelectForm(self.request.GET or None)
+        if not (select_form.is_valid() and select_form.cleaned_data["enrollment"]):
+            return select_form, None
+        return select_form, StudentPathwaysForm(
+            data, enrollment=select_form.cleaned_data["enrollment"]
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        select_form, sheet = self.get_sheet_form()
+        context["select_form"] = select_form
+        context.setdefault("form", sheet)
+        return context
+
+    def post(self, request, *args, **kwargs):
+        _, form = self.get_sheet_form(request.POST)
+        if form is None:
+            return redirect(request.get_full_path())
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Registro atualizado com sucesso")
+            return redirect(request.get_full_path())
+        messages.error(request, "Corrija os itinerários destacados. Nada foi salvo.")
+        return self.render_to_response(self.get_context_data(form=form))
 
 
 # PATHWAY SESSION VIEWS
