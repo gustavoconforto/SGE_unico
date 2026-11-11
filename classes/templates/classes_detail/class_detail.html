@@ -1,40 +1,34 @@
-{% extends 'base/base.html' %}
-
+{% extends "base/base.html" %}
 {% block page_title %}Alunos da turma{% endblock page_title %}
-
 {% block header %}
-
 {% endblock header %}
-
 {% block content %}
-<div class="page-form-wide">
-  <div class="w-full">
-    {% include 'components/page/breadcrumb.html' with parent_label='Turmas' parent_url_name='classes:class_list' current='Alunos da turma' %}
-    {% include 'components/page/heading.html' with subtitle='Selecione o ano letivo e a turma.' title='Alunos da turma' %}
-    <div class="mb-6"></div>
-    <fieldset class="fieldset">
-    <legend class="fieldset-legend">Ano letivo:</legend>
-    <select class="select select-neutral w-full"
-            name="school_year"
-            hx-get="{% url 'classes:class_options' %}"
-            hx-trigger="change"
-            hx-target="#class-select"
-            hx-swap="outerHTML">
-        <option value="" disabled {% if not selected_year_id %}selected{% endif %}>Selecione um ano letivo:</option>
-        {% for year in school_years %}
-            <option value="{{ year.pk }}" {% if year.pk == selected_year_id %}selected{% endif %}>{{ year }}</option>
-        {% endfor %}
-    </select>
-    </fieldset>
-
-    {% include 'classes/partials/class_select.html' %}
-
-    <div id="search-results" class="mt-6">
-      {% if selected_class_id %}
-        {% include 'classes/partials/class_detail_table.html' %}
-      {% endif %}
+  <div class="page-form-wide">
+    <div class="w-full">
+      {% include "components/page/breadcrumb.html" with parent_label="Turmas" parent_url_name="classes:class_list" current="Alunos da turma" %}
+      {% include "components/page/heading.html" with subtitle="Selecione o ano letivo e a turma." title="Alunos da turma" %}
+      <div class="mb-6"></div>
+      <fieldset class="fieldset">
+        <legend class="fieldset-legend">Ano letivo:</legend>
+        <select class="select select-neutral w-full"
+                name="school_year"
+                hx-get="{% url 'classes:class_options' %}"
+                hx-trigger="change"
+                hx-target="#class-select"
+                hx-swap="outerHTML">
+          <option value="" disabled {% if not selected_year_id %}selected{% endif %}>Selecione um ano letivo:</option>
+          {% for year in school_years %}
+            <option value="{{ year.pk }}"
+                    {% if year.pk == selected_year_id %}selected{% endif %}>{{ year }}</option>
+          {% endfor %}
+        </select>
+      </fieldset>
+      {% include "classes/partials/class_select.html" %}
+      <div id="search-results" class="mt-6">
+        {% if selected_class_id %}
+          {% include "classes/partials/class_detail_table.html" %}
+        {% endif %}
+      </div>
     </div>
-    </div>
-</div>
-        
+  </div>
 {% endblock content %}

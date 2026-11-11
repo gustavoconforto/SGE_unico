@@ -1,46 +1,42 @@
-<form class="mt-6" method="POST">
+<form class="mt-6" method="post">
   {% csrf_token %}
-  {% include 'components/form/non_field_errors.html' %}
-
+  {% include "components/form/non_field_errors.html" %}
   <section class="form-section">
     <div class="form-section-intro">
       <h2>Contrato</h2>
       <p>Curso, série e ano escolar a que o contrato se aplica.</p>
     </div>
     <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-3">
-      <div class="sm:col-span-full">{% include 'components/form/field.html' with field=form.name %}</div>
-      {% include 'components/form/field.html' with field=form.program %}
-      {% include 'components/form/field.html' with field=form.level %}
-      {% include 'components/form/field.html' with field=form.school_year %}
+      <div class="sm:col-span-full">{% include "components/form/field.html" with field=form.name %}</div>
+      {% include "components/form/field.html" with field=form.program %}
+      {% include "components/form/field.html" with field=form.level %}
+      {% include "components/form/field.html" with field=form.school_year %}
     </div>
   </section>
-
   <section class="form-section">
     <div class="form-section-intro">
       <h2>Valores</h2>
     </div>
     <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
-      {% include 'components/form/field.html' with field=form.total_price %}
-      {% include 'components/form/field.html' with field=form.punctuality_discount %}
+      {% include "components/form/field.html" with field=form.total_price %}
+      {% include "components/form/field.html" with field=form.punctuality_discount %}
     </div>
   </section>
-
   <section class="form-section">
     <div class="form-section-intro">
       <h2>Descrição</h2>
     </div>
     <div class="form-section-body grid grid-cols-1">
-      {% include 'components/form/field.html' with field=form.description %}
+      {% include "components/form/field.html" with field=form.description %}
     </div>
   </section>
-
   <div class="form-actions">
     <p class="text-[13px] text-slate-500">Campos sem “opcional” são obrigatórios.</p>
     <div class="ml-auto flex gap-2">
       <a href="{% url 'enrollments:enrollment_type_list' %}">
-        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+        {% include "components/button/button_cancel.html" with label="Cancelar" %}
       </a>
-      {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar contrato' %}
+      {% include "components/button/button_submit_form.html" with label=submit_label|default:"Salvar contrato" %}
     </div>
   </div>
 </form>

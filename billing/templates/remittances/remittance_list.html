@@ -1,24 +1,19 @@
-{% extends 'base/base.html' %}
-
+{% extends "base/base.html" %}
 {% block page_title %}Remessas{% endblock page_title %}
-
 {% block header %}
   <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
-    {% include 'components/page/heading.html' with section='Financeiro' title='Remessas' %}
+    {% include "components/page/heading.html" with section="Financeiro" title="Remessas" %}
     <div class="flex gap-2">
       <a href={% url 'billing:bank_settings_edit' %}>
-      {% include 'components/button/button_select.html' with label='Configuração bancária'%}
+        {% include "components/button/button_select.html" with label="Configuração bancária" %}
       </a>
       <a href={% url 'billing:remittance_add' %}>
-      {% include 'components/button/button_primary.html' with label='Gerar remessa' icon='upload_file' %}
+        {% include "components/button/button_primary.html" with label="Gerar remessa" icon="upload_file" %}
       </a>
     </div>
   </div>
-  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por número da remessa...' %}
+  {% include "components/search/filter_form.html" with placeholder="Pesquisar por número da remessa..." %}
 {% endblock header %}
-
 {% block content %}
-  <div id="search-results">
-    {% include 'remittances/partials/remittance_table.html' %}
-  </div>
+  <div id="search-results">{% include "remittances/partials/remittance_table.html" %}</div>
 {% endblock content %}

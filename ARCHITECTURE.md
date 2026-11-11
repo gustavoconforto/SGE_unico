@@ -34,7 +34,7 @@ Browser ──HTTP──▶ config/urls.py ──▶ <app>/urls.py ──▶ cla
 | `accounts` | `/accounts/` | `AccountType`, `Supplier`, `Account` (+ receivable/payable proxies), `Installment`, `Payment` |
 | `incidents` | `/incidents/` | Student conduct records, all per enrollment: `IncidentType` (with a penalty), `Incident`, `StudentDelay` (atraso), `BathroomPermission` (saída para banheiro) |
 | `q_and_a` | `/q_and_a/` | `QandA` (plantão de dúvidas): a student's attendance at a subject's Q&A session, per enrollment |
-| `pathways` | `/pathways/` | Extra-curricular pathways (itinerários): `Pathway`, `PathwayOffering`, `PathwayEnrollment`, `PathwaySession`, `PathwayAttendance`, `PathwayGrade`, and `ExtraGradeSettings`; the extra grade calculation (`pathways/services.py`) |
+| `pathways` | `/pathways/` | Extra-curricular pathways (itinerários): `Pathway`, `PathwayOffering`, `PathwayEnrollment`, `PathwaySession`, `PathwayAttendance`, and `PathwayGrade`; the extra grade calculation (`pathways/services.py`) |
 | `lessons` | `/lessons/` | Weekly timetable (grade horária) and class diary (diário de classe): `TimetableSlot`, `Lecture` |
 | `billing` | `/billing/` | Bradesco CNAB 400 bank slips: `BankSettings`, `Remittance` (.REM), `BankSlip`, `ReturnFile` (.RET), `ReturnEvent` |
 
@@ -192,18 +192,15 @@ chosen by their teachers; others never do.
 | `PathwaySession` | a lesson (aula): offering, `date` inside the school year, optional `topic` |
 | `PathwayAttendance` | session × pathway enrollment, `status` (`P` presente, `F` falta, `J` falta justificada). Deleted with its session. `clean()` requires the same offering and membership on the lesson's date |
 | `PathwayGrade` | the points the pathway teacher gives per pathway enrollment and bimester (1–4), from 0 to the pathway's `extra_points`; `clean()` rejects grades in a pathway that gives none. Unique per (pathway enrollment, bimester) |
-| `ExtraGradeSettings` | per `SchoolYear` (one-to-one), created with the defaults by `for_school_year()`: `q_and_a_min_sessions` (3), `q_and_a_points` (0.50). Edited at `pathways/extra_grade_settings/` |
 
 **Extra grade** (`pathways/services.py`, like the concept grade): for each
 enrollment and bimester, the pathway grades are added as the teachers gave
 them; a pathway without a grade, or one that gives no extra grade, adds 0.
-Attendance is recorded and shown but never changes the grade. Q&A
-sessions add `q_and_a_points` with at least `q_and_a_min_sessions` in the
-bimester (`q_and_a/services.py`). The sum is capped at the max score of the
+Attendance is recorded and shown but never changes the grade. Q&A sessions
+don't count: their grades are entered by hand. The sum is capped at the max score of the
 `EX` exam type and `save_extra_grades()` writes it, zero included, to every
 subject of the series through `grades.services.save_series_grades()` (shared
-with `save_concept_grades()`). `EX` is therefore calculated, not typed. Settings
-changes only affect later calculations.
+with `save_concept_grades()`). `EX` is therefore calculated, not typed.
 
 **Screens** (sidebar section "Itinerários", `base/sidebar/menu/itinerarios.html`):
 standard CRUDs for pathways (`pathways/`), offerings (`pathways/offerings/`,
@@ -242,7 +239,6 @@ deleting a member with attendance or grades is blocked.
   grade screens (`IncidentGradesAll` / `IncidentGradesIndividual`), subclassed
   through their `get_exam_type()`, `save_grades()`, `exam_type_missing` and
   `url_name` hooks.
-- **Rules** (`pathways/extra_grade_settings/`): one row per school year.
 
 ### Lesson models (`lessons/models.py`)
 

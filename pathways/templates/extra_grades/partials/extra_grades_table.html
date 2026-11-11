@@ -4,7 +4,14 @@
     <a href="{% url 'enrollments:school_year_add' %}" class="underline hover:text-slate-900">Cadastre um ano letivo</a>.
   </p>
 {% elif bimester and exam_type %}
-  {% include 'extra_grades/partials/extra_grades_rule.html' %}
+  <div class="flex flex-wrap items-center justify-between gap-4 pb-3">
+    <div class="max-w-3xl">{% include 'extra_grades/partials/extra_grades_rule.html' %}</div>
+    <form method="POST" action="{{ request.path }}">
+      {% csrf_token %}
+      <input type="hidden" name="bimester" value="{{ bimester }}">
+      {% include 'components/button/button_submit_form.html' with label='Calcular '|add:bimester_form.bimester.value|add:'º bimestre para todos os alunos' %}
+    </form>
+  </div>
 {% elif not exam_type %}
   <p class="px-2 pb-3 text-sm text-slate-600">
     Nenhum tipo de avaliação Nota extra (sigla EX) cadastrado.
@@ -44,10 +51,3 @@
   </table>
   </div>
 {% include 'components/table/pagination.html' %}
-{% if bimester and exam_type and school_year %}
-<form method="POST" action="{{ request.path }}" class="flex flex-row gap-4 pt-6">
-  {% csrf_token %}
-  <input type="hidden" name="bimester" value="{{ bimester }}">
-  {% include 'components/button/button_submit_form.html' with label='Calcular' %}
-</form>
-{% endif %}

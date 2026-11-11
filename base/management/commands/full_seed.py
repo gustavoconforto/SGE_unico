@@ -109,7 +109,6 @@ from lessons.models import (
 )
 from pathways.models import (
     AttendanceStatus,
-    ExtraGradeSettings,
     Pathway,
     PathwayAttendance,
     PathwayEnrollment,
@@ -649,7 +648,7 @@ class Command(BaseCommand):
                 exam_types = self.seed_exam_types()
                 incident_types = self.seed_incident_types()
                 subjects = self.seed_departments_and_subjects()
-                pathways = self.seed_pathways(school_years[self.year])
+                pathways = self.seed_pathways()
                 bank_settings = self.seed_bank_settings()
 
             if Student.objects.exists():
@@ -925,9 +924,8 @@ class Command(BaseCommand):
             )
         return subjects
 
-    def seed_pathways(self, school_year):
-        """The catalog, {pathway: groups}, and the year's extra grade rules."""
-        ExtraGradeSettings.for_school_year(school_year)
+    def seed_pathways(self):
+        """The catalog, {pathway: groups}."""
         return {
             Pathway.objects.update_or_create(
                 name=name,
@@ -2083,7 +2081,6 @@ class Command(BaseCommand):
             PathwaySession,
             PathwayAttendance,
             PathwayGrade,
-            ExtraGradeSettings,
             TimetableSlot,
             Lecture,
             AccountType,

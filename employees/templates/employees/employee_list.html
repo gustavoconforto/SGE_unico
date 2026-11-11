@@ -1,21 +1,14 @@
-{% extends 'base/base.html' %}
-
+{% extends "base/base.html" %}
 {% block page_title %}Funcionários{% endblock page_title %}
-
 {% block header %}
   <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
-    {% include 'components/page/heading.html' with section='Recursos humanos' title='Funcionários' %}
+    {% include "components/page/heading.html" with section="Recursos humanos" title="Funcionários" %}
     <a href="{% url 'employees:employee_add' %}">
-    {% include 'components/button/button_primary.html' with label='Novo funcionário' icon='add' %}
+      {% include "components/button/button_primary.html" with label="Novo funcionário" icon="add" %}
     </a>
   </div>
-  {% include 'components/search/search_input.html' with placeholder='Pesquisar por nome, CPF ou cargo...' %}
+  {% include "components/search/search_input.html" with placeholder="Pesquisar por nome, CPF ou cargo..." %}
 {% endblock header %}
-
 {% block content %}
-  <div id="search-results">
-    {% include 'employees/partials/employee_table.html' %}
-  </div>
+  <div id="search-results">{% include "employees/partials/employee_table.html" %}</div>
 {% endblock content %}
-
-    

@@ -1,17 +1,11 @@
-{% extends 'base/base.html' %}
-
+{% extends "base/base.html" %}
 {% block page_title %}Editar turma{% endblock page_title %}
-
-
 {% block content %}
-<div class="page-form">
-  <div class="w-full">
-    {% include 'components/page/breadcrumb.html' with parent_label='Turmas' parent_url_name='classes:class_list' current=object %}
-    {% include 'components/page/heading.html' with title='Editar turma' %}
-
-    {% include 'classes/class_form.html' %}
-
+  <div class="page-form">
+    <div class="w-full">
+      {% include "components/page/breadcrumb.html" with parent_label="Turmas" parent_url_name="classes:class_list" current=object %}
+      {% include "components/page/heading.html" with title="Editar turma" %}
+      {% include "classes/class_form.html" %}
+    </div>
   </div>
-</div>
 {% endblock content %}
-    

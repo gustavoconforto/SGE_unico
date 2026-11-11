@@ -53,7 +53,7 @@ class Command(FullSeedCommand):
                 self.seed_exam_types()
                 self.seed_incident_types()
                 subjects = self.seed_departments_and_subjects()
-                self.seed_pathways(school_years[self.year])
+                self.seed_pathways()
                 self.seed_bank_settings()
             with self.step("Employees and teacher users"):
                 teachers = self.seed_employees(subjects)

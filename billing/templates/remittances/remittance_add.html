@@ -1,68 +1,71 @@
-{% extends 'base/base.html' %}
-
+{% extends "base/base.html" %}
 {% block page_title %}Gerar remessa{% endblock page_title %}
-
 {% block header %}
-  {% include 'components/page/breadcrumb.html' with parent_label='Remessas' parent_url_name='billing:remittance_list' current='Gerar' %}
-  <div class="pb-6">{% include 'components/page/heading.html' with title='Gerar remessa' subtitle='Escolha os boletos que vão no arquivo para o banco.' %}</div>
-  {% if not settings %}
-  <div role="alert" class="alert alert-warning mb-4">
-    <span>Cadastre a <a class="underline" href="{% url 'billing:bank_settings_edit' %}">configuração bancária</a> antes de gerar remessas.</span>
+  {% include "components/page/breadcrumb.html" with parent_label="Remessas" parent_url_name="billing:remittance_list" current="Gerar" %}
+  <div class="pb-6">
+    {% include "components/page/heading.html" with title="Gerar remessa" subtitle="Escolha os boletos que vão no arquivo para o banco." %}
   </div>
+  {% if not settings %}
+    <div role="alert" class="alert alert-warning mb-4">
+      <span>Cadastre a <a class="underline"
+                          href="{% url 'billing:bank_settings_edit' %}">configuração bancária</a> antes de gerar remessas.</span>
+    </div>
   {% endif %}
-  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por conta, responsável, aluno ou matrícula...' %}
+  {% include "components/search/filter_form.html" with placeholder="Pesquisar por conta, responsável, aluno ou matrícula..." %}
 {% endblock header %}
-
 {% block content %}
-  <form method="POST" class="space-y-4">
+  <form method="post" class="space-y-4">
     {% csrf_token %}
     {% if write_offs %}
-    <div class="space-y-3">
-      <h3 class="text-base font-semibold text-slate-700">Pedidos de baixa</h3>
-      <p class="text-sm text-slate-600">
-        Boletos registrados no banco cuja parcela foi cancelada ou paga por outro meio.
-        O banco confirma a baixa no retorno com a ocorrência 10.
-      </p>
-      <div class="table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th></th>
-            <th>Nosso número</th>
-            <th>Vencimento</th>
-            <th>Responsável</th>
-            <th>Conta</th>
-            <th class="text-right">Valor do boleto</th>
-            <th>Situação da parcela</th>
-          </tr>
-        </thead>
-        <tbody>
-        {% for slip in write_offs %}
-          <tr class="hover:bg-slate-50">
-            <td>
-              <input type="checkbox" name="write_offs" value="{{ slip.pk }}" class="checkbox checkbox-sm" aria-label="Solicitar baixa" checked>
-            </td>
-            <td class="whitespace-nowrap">{{ slip }}</td>
-            <td class="whitespace-nowrap">{{ slip.due_date|date:"d/m/Y" }}</td>
-            <td>{{ slip.installment.account.guardian|default:"-" }}</td>
-            <td>{{ slip.installment.account }} - {{ slip.installment.number }}ª</td>
-            <td class="text-right whitespace-nowrap">R$ {{ slip.amount|floatformat:"2g" }}</td>
-            <td>{{ slip.installment.get_status_display }}</td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
+      <div class="space-y-3">
+        <h3 class="text-base font-semibold text-slate-700">Pedidos de baixa</h3>
+        <p class="text-sm text-slate-600">
+          Boletos registrados no banco cuja parcela foi cancelada ou paga por outro meio.
+          O banco confirma a baixa no retorno com a ocorrência 10.
+        </p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Nosso número</th>
+                <th>Vencimento</th>
+                <th>Responsável</th>
+                <th>Conta</th>
+                <th class="text-right">Valor do boleto</th>
+                <th>Situação da parcela</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for slip in write_offs %}
+                <tr class="hover:bg-slate-50">
+                  <td>
+                    <input type="checkbox"
+                           name="write_offs"
+                           value="{{ slip.pk }}"
+                           class="checkbox checkbox-sm"
+                           aria-label="Solicitar baixa"
+                           checked>
+                  </td>
+                  <td class="whitespace-nowrap">{{ slip }}</td>
+                  <td class="whitespace-nowrap">{{ slip.due_date|date:"d/m/Y" }}</td>
+                  <td>{{ slip.installment.account.guardian|default:"-" }}</td>
+                  <td>{{ slip.installment.account }} - {{ slip.installment.number }}ª</td>
+                  <td class="text-right whitespace-nowrap">R$ {{ slip.amount|floatformat:"2g" }}</td>
+                  <td>{{ slip.installment.get_status_display }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
     {% endif %}
     <h3 class="text-base font-semibold text-slate-700">Novos boletos</h3>
-    <div id="search-results">
-      {% include 'remittances/partials/remittance_candidates.html' %}
-    </div>
+    <div id="search-results">{% include "remittances/partials/remittance_candidates.html" %}</div>
     <div class="flex flex-row gap-4 pt-2">
-      {% include 'components/button/button_submit_form.html' with label='Gerar remessa' %}
+      {% include "components/button/button_submit_form.html" with label="Gerar remessa" %}
       <a href={% url 'billing:remittance_list' %}>
-        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+        {% include "components/button/button_cancel.html" with label="Cancelar" %}
       </a>
     </div>
   </form>

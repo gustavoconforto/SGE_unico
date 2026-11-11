@@ -1,17 +1,11 @@
-{% extends 'base/base.html' %}
-
+{% extends "base/base.html" %}
 {% block page_title %}Editar responsável{% endblock page_title %}
-
-
 {% block content %}
-<div class="page-form">
-  <div class="w-full">
-    {% include 'components/page/breadcrumb.html' with parent_label='Responsáveis' parent_url_name='students:guardian_list' current=object %}
-    {% include 'components/page/heading.html' with title='Editar responsável' %}
-
-    {% include 'guardians/guardian_form.html' %}
-
+  <div class="page-form">
+    <div class="w-full">
+      {% include "components/page/breadcrumb.html" with parent_label="Responsáveis" parent_url_name="students:guardian_list" current=object %}
+      {% include "components/page/heading.html" with title="Editar responsável" %}
+      {% include "guardians/guardian_form.html" %}
+    </div>
   </div>
-</div>
 {% endblock content %}
-    

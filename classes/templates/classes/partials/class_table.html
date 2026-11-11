@@ -1,42 +1,36 @@
-  <div class="table-wrap">
+<div class="table-wrap">
   <table class="data-table">
     <thead>
       <tr>
-        <th>Curso</th>        
-        <th>Ano</th>        
-        <th>Série</th>        
-        <th>Nome</th>        
+        <th>Curso</th>
+        <th>Ano</th>
+        <th>Série</th>
+        <th>Nome</th>
         <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
-    {% for class in classes %}
-      <tr class="hover:bg-slate-50">
-        <td>
-            <a href="{% url 'classes:class_edit' class.pk %}" class="hover:underline">{{ class.program }}</a>
-        </td>
-        <td>
-            {{ class.year }}
-        </td>
-        <td>
-            {{ class.grade_level }}
-        </td>
-        <td>
-            {{ class.name }}
-        </td>
-        <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
-          {% url 'classes:class_edit' class.pk as edit_url %}
-          {% url 'classes:class_delete' class.pk as delete_url %}
-          {% include 'components/table/row_menu.html' with menu_id=class.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar turma?' name=class %}
-          
-          </div>
-        </td>
-      </tr>
+      {% for class in classes %}
+        <tr class="hover:bg-slate-50">
+          <td>
+            <a href="{% url 'classes:class_edit' class.pk %}"
+               class="hover:underline">{{ class.program }}</a>
+          </td>
+          <td>{{ class.year }}</td>
+          <td>{{ class.grade_level }}</td>
+          <td>{{ class.name }}</td>
+          <td class="text-right">
+            <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+              {% url 'classes:class_edit' class.pk as edit_url %}
+              {% url 'classes:class_delete' class.pk as delete_url %}
+              {% include "components/table/row_menu.html" with menu_id=class.pk edit_url=edit_url delete_url=delete_url delete_title="Deletar turma?" name=class %}
+            </div>
+          </td>
+        </tr>
       {% empty %}
-      {% include 'components/table/empty_table.html' with collspan=2%}
+        {% include "components/table/empty_table.html" with collspan=2 %}
       {% endfor %}
     </tbody>
   </table>
-  </div>
-{% include 'components/table/pagination.html' %}
+</div>
+{% include "components/table/pagination.html" %}

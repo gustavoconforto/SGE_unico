@@ -1,83 +1,94 @@
-{% extends 'base/base.html' %}
-
+{% extends "base/base.html" %}
 {% block page_title %}Boletim{% endblock page_title %}
-
 {% block header %}
   <div class="float-right print:hidden">
-    <button type="button" onclick="window.print()" class="ui-btn ui-btn-secondary">
+    <button type="button"
+            onclick="window.print()"
+            class="ui-btn ui-btn-secondary">
       <span class="material-symbols-outlined" aria-hidden="true">print</span>Imprimir
     </button>
   </div>
 {% endblock header %}
-
 {% block content %}
-<div class="page-form-wide">
-  <div class="w-full">
-    {% include 'components/page/breadcrumb.html' with parent_label='Matrículas' parent_url_name='enrollments:enrollment_list' current=enrollment.student %}
-    {% include 'components/page/heading.html' with title='Boletim' %}
-    <p class="mt-1.5 mb-6 text-slate-500">Ano letivo {{ enrollment.school_class.year|default:enrollment.enrollment_type.school_year }}</p>
-
-    <dl class="form-card mb-6 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
-      <div><dt class="text-slate-500">Aluno</dt><dd class="font-medium text-slate-900">{{ enrollment.student.name }}</dd></div>
-      <div><dt class="text-slate-500">Matrícula</dt><dd class="font-medium text-slate-900">{{ enrollment.student.registration }}</dd></div>
-      <div><dt class="text-slate-500">Curso</dt><dd class="font-medium text-slate-900">{{ enrollment.enrollment_type.program }}</dd></div>
-      <div><dt class="text-slate-500">Turma</dt><dd class="font-medium text-slate-900">{{ enrollment.school_class|default:"Sem turma" }}</dd></div>
-    </dl>
-
-    <div class="overflow-x-auto">
-    <div class="table-wrap">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Matéria</th>
-          {% for value, label in bimesters %}
-          <th class="text-right whitespace-nowrap">{{ value }}º bim.</th>
-          {% endfor %}
-          <th class="text-right whitespace-nowrap">Média anual</th>
-          <th class="text-right whitespace-nowrap">Recuperação</th>
-          <th class="text-right whitespace-nowrap">Média final</th>
-          <th class="text-right">Situação</th>
-        </tr>
-      </thead>
-      <tbody>
-      {% for row in rows %}
-        <tr class="hover:bg-slate-50">
-          <td>
-            {{ row.subject }}
-          </td>
-          {% for bimester_grade in row.bimesters %}
-          <td class="text-right whitespace-nowrap">
-            {{ bimester_grade|floatformat:2|default:"-" }}
-          </td>
-          {% endfor %}
-          <td class="text-right whitespace-nowrap">
-            {{ row.average|floatformat:2|default:"-" }}
-          </td>
-          <td class="text-right whitespace-nowrap">
-            {% if row.needs_recovery %}{{ row.recovery|floatformat:2|default:"-" }}{% else %}-{% endif %}
-          </td>
-          <td class="text-right whitespace-nowrap font-semibold text-slate-800">
-            {{ row.final|floatformat:2|default:"-" }}
-          </td>
-          <td class="text-right">
-            {% if row.passed is None and row.needs_recovery %}
-              <span class="badge badge-sm badge-warning">Em recuperação</span>
-            {% elif row.passed is None %}
-              <span class="badge badge-sm badge-neutral badge-outline">Em andamento</span>
-            {% elif row.passed %}
-              <span class="badge badge-sm badge-success">Aprovado</span>
-            {% else %}
-              <span class="badge badge-sm badge-error">Reprovado</span>
-            {% endif %}
-          </td>
-        </tr>
-      {% empty %}
-        {% include 'components/table/empty_table.html' with collspan=9 %}
-      {% endfor %}
-      </tbody>
-    </table>
-    </div>
+  <div class="page-form-wide">
+    <div class="w-full">
+      {% include "components/page/breadcrumb.html" with parent_label="Matrículas" parent_url_name="enrollments:enrollment_list" current=enrollment.student %}
+      {% include "components/page/heading.html" with title="Boletim" %}
+      <p class="mt-1.5 mb-6 text-slate-500">Ano letivo {{ enrollment.school_class.year|default:enrollment.enrollment_type.school_year }}</p>
+      <dl class="form-card mb-6 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+        <div>
+          <dt class="text-slate-500">Aluno</dt>
+          <dd class="font-medium text-slate-900">
+            {{ enrollment.student.name }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-slate-500">Matrícula</dt>
+          <dd class="font-medium text-slate-900">
+            {{ enrollment.student.registration }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-slate-500">Curso</dt>
+          <dd class="font-medium text-slate-900">
+            {{ enrollment.enrollment_type.program }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-slate-500">Turma</dt>
+          <dd class="font-medium text-slate-900">
+            {{ enrollment.school_class|default:"Sem turma" }}
+          </dd>
+        </div>
+      </dl>
+      <div class="overflow-x-auto">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Matéria</th>
+                {% for value, label in bimesters %}
+                  <th class="text-right whitespace-nowrap">{{ value }}º bim.</th>
+                {% endfor %}
+                <th class="text-right whitespace-nowrap">Média anual</th>
+                <th class="text-right whitespace-nowrap">Recuperação</th>
+                <th class="text-right whitespace-nowrap">Média final</th>
+                <th class="text-right">Situação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+                <tr class="hover:bg-slate-50">
+                  <td>{{ row.subject }}</td>
+                  {% for bimester_grade in row.bimesters %}
+                    <td class="text-right whitespace-nowrap">{{ bimester_grade|floatformat:2|default:"-" }}</td>
+                  {% endfor %}
+                  <td class="text-right whitespace-nowrap">{{ row.average|floatformat:2|default:"-" }}</td>
+                  <td class="text-right whitespace-nowrap">
+                    {% if row.needs_recovery %}{{ row.recovery|floatformat:2|default:"-" }}{% else %}-{% endif %}
+                  </td>
+                  <td class="text-right whitespace-nowrap font-semibold text-slate-800">
+                    {{ row.final|floatformat:2|default:"-" }}
+                  </td>
+                  <td class="text-right">
+                    {% if row.passed is None and row.needs_recovery %}
+                      <span class="badge badge-sm badge-warning">Em recuperação</span>
+                    {% elif row.passed is None %}
+                      <span class="badge badge-sm badge-neutral badge-outline">Em andamento</span>
+                    {% elif row.passed %}
+                      <span class="badge badge-sm badge-success">Aprovado</span>
+                    {% else %}
+                      <span class="badge badge-sm badge-error">Reprovado</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                {% include "components/table/empty_table.html" with collspan=9 %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
-</div>
 {% endblock content %}

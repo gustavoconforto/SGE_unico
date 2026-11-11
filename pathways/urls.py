@@ -2,8 +2,6 @@ from django.urls import path
 
 from pathways.views import (
     ExtraGradesAll,
-    ExtraGradeSettingsListView,
-    ExtraGradeSettingsUpdateView,
     ExtraGradesIndividual,
     PathwayCreateView,
     PathwayDeleteView,
@@ -116,14 +114,4 @@ urlpatterns = [
         name="extra_grades_individual",
     ),
     path("extra_grades/all/", ExtraGradesAll.as_view(), name="extra_grades_all"),
-    path(
-        "extra_grade_settings/list/",
-        ExtraGradeSettingsListView.as_view(),
-        name="extra_grade_settings_list",
-    ),
-    path(
-        "extra_grade_settings/edit/<int:school_year_pk>/",
-        ExtraGradeSettingsUpdateView.as_view(),
-        name="extra_grade_settings_edit",
-    ),
 ]

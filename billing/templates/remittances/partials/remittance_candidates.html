@@ -1,13 +1,16 @@
-  <p class="mb-3 text-sm text-slate-600">
-    {{ ready_count }} de {{ rows|length }} parcela{{ rows|length|pluralize }} apta{{ ready_count|pluralize }} para envio.
-    Parcelas com pendências cadastrais não são enviadas.
-  </p>
-  <div class="table-wrap">
+<p class="mb-3 text-sm text-slate-600">
+  {{ ready_count }} de {{ rows|length }} parcela{{ rows|length|pluralize }} apta{{ ready_count|pluralize }} para envio.
+  Parcelas com pendências cadastrais não são enviadas.
+</p>
+<div class="table-wrap">
   <table class="data-table">
     <thead>
       <tr>
         <th>
-          <input type="checkbox" class="checkbox checkbox-sm" checked aria-label="Selecionar todas"
+          <input type="checkbox"
+                 class="checkbox checkbox-sm"
+                 checked
+                 aria-label="Selecionar todas"
                  onclick="document.querySelectorAll('input[name=installments]:not(:disabled)').forEach(c => c.checked = this.checked)">
         </th>
         <th>Vencimento</th>
@@ -20,43 +23,35 @@
       </tr>
     </thead>
     <tbody>
-    {% for row in rows %}
-      {% with installment=row.installment %}
-      <tr class="hover:bg-slate-50{% if row.problems %} bg-red-50{% endif %}">
-        <td>
-          <input type="checkbox" name="installments" value="{{ installment.pk }}" class="checkbox checkbox-sm"
-                 aria-label="Selecionar parcela" {% if row.problems %}disabled{% else %}checked{% endif %}>
-        </td>
-        <td class="whitespace-nowrap">
-            {{ installment.due_date|date:"d/m/Y" }}
-        </td>
-        <td>
-            {{ installment.account.guardian|default:"-" }}
-        </td>
-        <td>
-            {{ installment.account }}
-        </td>
-        <td>
-            {{ installment.number }}ª
-        </td>
-        <td class="text-right whitespace-nowrap">
-            R$ {{ installment.outstanding|floatformat:"2g" }}
-        </td>
-        <td class="text-right whitespace-nowrap">
-            R$ {{ row.discount|floatformat:"2g" }}
-        </td>
-        <td>
-            {% for problem in row.problems %}
-            <span class="block text-xs font-medium text-red-600">{{ problem }}</span>
-            {% empty %}
-            <span class="badge badge-sm badge-success badge-outline whitespace-nowrap">Apta</span>
-            {% endfor %}
-        </td>
-      </tr>
-      {% endwith %}
+      {% for row in rows %}
+        {% with installment=row.installment %}
+          <tr class="hover:bg-slate-50{% if row.problems %} bg-red-50{% endif %}">
+            <td>
+              <input type="checkbox"
+                     name="installments"
+                     value="{{ installment.pk }}"
+                     class="checkbox checkbox-sm"
+                     aria-label="Selecionar parcela"
+                     {% if row.problems %}disabled{% else %}checked{% endif %}>
+            </td>
+            <td class="whitespace-nowrap">{{ installment.due_date|date:"d/m/Y" }}</td>
+            <td>{{ installment.account.guardian|default:"-" }}</td>
+            <td>{{ installment.account }}</td>
+            <td>{{ installment.number }}ª</td>
+            <td class="text-right whitespace-nowrap">R$ {{ installment.outstanding|floatformat:"2g" }}</td>
+            <td class="text-right whitespace-nowrap">R$ {{ row.discount|floatformat:"2g" }}</td>
+            <td>
+              {% for problem in row.problems %}
+                <span class="block text-xs font-medium text-red-600">{{ problem }}</span>
+              {% empty %}
+                <span class="badge badge-sm badge-success badge-outline whitespace-nowrap">Apta</span>
+              {% endfor %}
+            </td>
+          </tr>
+        {% endwith %}
       {% empty %}
-      {% include 'components/table/empty_table.html' with collspan=8%}
+        {% include "components/table/empty_table.html" with collspan=8 %}
       {% endfor %}
     </tbody>
   </table>
-  </div>
+</div>

@@ -1,16 +1,11 @@
-{% extends 'base/base.html' %}
-
+{% extends "base/base.html" %}
 {% block page_title %}Boletos{% endblock page_title %}
-
 {% block header %}
   <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
-    {% include 'components/page/heading.html' with section='Financeiro' title='Boletos' %}
+    {% include "components/page/heading.html" with section="Financeiro" title="Boletos" %}
   </div>
-  {% include 'components/search/filter_form.html' with placeholder='Pesquisar por nosso número, conta, responsável ou aluno...' %}
+  {% include "components/search/filter_form.html" with placeholder="Pesquisar por nosso número, conta, responsável ou aluno..." %}
 {% endblock header %}
-
 {% block content %}
-  <div id="search-results">
-    {% include 'bank_slips/partials/bank_slip_table.html' %}
-  </div>
+  <div id="search-results">{% include "bank_slips/partials/bank_slip_table.html" %}</div>
 {% endblock content %}
