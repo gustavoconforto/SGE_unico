@@ -8,6 +8,7 @@ series, like the concept grade.
 """
 
 from collections import defaultdict
+from datetime import timedelta
 from decimal import Decimal
 
 from django.db.models import Count, Q, Sum
@@ -20,6 +21,16 @@ from q_and_a.services import q_and_a_points
 
 ZERO = Decimal(0)
 EXTRA_CODE = "EX"
+
+
+def lesson_days(offering, begins, ends):
+    """The dates from `begins` to `ends` that fall on the offering's weekdays."""
+    weekdays = set(offering.weekdays)
+    return [
+        day
+        for day in (begins + timedelta(n) for n in range((ends - begins).days + 1))
+        if day.isoweekday() in weekdays
+    ]
 
 
 def extra_exam_type():

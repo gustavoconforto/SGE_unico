@@ -1486,6 +1486,7 @@ class Command(BaseCommand):
                     name=name,
                     capacity=PATHWAY_CAPACITY,
                     schedule=f"{Weekday(weekday).label}, {PATHWAY_TIMES[name]}",
+                    weekdays=[weekday],
                 )
                 offering.teachers.set(
                     random.sample(all_teachers, k=random.choice([1, 1, 2]))

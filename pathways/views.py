@@ -2,9 +2,11 @@ from django.contrib import messages
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.views.generic import (
     CreateView,
     DeleteView,
+    DetailView,
     ListView,
     TemplateView,
     UpdateView,
@@ -14,6 +16,8 @@ from accounts.views import ProtectedDeleteMixin, SuccessMessageMixin
 from base.search import HtmxFilterMixin, HtmxSearchMixin, is_htmx_partial
 from classes.views import get_int_param
 from enrollments.models import SchoolYear
+from grades.models import Bimester
+from incidents.services import bimester_range
 from incidents.views import IncidentGradesAll, IncidentGradesIndividual
 from pathways.forms import (
     AttendanceSheetForm,
@@ -29,6 +33,7 @@ from pathways.forms import (
     PathwaySessionForm,
     StudentPathwaysForm,
     StudentPathwaysSelectForm,
+    members_between,
 )
 from pathways.models import (
     AttendanceStatus,
@@ -38,7 +43,12 @@ from pathways.models import (
     PathwayOffering,
     PathwaySession,
 )
-from pathways.services import EXTRA_CODE, extra_exam_type, save_extra_grades
+from pathways.services import (
+    EXTRA_CODE,
+    extra_exam_type,
+    lesson_days,
+    save_extra_grades,
+)
 
 
 def list_url(name, offering_id):
@@ -147,6 +157,48 @@ class PathwayOfferingDeleteView(ProtectedDeleteMixin, DeleteView):
     protected_message = (
         "Esta turma de itinerário possui inscrições ou aulas e não pode ser deletada."
     )
+
+
+class PathwayDiaryView(DetailView):
+    """Printable attendance diary of an offering in a bimester (?bimester=N):
+    a row per student, a column per lesson day."""
+
+    model = PathwayOffering
+    template_name = "pathway_offerings/pathway_offering_diary.html"
+    context_object_name = "offering"
+    queryset = PathwayOffering.objects.select_related(
+        "pathway", "school_year"
+    ).prefetch_related("teachers")
+
+    def get_bimester(self, school_year):
+        bimester = get_int_param(self.request, "bimester")
+        if bimester in Bimester.values:
+            return bimester
+        today = timezone.localdate()
+        for value in Bimester.values:
+            date_range = bimester_range(school_year, value)
+            if date_range and date_range[0] <= today <= date_range[1]:
+                return value
+        return Bimester.values[0]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        offering = self.object
+        bimester = self.get_bimester(offering.school_year)
+        date_range = bimester_range(offering.school_year, bimester)
+        days = lesson_days(offering, *date_range) if date_range else []
+        rows = []
+        if days:
+            for member in members_between(offering, *date_range):
+                rows.append((member, [member.is_member_on(day) for day in days]))
+        context.update(
+            bimester=bimester,
+            bimesters=Bimester.choices,
+            date_range=date_range,
+            days=days,
+            rows=rows,
+        )
+        return context
 
 
 # PATHWAY ENROLLMENT VIEWS

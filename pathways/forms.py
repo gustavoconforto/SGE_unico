@@ -10,6 +10,7 @@ from enrollments.models import Enrollment, EnrollmentStatus, SchoolYear
 from grades.models import Bimester
 from incidents.forms import ActiveEnrollmentFormMixin
 from incidents.services import bimester_range
+from lessons.models import Weekday
 from pathways.models import (
     AttendanceStatus,
     ExtraGradeSettings,
@@ -53,9 +54,28 @@ class PathwayForm(forms.ModelForm):
 
 
 class PathwayOfferingForm(forms.ModelForm):
+    weekdays = forms.TypedMultipleChoiceField(
+        label="Dias de aula",
+        required=False,
+        coerce=int,
+        choices=Weekday.choices,
+        help_text="Dias da semana em que há aula; montam as datas do diário",
+        widget=forms.CheckboxSelectMultiple(
+            attrs={"class": "checkbox checkbox-sm checkbox-neutral"}
+        ),
+    )
+
     class Meta:
         model = PathwayOffering
-        fields = ["pathway", "school_year", "name", "schedule", "capacity", "teachers"]
+        fields = [
+            "pathway",
+            "school_year",
+            "name",
+            "schedule",
+            "capacity",
+            "weekdays",
+            "teachers",
+        ]
         widgets = {
             "pathway": forms.Select(attrs={"class": "select select-neutral w-full"}),
             "school_year": forms.Select(

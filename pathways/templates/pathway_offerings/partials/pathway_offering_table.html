@@ -46,6 +46,9 @@
             {% include 'components/button/button_select.html' with label="Notas"%}
           </a>
           {% endif %}
+          <a href="{% url 'pathways:pathway_offering_diary' offering.pk %}" target="_blank" rel="noopener">
+            {% include 'components/button/button_select.html' with label="Diário"%}
+          </a>
           {% url 'pathways:pathway_offering_edit' offering.pk as edit_url %}
           {% url 'pathways:pathway_offering_delete' offering.pk as delete_url %}
           {% include 'components/table/row_menu.html' with menu_id=offering.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar turma de itinerário?' name=offering %}

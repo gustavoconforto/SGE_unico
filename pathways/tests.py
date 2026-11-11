@@ -25,7 +25,7 @@ from pathways.models import (
     PathwayOffering,
     PathwaySession,
 )
-from pathways.services import extra_grades, save_extra_grades
+from pathways.services import extra_grades, lesson_days, save_extra_grades
 from q_and_a.models import QandA
 from students.models import Student
 
@@ -833,3 +833,72 @@ class PathwayEnrollmentByStudentTests(PathwayFixturesMixin, LoggedInTestCase):
         )
         response = self.client.get(self.url(self.other))
         self.assertIsNone(response.context["form"])
+
+
+class PathwayDiaryTests(PathwayFixturesMixin, LoggedInTestCase):
+    def url(self, bimester=1):
+        return (
+            f"{reverse('pathways:pathway_offering_diary', args=[self.offering.pk])}"
+            f"?bimester={bimester}"
+        )
+
+    def setUp(self):
+        super().setUp()
+        self.offering.weekdays = [2, 4]
+        self.offering.save()
+
+    def test_lesson_days_follow_the_weekdays(self):
+        days = lesson_days(self.offering, date(2027, 2, 1), date(2027, 4, 15))
+        self.assertEqual(len(days), 22)
+        self.assertEqual((days[0], days[-1]), (date(2027, 2, 2), date(2027, 4, 15)))
+        self.assertEqual({day.isoweekday() for day in days}, {2, 4})
+
+    def test_diary_lists_members_and_days(self):
+        PathwayEnrollment.objects.create(
+            enrollment=self.other,
+            offering=self.offering,
+            joined_at=date(2027, 2, 1),
+            left_at=date(2027, 2, 3),
+        )
+        response = self.client.get(self.url())
+        self.assertTemplateUsed(
+            response, "pathway_offerings/pathway_offering_diary.html"
+        )
+        self.assertEqual(len(response.context["days"]), 22)
+        rows = dict(response.context["rows"])
+        self.assertEqual(set(rows), {self.member, self.other.pathway_enrollments.get()})
+        self.assertTrue(all(rows[self.member]))
+        left = rows[self.other.pathway_enrollments.get()]
+        self.assertEqual(left[:2], [True, False])
+        self.assertContains(response, "Robótica")
+
+    def test_missing_weekdays_or_dates(self):
+        self.offering.weekdays = []
+        self.offering.save()
+        self.assertContains(self.client.get(self.url()), "Defina os dias de aula")
+        self.assertContains(
+            self.client.get(self.url(bimester=2)), "não tem as datas deste bimestre"
+        )
+
+    def test_offering_list_links_to_the_diary(self):
+        response = self.client.get(reverse("pathways:pathway_offering_list"))
+        self.assertContains(
+            response,
+            reverse("pathways:pathway_offering_diary", args=[self.offering.pk]),
+        )
+
+    def test_form_saves_weekdays(self):
+        data = {
+            "pathway": self.theater.pk,
+            "school_year": self.school_year.pk,
+            "weekdays": ["4", "2"],
+        }
+        response = self.client.post(reverse("pathways:pathway_offering_add"), data)
+        self.assertRedirects(response, reverse("pathways:pathway_offering_list"))
+        offering = PathwayOffering.objects.get(pathway=self.theater)
+        self.assertEqual(offering.weekdays, [2, 4])
+
+        data["weekdays"] = ["7"]
+        response = self.client.post(reverse("pathways:pathway_offering_add"), data)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["form"].errors["weekdays"])

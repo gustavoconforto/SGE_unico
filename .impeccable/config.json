@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "tight-leading",
+        "value": "*",
+        "files": [
+          "pathways/templates/pathway_offerings/pathway_offering_diary.html"
+        ],
+        "createdAt": "2026-11-11T10:47:51.030Z",
+        "reason": "Claude triage: line-height 1 is only on single-line toolbar buttons/select (hidden on print), copied from enrollments/preview_enrollment.html; body text uses 1.35"
+      }
+    ]
+  }
+}

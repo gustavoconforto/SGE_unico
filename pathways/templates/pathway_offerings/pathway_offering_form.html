@@ -12,6 +12,7 @@
       {% include 'components/form/field.html' with field=form.name %}
       {% include 'components/form/field.html' with field=form.schedule %}
       {% include 'components/form/field.html' with field=form.capacity %}
+      <div class="sm:col-span-full">{% include 'components/form/checkbox_list.html' with field=form.weekdays %}</div>
     </div>
   </section>
 
