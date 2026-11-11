@@ -50,7 +50,7 @@ base ◀── students ◀── enrollments ──▶ classes ──▶ progra
 employees ◀── departments ◀── grades ──▶ enrollments, classes, employees
                                 incidents ──▶ enrollments
                                   q_and_a ──▶ enrollments, grades, incidents (forms)
-                                 pathways ──▶ enrollments, employees, grades, incidents, q_and_a (services)
+                                 pathways ──▶ enrollments, employees, grades, incidents, lessons (Weekday), q_and_a (services)
                                   lessons ──▶ classes, grades, employees, departments (via grades)
 ```
 
@@ -187,7 +187,7 @@ chosen by their teachers; others never do.
 | Model | Key fields and rules |
 |---|---|
 | `Pathway` | catalog: `name` unique, `description`, `extra_points` ("Nota máxima", ≥ 0: the highest grade its teachers can give in a bimester; 0 means it gives no extra grade, `gives_grade`) |
-| `PathwayOffering` | a pathway running in a `SchoolYear`: optional `name` (to tell groups apart), `teachers` (many-to-many to `Employee`), optional `capacity`, `schedule` (free text). Unique per (pathway, year, name) |
+| `PathwayOffering` | a pathway running in a `SchoolYear`: optional `name` (to tell groups apart), `teachers` (many-to-many to `Employee`), optional `capacity`, `schedule` (free text), `weekdays` (JSON list of `lessons.Weekday` values, 1–6; `clean()` rejects others and sorts them; they build the diary's dates). Unique per (pathway, year, name) |
 | `PathwayEnrollment` | **enrollment** × offering, `joined_at`, `left_at` (leaving sets it instead of deleting). Unique per pair. `clean()` requires the offering to be in the enrollment's school year and a free seat (members without `left_at`) |
 | `PathwaySession` | a lesson (aula): offering, `date` inside the school year, optional `topic` |
 | `PathwayAttendance` | session × pathway enrollment, `status` (`P` presente, `F` falta, `J` falta justificada). Deleted with its session. `clean()` requires the same offering and membership on the lesson's date |
@@ -207,13 +207,26 @@ changes only affect later calculations.
 
 **Screens** (sidebar section "Itinerários", `base/sidebar/menu/itinerarios.html`):
 standard CRUDs for pathways (`pathways/`), offerings (`pathways/offerings/`,
-filter by year and pathway, with links to the offering's roster, lessons and
-grades) and the roster (`pathways/enrollments/`, filter by offering and
+filter by year and pathway, with links to the offering's roster, lessons,
+grades and diary) and the roster (`pathways/enrollments/`, filter by offering and
 situation). Roster and lessons take `?offering=<pk>` to prefill the form and
 return to the filtered list; with the offering known, the enrollment select
 lists only that year's active enrollments. Leaving is recorded with `left_at`;
 deleting a member with attendance or grades is blocked.
 
+- **Sign up a student** (`pathways/enrollments/by_student/?enrollment=<pk>`,
+  `StudentPathwaysForm`, sidebar "Inscrever aluno"): pick an active enrollment,
+  then tick the year's offerings. Full offerings are disabled unless the
+  student is already in them. Unticking sets `left_at` (or deletes a pathway
+  enrollment that hasn't started and has no attendance or grades); ticking a
+  left one again clears `left_at`. One invalid row saves nothing.
+- **Diary** (`pathways/offerings/diary/<pk>/?bimester=N`, `PathwayDiaryView`):
+  a standalone printable page (doesn't extend `base.html`), opened in a new
+  tab from the offering list. Columns are the bimester's dates on the
+  offering's `weekdays` (`lesson_days()` in `pathways/services.py`), rows the
+  members in that bimester, with the days they weren't members blanked.
+  Defaults to the current bimester. Holidays aren't removed: there's no
+  calendar.
 - **Lessons** (`pathways/sessions/`): "Nova aula" saves the lesson and opens
   its roll call (`sessions/attendance/<pk>/`, `AttendanceSheetForm`): one status
   per student in the pathway on that date, present by default. A lesson's

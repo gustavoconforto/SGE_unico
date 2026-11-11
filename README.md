@@ -22,6 +22,7 @@ is in English.
 |---|---|
 | Recursos Humanos | Users, groups and permissions (Django auth), employee roles, employees |
 | Acadêmico | Courses (programs), school years and their four bimesters, classes, class roster (active students of a class), subjects, students with their guardians, enrollment contract types, discount types, required documents, enrollments, grade entry and report cards, student incidents (ocorrências), delays and bathroom permissions |
+| Itinerários | Extra-curricular pathways and their yearly groups (with weekdays and a printable attendance diary), sign-ups per group or per student, lessons and roll calls, pathway grades and the extra grade they feed |
 | Financeiro | Financial categories, suppliers, accounts receivable, accounts payable, installments, payments, bank slips (CNAB 400 remittance and return files) |
 
 Creating an enrollment automatically creates its receivable account and
