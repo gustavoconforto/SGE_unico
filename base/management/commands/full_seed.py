@@ -774,6 +774,22 @@ class Command(BaseCommand):
                 "groups": ["Professor"],
             },
         ]
+        staff = [
+            {
+                "username": "monica",
+                "first_name": "Mônica",
+                "last_name": "Secretaria",
+                "is_superuser": True,
+                "groups": [],
+            },
+            {
+                "username": "secretaria",
+                "first_name": "Secretaria",
+                "last_name": "Único",
+                "is_superuser": True,
+                "groups": [],
+            },
+        ]
 
         for usr in users:
             user = User.objects.update_or_create(
@@ -787,6 +803,21 @@ class Command(BaseCommand):
                 },
             )[0]
             user.set_password(DEV_PASSWORD)
+            user.save()
+            user.groups.set(Group.objects.filter(name__in=usr["groups"]))
+
+        for usr in staff:
+            user = User.objects.update_or_create(
+                username=usr["username"],
+                defaults={
+                    "email": "email@email.com.br",
+                    "first_name": usr["first_name"],
+                    "last_name": usr["last_name"],
+                    "is_staff": True,
+                    "is_superuser": usr["is_superuser"],
+                },
+            )[0]
+            user.set_password("senha1234")
             user.save()
             user.groups.set(Group.objects.filter(name__in=usr["groups"]))
 
