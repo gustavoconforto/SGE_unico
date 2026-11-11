@@ -12,6 +12,7 @@ from pathways.views import (
     PathwayEnrollmentListView,
     PathwayEnrollmentUpdateView,
     PathwayGradeEntryView,
+    PathwayGradeOptionsView,
     PathwayListView,
     PathwayOfferingCreateView,
     PathwayOfferingDeleteView,
@@ -114,6 +115,11 @@ urlpatterns = [
         name="student_attendance",
     ),
     path("grades/entry/", PathwayGradeEntryView.as_view(), name="pathway_grade_entry"),
+    path(
+        "grades/entry/options/",
+        PathwayGradeOptionsView.as_view(),
+        name="pathway_grade_options",
+    ),
     path(
         "extra_grades/individual/",
         ExtraGradesIndividual.as_view(),

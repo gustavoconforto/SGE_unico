@@ -3,6 +3,7 @@ from django.db.models import Max, Min
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.utils.http import urlencode
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -48,6 +49,22 @@ CONCEPT_MISSING = (
 
 def school_year_missing():
     return f"Cadastre o ano letivo de {timezone.localdate().year} para calcular."
+
+
+def skipped_message(skipped, school_year, bimester):
+    """Why the series-wide save left `skipped` without a grade: the whole year
+    lacks the bimester dates, or each named student lacks subjects."""
+    if bimester_range(school_year, bimester) is None:
+        return (
+            f"Nenhuma nota calculada: o ano letivo {school_year} não tem as "
+            f"datas do {bimester}º bimestre."
+        )
+    names = [
+        f"{enrollment.student} "
+        f"({'série sem matérias' if enrollment.school_class else 'sem turma'})"
+        for enrollment in skipped
+    ]
+    return f"Sem nota: {', '.join(names)}."
 
 
 class IncidentGradesIndividual(TemplateView):
@@ -115,13 +132,13 @@ class IncidentGradesIndividual(TemplateView):
         elif exam_type is None:
             messages.error(request, self.exam_type_missing)
         elif self.save_grades([enrollment], bimester, exam_type):
-            messages.success(request, "Registro atualizado com sucesso")
-        else:
             messages.error(
                 request,
                 "Não foi possível calcular: verifique as datas do bimestre no "
                 "ano letivo e as matérias da série do aluno.",
             )
+        else:
+            messages.success(request, "Registro atualizado com sucesso")
         return redirect(request.get_full_path())
 
 
@@ -138,7 +155,7 @@ class IncidentGradesAll(HtmxSearchMixin, ListView):
     search_fields = ("student__name", "student__social_name", "school_class__name")
 
     def get_queryset(self):
-        self.school_year = current_school_year()
+        self.school_year = self.get_school_year(self.request.GET)
         if self.school_year is None:
             return Enrollment.objects.none()
         return apply_search(
@@ -149,6 +166,9 @@ class IncidentGradesAll(HtmxSearchMixin, ListView):
 
     def get_exam_type(self):
         return concept_exam_type()
+
+    def get_school_year(self, data):
+        return current_school_year()
 
     def save_grades(self, enrollments, bimester, exam_type):
         return save_concept_grades(enrollments, bimester, exam_type)
@@ -192,7 +212,7 @@ class IncidentGradesAll(HtmxSearchMixin, ListView):
     def post(self, request, *args, **kwargs):
         _, bimester = self.get_bimester(request.POST)
         exam_type = self.get_exam_type()
-        school_year = current_school_year()
+        school_year = self.get_school_year(request.POST)
         url = reverse(self.url_name)
         if bimester is None:
             messages.error(request, "Selecione um bimestre.")
@@ -203,15 +223,16 @@ class IncidentGradesAll(HtmxSearchMixin, ListView):
             messages.error(request, school_year_missing())
         else:
             enrollments = list(current_year_enrollments(school_year))
-            graded = self.save_grades(enrollments, bimester, exam_type)
+            skipped = self.save_grades(enrollments, bimester, exam_type)
             messages.success(request, "Registro atualizado com sucesso")
-            if skipped := len(enrollments) - graded:
+            if skipped:
                 messages.warning(
-                    request,
-                    f"{skipped} matrícula(s) sem nota: ano letivo sem as datas do "
-                    "bimestre ou turma sem matérias.",
+                    request, skipped_message(skipped, school_year, bimester)
                 )
-        return redirect(f"{url}?bimester={bimester}")
+        query = {"bimester": bimester}
+        if "school_year" in request.POST:
+            query["school_year"] = request.POST["school_year"]
+        return redirect(f"{url}?{urlencode(query)}")
 
 
 # INCIDENT VIEWS

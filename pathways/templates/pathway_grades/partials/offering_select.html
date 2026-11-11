@@ -1,0 +1,6 @@
+<div id="offering-field">
+  {% include 'components/form/field.html' with field=select_form.offering %}
+</div>
+{% if clear_results %}
+<div id="search-results" class="mt-6" hx-swap-oob="true"></div>
+{% endif %}

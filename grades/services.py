@@ -198,8 +198,8 @@ def save_series_grades(enrollments, bimester, exam_type, scores):
     ({enrollment pk: score}), replacing what the exam type already had.
 
     For grades worth the same in every subject (concept, extra points).
-    Returns the number of enrollments graded; those missing from `scores` or
-    without subjects (no class or series) are skipped.
+    Returns the enrollments skipped: those missing from `scores` or without
+    subjects (no class or series).
     """
     subjects_by_level = defaultdict(list)
     for level, subject_id in GradeLevelSubject.objects.values_list(
@@ -208,15 +208,15 @@ def save_series_grades(enrollments, bimester, exam_type, scores):
         subjects_by_level[level].append(subject_id)
 
     rows = []
-    graded = 0
+    skipped = []
     for enrollment in enrollments:
         school_class = enrollment.school_class
         subject_ids = (
             subjects_by_level[school_class.grade_level] if school_class else []
         )
         if enrollment.pk not in scores or not subject_ids:
+            skipped.append(enrollment)
             continue
-        graded += 1
         rows += [
             Grade(
                 enrollment=enrollment,
@@ -234,4 +234,4 @@ def save_series_grades(enrollments, bimester, exam_type, scores):
             unique_fields=["enrollment", "subject", "exam_type", "bimester"],
             update_fields=["score", "updated_at"],
         )
-    return graded
+    return skipped

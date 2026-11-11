@@ -9,14 +9,21 @@
 {% block content %}
 <div class="page-form-wide">
   <div class="w-full">
-    {% include 'components/page/heading.html' with section='Itinerários' subtitle='Selecione a turma de itinerário e o bimestre.' title='Notas de itinerário' %}
+    {% include 'components/page/heading.html' with section='Itinerários' subtitle='Selecione o ano escolar, a turma de itinerário e o bimestre.' title='Notas de itinerário' %}
     <div class="mb-6"></div>
     <form hx-get="{{ request.path }}"
-          hx-trigger="change"
+          hx-trigger="change[target.name!='school_year']"
           hx-target="#search-results"
           hx-push-url="true"
-          class="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
-      {% include 'components/form/field.html' with field=select_form.offering %}
+          class="grid grid-cols-1 gap-x-4 sm:grid-cols-3">
+      <div hx-get="{% url 'pathways:pathway_grade_options' %}"
+           hx-trigger="change"
+           hx-include="[name='school_year'], [name='bimester']"
+           hx-target="#offering-field"
+           hx-swap="outerHTML">
+        {% include 'components/form/field.html' with field=select_form.school_year %}
+      </div>
+      {% include 'pathway_grades/partials/offering_select.html' %}
       {% include 'components/form/field.html' with field=select_form.bimester %}
     </form>
 

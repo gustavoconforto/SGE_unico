@@ -17,8 +17,9 @@ from django.views.generic import (
 from accounts.views import ProtectedDeleteMixin, SuccessMessageMixin
 from base.search import HtmxFilterMixin, HtmxSearchMixin, is_htmx_partial
 from classes.views import get_int_param
+from enrollments.models import SchoolYear
 from grades.models import Bimester
-from incidents.forms import ConceptGradeForm
+from incidents.forms import ConceptGradeForm, current_school_year
 from incidents.services import bimester_range
 from incidents.views import IncidentGradesAll, IncidentGradesIndividual
 from pathways.forms import (
@@ -32,6 +33,7 @@ from pathways.forms import (
     PathwayOfferingForm,
     PathwaySessionFilterForm,
     PathwaySessionForm,
+    SchoolYearSelectForm,
     StudentPathwaysForm,
     StudentPathwaysSelectForm,
     members_between,
@@ -503,6 +505,27 @@ class PathwayGradeEntryView(TemplateView):
         return self.render_to_response(self.get_context_data(form=form))
 
 
+class PathwayGradeOptionsView(TemplateView):
+    """htmx endpoint: the offering select filtered by ?school_year=<pk>."""
+
+    template_name = "pathway_grades/partials/offering_select.html"
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(
+            select_form=PathwayGradeSelectForm(self.request.GET),
+            clear_results=True,
+            **kwargs,
+        )
+
+    def render_to_response(self, context, **kwargs):
+        response = super().render_to_response(context, **kwargs)
+        # Keep the chosen year in the address bar so a reload restores it.
+        response["HX-Push-Url"] = (
+            f"{reverse('pathways:pathway_grade_entry')}?{self.request.GET.urlencode()}"
+        )
+        return response
+
+
 # EXTRA GRADE VIEWS
 
 EXTRA_MISSING = (
@@ -531,3 +554,18 @@ class ExtraGradesAll(ExtraGradeMixin, IncidentGradesAll):
     template_name = "extra_grades/extra_grades_all.html"
     partial_template_name = "extra_grades/partials/extra_grades_table.html"
     url_name = "pathways:extra_grades_all"
+
+    def get_school_year(self, data):
+        if "school_year" not in data:
+            return (
+                current_school_year() or SchoolYear.objects.order_by("-begins").first()
+            )
+        form = SchoolYearSelectForm(data)
+        return form.cleaned_data["school_year"] if form.is_valid() else None
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["year_form"] = SchoolYearSelectForm(
+            initial={"school_year": self.school_year}
+        )
+        return context

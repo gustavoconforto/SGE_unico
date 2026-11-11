@@ -79,8 +79,8 @@ def concept_grades(enrollments, bimester):
 def save_concept_grades(enrollments, bimester, exam_type):
     """Give every subject of each enrollment's series its concept grade.
 
-    Returns the number of enrollments graded; those without bimester dates or
-    without subjects (no class or series) are skipped.
+    Returns the enrollments skipped: those without bimester dates or without
+    subjects (no class or series).
     """
     return save_series_grades(
         enrollments, bimester, exam_type, concept_grades(enrollments, bimester)

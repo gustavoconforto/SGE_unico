@@ -6,7 +6,6 @@
   <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
     {% include 'components/page/heading.html' with section='Itinerários' title='Nota extra coletiva' %}
     <div class="flex gap-3 items-center">
-    {% if school_year %}<span class="badge badge-neutral badge-outline">Ano letivo {{ school_year }}</span>{% endif %}
     <a href="{% url 'pathways:extra_grades_individual' %}">
     {% include 'components/button/button_select.html' with label='Nota extra individual'%}
     </a>
@@ -17,6 +16,7 @@
         hx-target="#search-results"
         hx-push-url="true"
         class="mb-4 flex flex-wrap items-center gap-3">
+    <div class="w-full sm:w-56">{{ year_form.school_year }}</div>
     <div class="w-full sm:w-56">{{ bimester_form.bimester }}</div>
     <div class="relative max-w-xl min-w-64 flex-1">
       <span class="material-symbols-outlined pointer-events-none absolute top-1/2 left-3 z-10 -translate-y-1/2 text-slate-400" aria-hidden="true">search</span>
