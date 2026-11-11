@@ -219,9 +219,9 @@ class ExtraGradeTests(PathwayFixturesMixin, LoggedInTestCase):
             score=Decimal(1),
         )
 
-        graded = save_extra_grades([self.enrollment, self.other], 1, self.extra)
+        skipped = save_extra_grades([self.enrollment, self.other], 1, self.extra)
 
-        self.assertEqual(graded, 2)
+        self.assertEqual(skipped, [])
         scores = dict(
             Grade.objects.filter(
                 enrollment=self.enrollment, exam_type=self.extra, bimester=1
@@ -510,7 +510,8 @@ class PathwayGradeEntryTests(PathwayFixturesMixin, LoggedInTestCase):
     def sheet_url(self, bimester=1):
         return (
             f"{reverse('pathways:pathway_grade_entry')}"
-            f"?offering={self.offering.pk}&bimester={bimester}"
+            f"?school_year={self.offering.school_year_id}"
+            f"&offering={self.offering.pk}&bimester={bimester}"
         )
 
     def test_sheet_shows_attendance(self):
@@ -549,6 +550,35 @@ class PathwayGradeEntryTests(PathwayFixturesMixin, LoggedInTestCase):
         self.robotics.save()
         response = self.client.get(self.sheet_url(), **HTMX)
         self.assertIsNone(response.context["form"])
+
+    def test_offering_of_another_year_shows_no_sheet(self):
+        other = SchoolYear.objects.exclude(pk=self.offering.school_year_id).first()
+        url = self.sheet_url().replace(
+            f"school_year={self.offering.school_year_id}",
+            f"school_year={other.pk if other else 0}",
+        )
+        response = self.client.get(url, **HTMX)
+        self.assertIsNone(response.context["form"])
+
+    def test_offering_list_links_to_its_sheet(self):
+        response = self.client.get(reverse("pathways:pathway_offering_list"))
+        link = (
+            f"{reverse('pathways:pathway_grade_entry')}"
+            f"?school_year={self.offering.school_year_id}&offering={self.offering.pk}"
+        )
+        self.assertContains(response, link)
+
+    def test_options_lists_offerings_of_the_year(self):
+        url = reverse("pathways:pathway_grade_options")
+        response = self.client.get(
+            url, {"school_year": self.offering.school_year_id}, **HTMX
+        )
+        self.assertIn(
+            self.offering, response.context["select_form"].fields["offering"].queryset
+        )
+        self.assertIn("school_year=", response["HX-Push-Url"])
+        response = self.client.get(url, **HTMX)
+        self.assertFalse(response.context["select_form"].fields["offering"].queryset)
 
     def test_without_selection_shows_no_sheet(self):
         response = self.client.get(reverse("pathways:pathway_grade_entry"))
@@ -618,6 +648,38 @@ class ExtraGradeViewsTests(PathwayFixturesMixin, LoggedInTestCase):
         self.assertContains(response, "0,50")
         self.assertContains(response, "Calcular 1º bimestre para todos os alunos")
 
+    def test_all_shows_and_calculates_the_chosen_year(self):
+        other = SchoolYear.objects.create(
+            begins=date(2028, 1, 10), ends=date(2028, 12, 15)
+        )
+        url = reverse("pathways:extra_grades_all")
+        response = self.client.get(
+            url, {"bimester": 1, "school_year": other.pk}, **HTMX
+        )
+        self.assertEqual(response.context["school_year"], other)
+        self.assertFalse(response.context["enrollments"])
+
+        response = self.client.post(url, {"bimester": 1, "school_year": other.pk})
+        self.assertRedirects(response, f"{url}?bimester=1&school_year={other.pk}")
+        self.assertEqual(self.extra_scores(), {})
+
+    def test_all_names_the_students_left_without_grade(self):
+        Enrollment.objects.filter(pk=self.other.pk).update(school_class=None)
+        url = reverse("pathways:extra_grades_all")
+        response = self.client.post(url, {"bimester": 1}, follow=True)
+        self.assertContains(response, "Sem nota: Bruno Lima (sem turma).")
+        self.assertEqual(self.extra_scores(), {self.enrollment.pk: Decimal("0.5")})
+
+    def test_all_says_the_bimester_has_no_dates(self):
+        url = reverse("pathways:extra_grades_all")
+        response = self.client.post(url, {"bimester": 2}, follow=True)
+        self.assertContains(response, "não tem as datas do 2º bimestre")
+
+    def test_all_page_has_the_year_select(self):
+        response = self.client.get(reverse("pathways:extra_grades_all"))
+        self.assertContains(response, 'name="school_year"')
+        self.assertEqual(response.context["school_year"], self.school_year)
+
     def test_all_page_has_the_bimester_select(self):
         response = self.client.get(reverse("pathways:extra_grades_all"))
         self.assertContains(response, 'name="bimester"')
@@ -656,7 +718,16 @@ class PathwayPagesRenderTests(PathwayFixturesMixin, LoggedInTestCase):
             ("pathways:pathway_session_edit", [session.pk], {}),
             ("pathways:pathway_session_delete", [session.pk], {}),
             ("pathways:pathway_session_attendance", [session.pk], {}),
-            ("pathways:pathway_grade_entry", [], {**offering, "bimester": 1}),
+            (
+                "pathways:pathway_grade_entry",
+                [],
+                {
+                    **offering,
+                    "school_year": self.offering.school_year_id,
+                    "bimester": 1,
+                },
+            ),
+            ("pathways:pathway_grade_options", [], {}),
             ("pathways:extra_grades_individual", [], {}),
             ("pathways:extra_grades_all", [], {}),
         ]

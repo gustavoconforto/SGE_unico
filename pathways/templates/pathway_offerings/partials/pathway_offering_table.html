@@ -42,7 +42,7 @@
             {% include 'components/button/button_select.html' with label="Aulas"%}
           </a>
           {% if offering.pathway.gives_grade %}
-          <a href="{% url 'pathways:pathway_grade_entry' %}?offering={{ offering.pk }}">
+          <a href="{% url 'pathways:pathway_grade_entry' %}?school_year={{ offering.school_year_id }}&offering={{ offering.pk }}">
             {% include 'components/button/button_select.html' with label="Notas"%}
           </a>
           {% endif %}

@@ -387,9 +387,16 @@ class AttendanceSheetForm(forms.Form):
 
 
 class PathwayGradeSelectForm(forms.Form):
-    """Pick an offering and a bimester to enter its pathway grades; only
-    pathways that give an extra grade are listed."""
+    """Pick a school year, an offering of that year and a bimester to enter
+    its pathway grades; only pathways that give an extra grade are listed."""
 
+    school_year = forms.ModelChoiceField(
+        label="Ano escolar",
+        required=False,
+        queryset=SchoolYear.objects.order_by("-begins"),
+        empty_label="Selecione um ano escolar",
+        widget=offering_select(),
+    )
     offering = forms.ModelChoiceField(
         label="Turma de itinerário",
         required=False,
@@ -404,6 +411,27 @@ class PathwayGradeSelectForm(forms.Form):
         empty_value=None,
         choices=[("", "Selecione um bimestre"), *Bimester.choices],
         widget=forms.Select(attrs={"class": "select select-neutral w-full"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        year = str(self.data.get("school_year", ""))
+        offering = self.fields["offering"]
+        offering.queryset = (
+            offering.queryset.filter(school_year_id=year)
+            if year.isdigit()
+            else offering.queryset.none()
+        )
+
+
+class SchoolYearSelectForm(forms.Form):
+    school_year = forms.ModelChoiceField(
+        label="Ano escolar",
+        queryset=SchoolYear.objects.order_by("-begins"),
+        empty_label=None,
+        widget=forms.Select(
+            attrs={"class": "select select-neutral w-full", "aria-label": "Ano escolar"}
+        ),
     )
 
 

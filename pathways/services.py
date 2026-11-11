@@ -111,8 +111,8 @@ def save_extra_grades(enrollments, bimester, exam_type):
     """Give every subject of each enrollment's series its extra grade, zero
     included, so a recalculation replaces outdated values.
 
-    Returns the number of enrollments graded; those without bimester dates or
-    without subjects (no class or series) are skipped.
+    Returns the enrollments skipped: those without bimester dates or without
+    subjects (no class or series).
     """
     return save_series_grades(
         enrollments, bimester, exam_type, extra_grades(enrollments, bimester, exam_type)

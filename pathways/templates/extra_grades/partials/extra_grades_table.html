@@ -9,6 +9,7 @@
     <form method="POST" action="{{ request.path }}">
       {% csrf_token %}
       <input type="hidden" name="bimester" value="{{ bimester }}">
+      <input type="hidden" name="school_year" value="{{ school_year.pk }}">
       {% include 'components/button/button_submit_form.html' with label='Calcular '|add:bimester_form.bimester.value|add:'º bimestre para todos os alunos' %}
     </form>
   </div>
