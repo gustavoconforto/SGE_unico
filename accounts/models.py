@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models import (
     Case,
     Count,
@@ -430,13 +430,15 @@ class Payment(TimeStampedModel):
         )
 
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        self.installment.refresh_status()
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            self.installment.refresh_status()
 
     def delete(self, *args, **kwargs):
         installment = self.installment
-        result = super().delete(*args, **kwargs)
-        installment.refresh_status()
+        with transaction.atomic():
+            result = super().delete(*args, **kwargs)
+            installment.refresh_status()
         return result
 
     class Meta:

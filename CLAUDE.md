@@ -109,8 +109,7 @@ database; to try it, point a settings override at a scratch SQLite file.
   is a file in `base/templates/base/sidebar/menu/` (`academico.html`,
   `financeiro.html`, …) included by `sidebar/sidebar.html`; add
   `{% include 'base/sidebar/items/menu_item.html' with path=… label=… icon=… %}`
-  with a Material Symbols icon name. Don't edit
-  `base/templates/base/sidebar.html`: it's the old, unused copy.
+  with a Material Symbols icon name.
 
 ### Finance rules (don't break)
 - Use `AccountReceivable` / `AccountPayable` proxies, not raw `Account`, in

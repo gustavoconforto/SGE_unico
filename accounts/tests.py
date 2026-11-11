@@ -1,11 +1,12 @@
 from datetime import date, timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.test import SimpleTestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from accounts.forms import AccountReceivableForm
+from accounts.forms import AccountReceivableForm, PaymentForm
 from accounts.models import (
     AccountPayable,
     AccountReceivable,
@@ -212,6 +213,24 @@ class PaymentViewsTests(LoggedInTestCase):
         self.post_payment("65", penalty="5")
         self.installment.refresh_from_db()
         self.assertEqual(self.installment.status, InstallmentStatus.PAID)
+
+    def test_balance_is_checked_again_when_saving(self):
+        # A double click: the other request saves after this one validated.
+        original = PaymentForm.check_balance
+
+        def other_request_saves_first(form):
+            if hasattr(form, "validated"):
+                Payment.objects.create(
+                    installment=self.installment, amount=Decimal(100), method="PIX"
+                )
+            form.validated = True
+            return original(form)
+
+        with patch.object(PaymentForm, "check_balance", other_request_saves_first):
+            response = self.post_payment("100")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "excede o saldo da parcela")
+        self.assertEqual(Payment.objects.count(), 1)
 
     def test_payment_from_account_page_returns_to_it(self):
         response = self.post_payment("40", f"?installment={self.installment.pk}")

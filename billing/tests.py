@@ -658,6 +658,14 @@ class BillingViewTests(BillingTestMixin, LoggedInTestCase):
         self.assertRedirects(response, reverse("billing:remittance_list"))
         self.assertFalse(Remittance.objects.exists())
 
+    def test_downloaded_remittance_cannot_be_deleted(self):
+        # The file may already be at the bank: its slips must stay tracked.
+        remittance = create_remittance([self.installments()[0].pk])
+        self.client.get(reverse("billing:remittance_download", args=[remittance.pk]))
+        self.client.post(reverse("billing:remittance_delete", args=[remittance.pk]))
+        self.assertTrue(Remittance.objects.filter(pk=remittance.pk).exists())
+        self.assertEqual(remittance.slips.count(), 1)
+
     def test_lists_render_partials_on_htmx(self):
         create_remittance([self.installments()[0].pk])
         for name, partial in (

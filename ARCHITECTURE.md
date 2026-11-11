@@ -584,8 +584,7 @@ introduce new colors or components without a reason.
     horária, Diário de classe, Ocorrências, Atrasos, Saídas para banheiro,
     Plantões, Matrículas, Alunos and Responsáveis.
 
-  Add a new entry in the style of its section. `base/templates/base/sidebar.html`
-  (no subfolder) is the old copy and is no longer included anywhere.
+  Add a new entry in the style of its section.
 
 ### Page patterns
 
