@@ -182,6 +182,29 @@ ENROLLMENT_PRICES = {
 }
 NEXT_YEAR_INCREASE = Decimal("1.06")
 
+# Bimester (begins, ends) per school year; other years get FALLBACK_BIMESTERS.
+SCHOOL_YEARS = [2026, 2027]
+BIMESTERS = {
+    2026: [
+        (date(2026, 2, 2), date(2026, 4, 17)),
+        (date(2026, 4, 27), date(2026, 7, 3)),
+        (date(2026, 7, 27), date(2026, 10, 2)),
+        (date(2026, 10, 13), date(2026, 12, 11)),
+    ],
+    2027: [
+        (date(2027, 2, 1), date(2027, 4, 16)),
+        (date(2027, 4, 26), date(2027, 7, 2)),
+        (date(2027, 7, 26), date(2027, 10, 1)),
+        (date(2027, 10, 13), date(2027, 12, 10)),
+    ],
+}
+FALLBACK_BIMESTERS = [
+    ((2, 1), (4, 17)),
+    ((4, 27), (7, 3)),
+    ((7, 27), (9, 30)),
+    ((10, 13), (12, 15)),
+]
+
 DEPARTMENT_SUBJECTS = {
     "Cadeira de Física": "Física",
     "Cadeira de Biologia": "Biologia",
@@ -821,27 +844,22 @@ class Command(BaseCommand):
             user.groups.set(Group.objects.filter(name__in=usr["groups"]))
 
     def seed_school_years(self):
-        """The filled year, plus the next one so its contracts can be sold."""
-        return {
-            year: SchoolYear.objects.update_or_create(
-                begins__year=year,
-                defaults={
-                    "begins": date(year, 2, 1),
-                    "ends": date(year, 12, 15),
-                    "bi_1_begins": date(year, 2, 1),
-                    "bi_1_ends": date(year, 4, 17),
-                    "bi_2_begins": date(year, 4, 27),
-                    "bi_2_ends": date(year, 7, 3),
-                    "bi_3_begins": date(year, 7, 27),
-                    "bi_3_ends": date(year, 9, 30),
-                    "bi_4_begins": date(year, 10, 13),
-                    "bi_4_ends": date(year, 12, 15),
-                    "school_days": 200,
-                    "total_hours": 1000,
-                },
+        """The filled year plus 2026 and 2027, so their contracts can be sold."""
+        school_years = {}
+        for year in sorted({self.year, *SCHOOL_YEARS}):
+            bimesters = BIMESTERS.get(year) or [
+                (date(year, *begins), date(year, *ends))
+                for begins, ends in FALLBACK_BIMESTERS
+            ]
+            defaults = {"school_days": 200, "total_hours": 1000}
+            defaults["begins"], defaults["ends"] = bimesters[0][0], bimesters[-1][1]
+            for number, (begins, ends) in enumerate(bimesters, 1):
+                defaults[f"bi_{number}_begins"] = begins
+                defaults[f"bi_{number}_ends"] = ends
+            school_years[year] = SchoolYear.objects.update_or_create(
+                begins__year=year, defaults=defaults
             )[0]
-            for year in [self.year]
-        }
+        return school_years
 
     def seed_classes(self, program, school_year):
         return [

@@ -13,7 +13,7 @@ from django.utils import timezone
 from accounts.models import Payment, Supplier
 from billing.models import BankSlip, ReturnEvent, SlipStatus
 from classes.models import Class
-from enrollments.models import Enrollment
+from enrollments.models import Enrollment, EnrollmentType, SchoolYear
 from grades.models import Grade
 from lessons.models import Lecture, TimetableSlot
 from pathways.models import PathwayAttendance, PathwayEnrollment, PathwayGrade
@@ -112,6 +112,16 @@ class FullSeedTests(TestCase):
         self.assertEqual(Class.objects.count(), 31)
         self.assertEqual(Student.objects.count(), 62)
         self.assertEqual(Enrollment.objects.count(), 62)
+        # 2026 and 2027 always exist, with their bimesters and three series each.
+        year_2027 = SchoolYear.objects.get(begins__year=2027)
+        self.assertEqual(year_2027.bi_4_ends, date(2027, 12, 10))
+        for year in (2026, 2027):
+            self.assertQuerySetEqual(
+                EnrollmentType.objects.filter(school_year__begins__year=year)
+                .order_by("level")
+                .values_list("level", flat=True),
+                ["1", "2", "3"],
+            )
         self.assertTrue(Grade.objects.filter(exam_type__code="PB").exists())
         self.assertTrue(BankSlip.objects.filter(status=SlipStatus.PAID).exists())
         self.assertFalse(ReturnEvent.objects.filter(status="E").exists())
