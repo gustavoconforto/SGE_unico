@@ -1,0 +1,6 @@
+{% regroup days by month as months %}
+{% for month in months %}
+  <div><span class="text-slate-500">{{ month.list.0|date:"b" }} ·</span> {% for day in month.list %}{{ day|date:"d" }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+{% empty %}
+  <span class="text-slate-400">—</span>
+{% endfor %}

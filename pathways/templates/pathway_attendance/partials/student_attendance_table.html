@@ -1,0 +1,42 @@
+{% if enrollment %}
+  {% if not date_range %}
+  <p class="text-center text-slate-600">
+    O ano letivo deste aluno não tem as datas deste bimestre.
+    <a href="{% url 'enrollments:school_year_edit' enrollment.enrollment_type.school_year.pk %}" class="underline hover:text-slate-900">Cadastre as datas do bimestre</a>.
+  </p>
+  {% else %}
+  <p class="pb-3 text-sm text-slate-500">
+    Aulas de {{ date_range.0|date:"d/m/Y" }} a {{ date_range.1|date:"d/m/Y" }}.
+  </p>
+  <div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Itinerário</th>
+        <th class="text-right">Presenças</th>
+        <th class="text-right">Faltas</th>
+        <th class="text-right">Justificadas</th>
+        <th>Dias de falta</th>
+        <th>Dias de falta justificada</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in rows %}
+      <tr class="hover:bg-slate-50">
+        <td class="whitespace-nowrap">{{ row.offering }}</td>
+        <td class="text-right whitespace-nowrap">{{ row.present }}</td>
+        <td class="text-right whitespace-nowrap">{{ row.absent }}</td>
+        <td class="text-right whitespace-nowrap">{{ row.excused }}</td>
+        <td>{% include 'pathway_attendance/partials/attendance_days.html' with days=row.absent_days %}</td>
+        <td>{% include 'pathway_attendance/partials/attendance_days.html' with days=row.excused_days %}</td>
+      </tr>
+    {% empty %}
+      {% include 'components/table/empty_table.html' with collspan=6 %}
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+{% else %}
+  <p class="px-2 pb-3 text-sm text-slate-500">Selecione um aluno e um bimestre para ver a frequência.</p>
+{% endif %}

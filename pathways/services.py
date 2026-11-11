@@ -43,8 +43,9 @@ def attendance_rate(present, absent):
 
 
 def with_attendance(pathway_enrollments, date_range):
-    """Annotate `present` and `absent`: the lessons in `date_range` attended
-    and missed (excused absences are in neither)."""
+    """Annotate `present`, `absent` and `excused`: the lessons in `date_range`
+    attended, missed and missed with an excuse (`excused` is in neither of the
+    other two)."""
 
     def lessons(status):
         return Count(
@@ -58,6 +59,7 @@ def with_attendance(pathway_enrollments, date_range):
     return pathway_enrollments.annotate(
         present=lessons(AttendanceStatus.PRESENT),
         absent=lessons(AttendanceStatus.ABSENT),
+        excused=lessons(AttendanceStatus.EXCUSED),
     )
 
 

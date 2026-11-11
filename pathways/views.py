@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django.contrib import messages
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect
@@ -16,6 +18,7 @@ from accounts.views import ProtectedDeleteMixin, SuccessMessageMixin
 from base.search import HtmxFilterMixin, HtmxSearchMixin, is_htmx_partial
 from classes.views import get_int_param
 from grades.models import Bimester
+from incidents.forms import ConceptGradeForm
 from incidents.services import bimester_range
 from incidents.views import IncidentGradesAll, IncidentGradesIndividual
 from pathways.forms import (
@@ -36,6 +39,7 @@ from pathways.forms import (
 from pathways.models import (
     AttendanceStatus,
     Pathway,
+    PathwayAttendance,
     PathwayEnrollment,
     PathwayOffering,
     PathwaySession,
@@ -45,6 +49,7 @@ from pathways.services import (
     extra_exam_type,
     lesson_days,
     save_extra_grades,
+    with_attendance,
 )
 
 
@@ -307,6 +312,59 @@ class PathwayEnrollmentByStudentView(TemplateView):
             return redirect(request.get_full_path())
         messages.error(request, "Corrija os itinerários destacados. Nada foi salvo.")
         return self.render_to_response(self.get_context_data(form=form))
+
+
+class StudentAttendanceView(TemplateView):
+    """Lessons attended and missed, with the days missed, in every pathway of
+    the enrollment and bimester picked in the query string."""
+
+    template_name = "pathway_attendance/student_attendance.html"
+    partial_template_name = "pathway_attendance/partials/student_attendance_table.html"
+
+    def get_template_names(self):
+        if is_htmx_partial(self.request):
+            return [self.partial_template_name]
+        return [self.template_name]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = ConceptGradeForm(self.request.GET or None)
+        context["form"] = form
+        if not (form.is_valid() and all(form.cleaned_data.values())):
+            return context
+        enrollment = form.cleaned_data["enrollment"]
+        date_range = bimester_range(
+            enrollment.enrollment_type.school_year, form.cleaned_data["bimester"]
+        )
+        context.update(enrollment=enrollment, date_range=date_range)
+        if date_range is None:
+            return context
+        begins, ends = date_range
+        rows = list(
+            with_attendance(
+                enrollment.pathway_enrollments.filter(joined_at__lte=ends)
+                .filter(Q(left_at__isnull=True) | Q(left_at__gte=begins))
+                .select_related("offering__pathway", "offering__school_year")
+                .order_by("offering__pathway__name", "offering__name"),
+                date_range,
+            )
+        )
+        days = defaultdict(lambda: defaultdict(list))
+        for member_id, status, day in (
+            PathwayAttendance.objects.filter(
+                pathway_enrollment__in=rows,
+                status__in=[AttendanceStatus.ABSENT, AttendanceStatus.EXCUSED],
+                session__date__range=date_range,
+            )
+            .order_by("session__date")
+            .values_list("pathway_enrollment_id", "status", "session__date")
+        ):
+            days[member_id][status].append(day)
+        for row in rows:
+            row.absent_days = days[row.pk][AttendanceStatus.ABSENT]
+            row.excused_days = days[row.pk][AttendanceStatus.EXCUSED]
+        context["rows"] = rows
+        return context
 
 
 # PATHWAY SESSION VIEWS

@@ -23,6 +23,7 @@ from pathways.views import (
     PathwaySessionListView,
     PathwaySessionUpdateView,
     PathwayUpdateView,
+    StudentAttendanceView,
 )
 
 app_name = "pathways"
@@ -106,6 +107,11 @@ urlpatterns = [
         "sessions/attendance/<int:pk>/",
         PathwaySessionAttendanceView.as_view(),
         name="pathway_session_attendance",
+    ),
+    path(
+        "attendance/by_student/",
+        StudentAttendanceView.as_view(),
+        name="student_attendance",
     ),
     path("grades/entry/", PathwayGradeEntryView.as_view(), name="pathway_grade_entry"),
     path(

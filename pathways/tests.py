@@ -844,3 +844,59 @@ class PathwayDiaryTests(PathwayFixturesMixin, LoggedInTestCase):
         response = self.client.post(reverse("pathways:pathway_offering_add"), data)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context["form"].errors["weekdays"])
+
+
+class StudentAttendanceTests(PathwayFixturesMixin, LoggedInTestCase):
+    def url(self, bimester=1):
+        return (
+            f"{reverse('pathways:student_attendance')}"
+            f"?enrollment={self.enrollment.pk}&bimester={bimester}"
+        )
+
+    def roll(self, day, status, member=None):
+        session = PathwaySession.objects.create(offering=self.offering, date=day)
+        PathwayAttendance.objects.create(
+            session=session, pathway_enrollment=member or self.member, status=status
+        )
+
+    def test_counts_and_days_in_the_bimester(self):
+        self.roll(date(2027, 2, 2), AttendanceStatus.PRESENT)
+        self.roll(date(2027, 2, 9), AttendanceStatus.ABSENT)
+        self.roll(date(2027, 3, 2), AttendanceStatus.ABSENT)
+        self.roll(date(2027, 3, 9), AttendanceStatus.EXCUSED)
+        self.roll(date(2027, 5, 4), AttendanceStatus.ABSENT)  # after the bimester
+        response = self.client.get(self.url())
+        self.assertTemplateUsed(response, "pathway_attendance/student_attendance.html")
+        [row] = response.context["rows"]
+        self.assertEqual((row.present, row.absent, row.excused), (1, 2, 1))
+        self.assertEqual(row.absent_days, [date(2027, 2, 9), date(2027, 3, 2)])
+        self.assertEqual(row.excused_days, [date(2027, 3, 9)])
+        self.assertContains(response, "fev ·</span> 09</div>", html=False)
+        self.assertContains(response, "mar ·</span> 02</div>", html=False)
+
+    def test_lists_only_pathways_joined_during_the_bimester(self):
+        theater = PathwayOffering.objects.create(
+            pathway=self.theater, school_year=self.school_year
+        )
+        PathwayEnrollment.objects.create(
+            enrollment=self.enrollment,
+            offering=theater,
+            joined_at=date(2027, 1, 10),
+            left_at=date(2027, 1, 20),
+        )
+        response = self.client.get(self.url())
+        self.assertEqual(list(response.context["rows"]), [self.member])
+
+    def test_empty_selection_and_missing_dates(self):
+        response = self.client.get(reverse("pathways:student_attendance"))
+        self.assertContains(response, "Selecione um aluno e um bimestre")
+        self.assertContains(self.client.get(self.url(bimester=2)), "não tem as datas")
+
+    def test_htmx_renders_the_partial(self):
+        response = self.client.get(self.url(), HTTP_HX_REQUEST="true")
+        self.assertTemplateUsed(
+            response, "pathway_attendance/partials/student_attendance_table.html"
+        )
+        self.assertTemplateNotUsed(
+            response, "pathway_attendance/student_attendance.html"
+        )
