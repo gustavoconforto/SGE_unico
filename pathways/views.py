@@ -27,6 +27,8 @@ from pathways.forms import (
     PathwayOfferingForm,
     PathwaySessionFilterForm,
     PathwaySessionForm,
+    StudentPathwaysForm,
+    StudentPathwaysSelectForm,
 )
 from pathways.models import (
     AttendanceStatus,
@@ -215,6 +217,47 @@ class PathwayEnrollmentDeleteView(
         "Este aluno possui presenças ou notas no itinerário e não pode ser "
         "deletado. Registre a data de saída."
     )
+
+
+class PathwayEnrollmentByStudentView(TemplateView):
+    """The pathways of the enrollment picked in the query string, to sign the
+    student up for several at once."""
+
+    template_name = "pathway_enrollments/pathway_enrollment_by_student.html"
+    partial_template_name = (
+        "pathway_enrollments/partials/pathway_enrollment_by_student_sheet.html"
+    )
+
+    def get_template_names(self):
+        if is_htmx_partial(self.request):
+            return [self.partial_template_name]
+        return [self.template_name]
+
+    def get_sheet_form(self, data=None):
+        select_form = StudentPathwaysSelectForm(self.request.GET or None)
+        if not (select_form.is_valid() and select_form.cleaned_data["enrollment"]):
+            return select_form, None
+        return select_form, StudentPathwaysForm(
+            data, enrollment=select_form.cleaned_data["enrollment"]
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        select_form, sheet = self.get_sheet_form()
+        context["select_form"] = select_form
+        context.setdefault("form", sheet)
+        return context
+
+    def post(self, request, *args, **kwargs):
+        _, form = self.get_sheet_form(request.POST)
+        if form is None:
+            return redirect(request.get_full_path())
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Registro atualizado com sucesso")
+            return redirect(request.get_full_path())
+        messages.error(request, "Corrija os itinerários destacados. Nada foi salvo.")
+        return self.render_to_response(self.get_context_data(form=form))
 
 
 # PATHWAY SESSION VIEWS

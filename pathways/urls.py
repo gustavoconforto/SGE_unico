@@ -7,6 +7,7 @@ from pathways.views import (
     ExtraGradesIndividual,
     PathwayCreateView,
     PathwayDeleteView,
+    PathwayEnrollmentByStudentView,
     PathwayEnrollmentCreateView,
     PathwayEnrollmentDeleteView,
     PathwayEnrollmentListView,
@@ -61,6 +62,11 @@ urlpatterns = [
         "enrollments/add/",
         PathwayEnrollmentCreateView.as_view(),
         name="pathway_enrollment_add",
+    ),
+    path(
+        "enrollments/by_student/",
+        PathwayEnrollmentByStudentView.as_view(),
+        name="pathway_enrollment_by_student",
     ),
     path(
         "enrollments/edit/<int:pk>/",

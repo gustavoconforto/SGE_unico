@@ -6,9 +6,15 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse
 
 from base.testing import LoggedInTestCase
-from enrollments.models import Enrollment, EnrollmentType, SchoolYear
+from enrollments.models import (
+    Enrollment,
+    EnrollmentStatus,
+    EnrollmentType,
+    SchoolYear,
+)
 from grades.models import ExamKind, ExamType, Grade, GradeLevelSubject, Subject
 from incidents.tests import create_enrollment
+from pathways.forms import StudentPathwaysForm
 from pathways.models import (
     AttendanceStatus,
     ExtraGradeSettings,
@@ -716,3 +722,114 @@ class PathwayPagesRenderTests(PathwayFixturesMixin, LoggedInTestCase):
             with self.subTest(name):
                 response = self.client.get(reverse(name, args=args), params)
                 self.assertEqual(response.status_code, 200)
+
+
+class PathwayEnrollmentByStudentTests(PathwayFixturesMixin, LoggedInTestCase):
+    TODAY = date(2027, 3, 1)
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.theater_offering = PathwayOffering.objects.create(
+            pathway=cls.theater, school_year=cls.school_year, capacity=1
+        )
+
+    def url(self, enrollment):
+        return (
+            f"{reverse('pathways:pathway_enrollment_by_student')}"
+            f"?enrollment={enrollment.pk}"
+        )
+
+    def post(self, enrollment, *offerings):
+        with patch("pathways.forms.timezone.localdate", return_value=self.TODAY):
+            return self.client.post(
+                self.url(enrollment), {f"offering_{o.pk}": "on" for o in offerings}
+            )
+
+    def test_lists_the_offerings_of_the_enrollment_year(self):
+        PathwayOffering.objects.create(
+            pathway=self.theater,
+            school_year=SchoolYear.objects.create(
+                begins=date(2028, 1, 10), ends=date(2028, 12, 15)
+            ),
+        )
+        response = self.client.get(
+            reverse("pathways:pathway_enrollment_by_student"),
+            {"enrollment": self.enrollment.pk},
+            **HTMX,
+        )
+        self.assertTemplateUsed(
+            response,
+            "pathway_enrollments/partials/pathway_enrollment_by_student_sheet.html",
+        )
+        form = response.context["form"]
+        self.assertEqual(form.offerings, [self.offering, self.theater_offering])
+        self.assertTrue(form[f"offering_{self.offering.pk}"].initial)
+
+    def test_without_enrollment_shows_only_the_select(self):
+        response = self.client.get(reverse("pathways:pathway_enrollment_by_student"))
+        self.assertIsNone(response.context["form"])
+
+    def test_join_leave_and_rejoin(self):
+        response = self.post(self.other, self.offering, self.theater_offering)
+        self.assertRedirects(response, self.url(self.other))
+        joined = PathwayEnrollment.objects.filter(enrollment=self.other)
+        self.assertEqual(joined.count(), 2)
+        self.assertEqual({m.joined_at for m in joined}, {self.TODAY})
+
+        self.post(self.other, self.theater_offering)
+        left = PathwayEnrollment.objects.get(
+            enrollment=self.other, offering=self.offering
+        )
+        self.assertEqual(left.left_at, self.TODAY)
+
+        self.post(self.other, self.offering, self.theater_offering)
+        left.refresh_from_db()
+        self.assertIsNone(left.left_at)
+
+    def test_leaving_before_starting_deletes(self):
+        self.member.joined_at = date(2027, 4, 1)
+        self.member.save()
+        self.post(self.enrollment)
+        self.assertFalse(PathwayEnrollment.objects.filter(pk=self.member.pk).exists())
+
+    def test_full_offering_saves_nothing(self):
+        PathwayEnrollment.objects.create(
+            enrollment=self.enrollment, offering=self.theater_offering
+        )
+        form = self.client.get(self.url(self.other)).context["form"]
+        self.assertTrue(form[f"offering_{self.theater_offering.pk}"].field.disabled)
+
+        # Seat taken after the page was loaded: the disabled box is ignored.
+        response = self.post(self.other, self.offering, self.theater_offering)
+        self.assertRedirects(response, self.url(self.other))
+        self.assertFalse(
+            PathwayEnrollment.objects.filter(
+                enrollment=self.other, offering=self.theater_offering
+            ).exists()
+        )
+
+    def test_capacity_error_rolls_back(self):
+        form = StudentPathwaysForm(
+            {
+                f"offering_{self.offering.pk}": "on",
+                f"offering_{self.theater_offering.pk}": "on",
+            },
+            enrollment=self.other,
+        )
+        # Someone takes the last seat between rendering and saving.
+        PathwayEnrollment.objects.create(
+            enrollment=self.enrollment, offering=self.theater_offering
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(f"offering_{self.theater_offering.pk}", form.errors)
+        self.assertFalse(
+            PathwayEnrollment.objects.filter(enrollment=self.other).exists()
+        )
+
+    def test_inactive_enrollment_is_rejected(self):
+        Enrollment.objects.filter(pk=self.other.pk).update(
+            status=EnrollmentStatus.COMPLETED
+        )
+        response = self.client.get(self.url(self.other))
+        self.assertIsNone(response.context["form"])

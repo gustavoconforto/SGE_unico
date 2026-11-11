@@ -1,10 +1,12 @@
 from django import forms
+from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
+from django.utils import timezone
 
 from accounts.forms import date_input
 from employees.models import Employee
-from enrollments.models import SchoolYear
+from enrollments.models import Enrollment, EnrollmentStatus, SchoolYear
 from grades.models import Bimester
 from incidents.forms import ActiveEnrollmentFormMixin
 from incidents.services import bimester_range
@@ -143,6 +145,114 @@ class PathwayEnrollmentFilterForm(OfferingFilterForm):
         choices=[("", "Todas"), ("current", "Inscritos"), ("left", "Saíram")],
         widget=forms.Select(attrs={"class": "select select-neutral select-sm w-full"}),
     )
+
+
+class StudentPathwaysSelectForm(forms.Form):
+    enrollment = forms.ModelChoiceField(
+        label="Matrícula",
+        required=False,
+        queryset=Enrollment.objects.filter(status=EnrollmentStatus.ACTIVE)
+        .select_related("student", "enrollment_type__program")
+        .select_related("enrollment_type__school_year")
+        .order_by("student__name"),
+        empty_label="Selecione um aluno",
+        widget=forms.Select(attrs={"class": "select select-neutral w-full"}),
+    )
+
+
+class StudentPathwaysForm(forms.Form):
+    """Every pathway offering of an enrollment's school year, ticked when the
+    student is in it. Unticking sets the leaving date; ticking again reopens
+    the pathway enrollment."""
+
+    def __init__(self, *args, enrollment, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.enrollment = enrollment
+        self.offerings = list(
+            offerings()
+            .filter(school_year=enrollment.enrollment_type.school_year_id)
+            .annotate(
+                taken=Count(
+                    "pathway_enrollments",
+                    filter=Q(pathway_enrollments__left_at__isnull=True),
+                )
+            )
+            .order_by("pathway__name", "name")
+        )
+        self.existing = {
+            member.offering_id: member
+            for member in enrollment.pathway_enrollments.all()
+        }
+        for offering in self.offerings:
+            current = self.is_current(offering)
+            full = offering.capacity is not None and offering.taken >= offering.capacity
+            self.fields[self.field_name(offering)] = forms.BooleanField(
+                label=str(offering),
+                required=False,
+                initial=current,
+                disabled=full and not current,
+                widget=forms.CheckboxInput(
+                    attrs={"class": "checkbox checkbox-sm checkbox-neutral"}
+                ),
+            )
+
+    @staticmethod
+    def field_name(offering):
+        return f"offering_{offering.pk}"
+
+    def is_current(self, offering):
+        member = self.existing.get(offering.pk)
+        return member is not None and member.left_at is None
+
+    def rows(self):
+        """(offering, bound field, pathway enrollment or None)."""
+        for offering in self.offerings:
+            yield (
+                offering,
+                self[self.field_name(offering)],
+                self.existing.get(offering.pk),
+            )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        self.changes = []
+        today = timezone.localdate()
+        for offering in self.offerings:
+            name = self.field_name(offering)
+            if cleaned_data.get(name) == self.is_current(offering):
+                continue
+            member = self.existing.get(offering.pk)
+            if member is None:
+                member = PathwayEnrollment(
+                    enrollment=self.enrollment, offering=offering, joined_at=today
+                )
+            elif member.left_at is None:
+                member.left_at = max(today, member.joined_at)
+            else:
+                member.left_at = None
+            try:
+                member.full_clean()
+            except ValidationError as error:
+                self.add_error(name, error.messages)
+            else:
+                self.changes.append(member)
+        return cleaned_data
+
+    @transaction.atomic
+    def save(self):
+        today = timezone.localdate()
+        for member in self.changes:
+            # A pathway the student hasn't started, with nothing recorded, is
+            # dropped instead of getting a leaving date.
+            if (
+                member.left_at
+                and member.joined_at > today
+                and not member.attendances.exists()
+                and not member.grades.exists()
+            ):
+                member.delete()
+            else:
+                member.save()
 
 
 # PATHWAY SESSION FORMS
