@@ -42,9 +42,7 @@ def remittance_candidates():
             account__direction=Direction.RECEIVABLE, status__in=PENDING_STATUSES
         )
         .exclude(bank_slips__status__in=LIVE_SLIP_STATUSES)
-        .select_related(
-            "account__guardian", "account__enrollment__enrollment_type"
-        )
+        .select_related("account__guardian", "account__enrollment__enrollment_type")
         .with_balance()
         .filter(outstanding__gt=0)
     )
@@ -84,7 +82,9 @@ def daily_interest(amount, monthly_percent):
 
 
 def _payer(guardian):
-    address = " ".join(part for part in (guardian.address, guardian.neighborhood) if part)
+    address = " ".join(
+        part for part in (guardian.address, guardian.neighborhood) if part
+    )
     return cnab400.Payer(
         tax_id=guardian.cpf,
         name=guardian.name,
@@ -205,7 +205,12 @@ def create_remittance(installment_ids=(), write_off_slip_ids=(), generation_date
 
 @transaction.atomic
 def delete_remittance(remittance):
-    """Delete a remittance the bank hasn't processed yet."""
+    """Delete a remittance that was never downloaded (so never sent to the bank)."""
+    if remittance.downloaded_at:
+        raise BillingError(
+            "Esta remessa já foi baixada e pode ter sido enviada ao banco; "
+            "não pode ser deletada."
+        )
     if remittance.slips.exclude(status=SlipStatus.GENERATED).exists() or (
         remittance.write_off_slips.exclude(
             status=SlipStatus.WRITE_OFF_REQUESTED
@@ -220,9 +225,9 @@ def delete_remittance(remittance):
     remittance.slips.all().delete()
     remittance.delete()
     # Free the number when it was the last one, so the next file reuses it.
-    BankSettings.objects.filter(
-        pk=1, last_remittance_number=remittance.number
-    ).update(last_remittance_number=remittance.number - 1)
+    BankSettings.objects.filter(pk=1, last_remittance_number=remittance.number).update(
+        last_remittance_number=remittance.number - 1
+    )
 
 
 # RETURN
@@ -231,7 +236,9 @@ def delete_remittance(remittance):
 def _is_ours(parsed):
     # Slips from the previous system use another prefix; blank numbers fall
     # back to the participant control, which holds our slip id.
-    return not parsed.nosso_numero or parsed.nosso_numero.startswith(NOSSO_NUMERO_PREFIX)
+    return not parsed.nosso_numero or parsed.nosso_numero.startswith(
+        NOSSO_NUMERO_PREFIX
+    )
 
 
 def _find_slip(parsed):
@@ -334,7 +341,9 @@ def import_return(name, payload):
 
     settings = BankSettings.load()
     if settings is None:
-        raise BillingError("Cadastre a configuração bancária antes de importar retornos.")
+        raise BillingError(
+            "Cadastre a configuração bancária antes de importar retornos."
+        )
     if data.company_code.lstrip("0") != settings.company_code.lstrip("0"):
         raise BillingError("O arquivo pertence a outro código de empresa.")
 

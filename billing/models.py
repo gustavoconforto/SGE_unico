@@ -76,6 +76,8 @@ class Remittance(TimeStampedModel):
     number = models.PositiveIntegerField("Número", unique=True)
     generated_at = models.DateField("Data de geração", default=timezone.localdate)
     content = models.TextField("Conteúdo do arquivo")
+    # Once downloaded the file may be at the bank, so it can't be deleted.
+    downloaded_at = models.DateTimeField("Baixado em", null=True, blank=True)
 
     def __str__(self):
         return f"Remessa {self.number}"
@@ -250,9 +252,7 @@ class ReturnEvent(models.Model):
     discount = models.DecimalField("Desconto", default=ZERO, **MONEY)
     credit_date = models.DateField("Data do crédito", null=True, blank=True)
     reason_codes = models.CharField("Motivos", max_length=20, blank=True)
-    status = models.CharField(
-        "Resultado", max_length=1, choices=EventStatus.choices
-    )
+    status = models.CharField("Resultado", max_length=1, choices=EventStatus.choices)
     message = models.CharField("Mensagem", max_length=300, blank=True)
 
     def __str__(self):

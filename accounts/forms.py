@@ -473,38 +473,55 @@ class PaymentForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        installment = cleaned_data.get("installment")
-        amount = cleaned_data.get("amount")
-        if installment is None or amount is None:
+        if (
+            cleaned_data.get("installment") is None
+            or cleaned_data.get("amount") is None
+        ):
             return cleaned_data
-
-        charges = sum(
-            (
-                cleaned_data.get(name) or ZERO
-                for name in ("penalty", "interest", "monetary_adjust")
-            ),
-            ZERO,
-        )
-        principal = amount - charges + (cleaned_data.get("discount") or ZERO)
-        if principal <= 0:
+        if self.principal() <= 0:
             self.add_error(
                 "amount",
                 "O valor pago mais o desconto deve ser maior que a soma de multa, "
                 "juros e correção.",
             )
             return cleaned_data
+        self.check_balance()
+        return cleaned_data
 
+    def principal(self):
+        data = self.cleaned_data
+        charges = sum(
+            (
+                data.get(name) or ZERO
+                for name in ("penalty", "interest", "monetary_adjust")
+            ),
+            ZERO,
+        )
+        return data["amount"] - charges + (data.get("discount") or ZERO)
+
+    def check_balance(self):
+        """Add an error and return False if the principal exceeds the balance.
+
+        The views call it again with the installment locked, so two submits at
+        once (a double click) can't both pass.
+        """
+        installment = self.cleaned_data["installment"]
         balance = installment.balance()
-        if self.instance.pk and self.instance.installment_id == installment.pk:
-            # The payment being edited is already deducted from the balance.
-            balance += self.instance.principal
+        if self.instance.pk:
+            # Read from the database: after validation the instance holds the
+            # new values. The payment being edited is already in the balance.
+            previous = Payment.objects.get(pk=self.instance.pk)
+            if previous.installment_id == installment.pk:
+                balance += previous.principal
+        principal = self.principal()
         if principal > balance:
             self.add_error(
                 "amount",
                 f"O valor principal (R$ {principal}) excede o saldo da parcela "
                 f"(R$ {balance}).",
             )
-        return cleaned_data
+            return False
+        return True
 
 
 class PayablePaymentForm(PaymentForm):

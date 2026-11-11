@@ -4,6 +4,7 @@ from django.db.models.functions import Coalesce
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.views.generic import DeleteView, DetailView, FormView, ListView, UpdateView
 
 from accounts.views import SuccessMessageMixin
@@ -145,6 +146,9 @@ class RemittanceDownloadView(DetailView):
     model = Remittance
 
     def render_to_response(self, context):
+        if not self.object.downloaded_at:
+            self.object.downloaded_at = timezone.now()
+            self.object.save(update_fields=["downloaded_at"])
         response = HttpResponse(
             self.object.content.encode("ascii"), content_type="text/plain"
         )

@@ -601,7 +601,28 @@ class PayableInstallmentLookupView(ReceivableInstallmentLookupView):
     )
 
 
-class PaymentCreateView(CreateView):
+class PaymentSaveMixin:
+    """Save with the installment row locked and its balance checked again, so
+    two submits at once (a double click) can't record the payment twice."""
+
+    def form_valid(self, form):
+        previous = (
+            Payment.objects.get(pk=self.object.pk).installment if self.object else None
+        )
+        with transaction.atomic():
+            Installment.objects.select_for_update().get(
+                pk=form.cleaned_data["installment"].pk
+            )
+            if not form.check_balance():
+                return self.form_invalid(form)
+            response = super().form_valid(form)
+            if previous and previous.pk != self.object.installment_id:
+                previous.refresh_status()
+        messages.success(self.request, self.success_message)
+        return response
+
+
+class PaymentCreateView(PaymentSaveMixin, CreateView):
     model = Payment
     template_name = "payments/payment_add.html"
     form_class = PaymentForm
@@ -634,12 +655,8 @@ class PaymentCreateView(CreateView):
             return reverse(f"accounts:{prefix}_edit", kwargs={"pk": account.pk})
         return super().get_success_url()
 
-    def form_valid(self, form):
-        messages.success(self.request, self.success_message)
-        return super().form_valid(form)
 
-
-class PaymentUpdateView(UpdateView):
+class PaymentUpdateView(PaymentSaveMixin, UpdateView):
     model = Payment
     template_name = "payments/payment_edit.html"
     form_class = PaymentForm
@@ -653,15 +670,6 @@ class PaymentUpdateView(UpdateView):
             .get_queryset()
             .filter(installment__account__direction=self.form_class.direction)
         )
-
-    def form_valid(self, form):
-        previous_installment = Payment.objects.get(pk=self.object.pk).installment
-        with transaction.atomic():
-            response = super().form_valid(form)
-            if previous_installment.pk != self.object.installment_id:
-                previous_installment.refresh_status()
-        messages.success(self.request, self.success_message)
-        return response
 
 
 class PayablePaymentCreateView(PaymentCreateView):
