@@ -13,7 +13,6 @@ from incidents.services import bimester_range
 from lessons.models import Weekday
 from pathways.models import (
     AttendanceStatus,
-    ExtraGradeSettings,
     Pathway,
     PathwayAttendance,
     PathwayEnrollment,
@@ -482,20 +481,3 @@ class PathwayGradeSheetForm(forms.Form):
             elif grade.score != score:
                 grade.score = score
                 grade.save(update_fields=["score", "updated_at"])
-
-
-# EXTRA GRADE SETTINGS FORMS
-
-
-class ExtraGradeSettingsForm(forms.ModelForm):
-    class Meta:
-        model = ExtraGradeSettings
-        fields = ["q_and_a_min_sessions", "q_and_a_points"]
-        widgets = {
-            "q_and_a_min_sessions": forms.NumberInput(
-                attrs={"class": "input input-neutral w-full"}
-            ),
-            "q_and_a_points": forms.NumberInput(
-                attrs={"class": "input input-neutral w-full", "step": "0.01"}
-            ),
-        }

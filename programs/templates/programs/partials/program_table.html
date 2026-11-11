@@ -1,30 +1,30 @@
-  <div class="table-wrap">
+<div class="table-wrap">
   <table class="data-table">
     <thead>
       <tr>
-        <th>Curso</th>        
+        <th>Curso</th>
         <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
-    {% for program in programs %}
-      <tr class="hover:bg-slate-50">
-        <td>
-            <a href="{% url 'programs:program_edit' program.pk %}" class="hover:underline">{{ program.name }}</a>
-        </td>
-        <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
-          {% url 'programs:program_edit' program.pk as edit_url %}
-          {% url 'programs:program_delete' program.pk as delete_url %}
-          {% include 'components/table/row_menu.html' with menu_id=program.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar curso?' name=program %}
-          
-          </div>
-        </td>
-      </tr>
+      {% for program in programs %}
+        <tr class="hover:bg-slate-50">
+          <td>
+            <a href="{% url 'programs:program_edit' program.pk %}"
+               class="hover:underline">{{ program.name }}</a>
+          </td>
+          <td class="text-right">
+            <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+              {% url 'programs:program_edit' program.pk as edit_url %}
+              {% url 'programs:program_delete' program.pk as delete_url %}
+              {% include "components/table/row_menu.html" with menu_id=program.pk edit_url=edit_url delete_url=delete_url delete_title="Deletar curso?" name=program %}
+            </div>
+          </td>
+        </tr>
       {% empty %}
-      {% include 'components/table/empty_table.html' with collspan=2%}
+        {% include "components/table/empty_table.html" with collspan=2 %}
       {% endfor %}
     </tbody>
   </table>
-  </div>
-{% include 'components/table/pagination.html' %}
+</div>
+{% include "components/table/pagination.html" %}

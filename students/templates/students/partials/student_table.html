@@ -1,33 +1,29 @@
-  <div class="table-wrap">
+<div class="table-wrap">
   <table class="data-table">
     <thead>
       <tr>
-        <th>Nome</th>        
-        <th>Matrícula</th>        
+        <th>Nome</th>
+        <th>Matrícula</th>
         <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
-    {% for student in students %}
-      <tr class="hover:bg-slate-50">
-        <td>
-            {{ student.name }}
-        </td>
-        <td>
-            {{ student.registration }}
-        </td>
-        <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
-          <a href={% url 'students:student_edit' student.pk %}>
-            {% include 'components/button/button_select.html' with label="Editar"%}
-          </a>
-          </div>
-        </td>
-      </tr>
+      {% for student in students %}
+        <tr class="hover:bg-slate-50">
+          <td>{{ student.name }}</td>
+          <td>{{ student.registration }}</td>
+          <td class="text-right">
+            <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
+              <a href={% url 'students:student_edit' student.pk %}>
+                {% include "components/button/button_select.html" with label="Editar" %}
+              </a>
+            </div>
+          </td>
+        </tr>
       {% empty %}
-      {% include 'components/table/empty_table.html' with collspan=2%}
+        {% include "components/table/empty_table.html" with collspan=2 %}
       {% endfor %}
     </tbody>
   </table>
-  </div>
-{% include 'components/table/pagination.html' %}
+</div>
+{% include "components/table/pagination.html" %}

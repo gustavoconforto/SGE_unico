@@ -1,26 +1,19 @@
-{% extends 'base/base.html' %}
-
+{% extends "base/base.html" %}
 {% block page_title %}Notas do aluno{% endblock page_title %}
-
 {% block header %}
-
 {% endblock header %}
-
 {% block content %}
-<div class="page-form-wide">
-  <div class="w-full">
-    {% include 'components/page/heading.html' with section='Acadêmico' subtitle='Selecione o aluno.' title='Notas do aluno' %}
-    <div class="mb-6"></div>
-    <form hx-get="{{ request.path }}"
-          hx-trigger="change"
-          hx-target="#search-results"
-          hx-push-url="true">
-      {% include 'components/form/field.html' with field=form.enrollment %}
-    </form>
-
-    <div id="search-results" class="mt-6">
-      {% include 'student_grades/partials/student_grades_table.html' %}
+  <div class="page-form-wide">
+    <div class="w-full">
+      {% include "components/page/heading.html" with section="Acadêmico" subtitle="Selecione o aluno." title="Notas do aluno" %}
+      <div class="mb-6"></div>
+      <form hx-get="{{ request.path }}"
+            hx-trigger="change"
+            hx-target="#search-results"
+            hx-push-url="true">
+        {% include "components/form/field.html" with field=form.enrollment %}
+      </form>
+      <div id="search-results" class="mt-6">{% include "student_grades/partials/student_grades_table.html" %}</div>
     </div>
   </div>
-</div>
 {% endblock content %}

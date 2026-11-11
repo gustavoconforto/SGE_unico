@@ -1,7 +1,6 @@
 from django.contrib import admin
 
 from pathways.models import (
-    ExtraGradeSettings,
     Pathway,
     PathwayAttendance,
     PathwayEnrollment,
@@ -12,7 +11,6 @@ from pathways.models import (
 
 # Temporary: lets pathways be managed until their screens exist.
 admin.site.register(Pathway)
-admin.site.register(ExtraGradeSettings)
 
 
 @admin.register(PathwayOffering)

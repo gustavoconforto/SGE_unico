@@ -15,13 +15,11 @@ from django.views.generic import (
 from accounts.views import ProtectedDeleteMixin, SuccessMessageMixin
 from base.search import HtmxFilterMixin, HtmxSearchMixin, is_htmx_partial
 from classes.views import get_int_param
-from enrollments.models import SchoolYear
 from grades.models import Bimester
 from incidents.services import bimester_range
 from incidents.views import IncidentGradesAll, IncidentGradesIndividual
 from pathways.forms import (
     AttendanceSheetForm,
-    ExtraGradeSettingsForm,
     PathwayEnrollmentFilterForm,
     PathwayEnrollmentForm,
     PathwayForm,
@@ -37,7 +35,6 @@ from pathways.forms import (
 )
 from pathways.models import (
     AttendanceStatus,
-    ExtraGradeSettings,
     Pathway,
     PathwayEnrollment,
     PathwayOffering,
@@ -476,41 +473,3 @@ class ExtraGradesAll(ExtraGradeMixin, IncidentGradesAll):
     template_name = "extra_grades/extra_grades_all.html"
     partial_template_name = "extra_grades/partials/extra_grades_table.html"
     url_name = "pathways:extra_grades_all"
-
-
-# EXTRA GRADE SETTINGS VIEWS
-
-
-class ExtraGradeSettingsListView(HtmxSearchMixin, ListView):
-    """School years with their extra grade rules; a year without settings
-    shows the defaults it will get on first use."""
-
-    model = SchoolYear
-    template_name = "extra_grade_settings/extra_grade_settings_list.html"
-    partial_template_name = (
-        "extra_grade_settings/partials/extra_grade_settings_table.html"
-    )
-    context_object_name = "school_years"
-    paginate_by = 10
-    ordering = ("-begins",)
-    search_fields = ("begins", "ends")
-
-    def get_queryset(self):
-        return super().get_queryset().select_related("extra_grade_settings")
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["defaults"] = ExtraGradeSettings()
-        return context
-
-
-class ExtraGradeSettingsUpdateView(SuccessMessageMixin, UpdateView):
-    model = ExtraGradeSettings
-    form_class = ExtraGradeSettingsForm
-    template_name = "extra_grade_settings/extra_grade_settings_edit.html"
-    success_url = reverse_lazy("pathways:extra_grade_settings_list")
-    success_message = "Registro atualizado com sucesso"
-
-    def get_object(self, queryset=None):
-        school_year = get_object_or_404(SchoolYear, pk=self.kwargs["school_year_pk"])
-        return ExtraGradeSettings.for_school_year(school_year)

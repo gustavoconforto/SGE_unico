@@ -1,34 +1,32 @@
-  <div class="table-wrap">
+<div class="table-wrap">
   <table class="data-table">
     <thead>
       <tr>
-        <th>Nome</th>        
-        <th>Cargo</th>        
+        <th>Nome</th>
+        <th>Cargo</th>
         <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
     <tbody>
-    {% for employee in employees %}
-      <tr class="hover:bg-slate-50">
-        <td>
-            <a href="{% url 'employees:employee_edit' employee.pk %}" class="hover:underline">{{ employee.name }}</a>
-        </td>
-        <td>
-            {{ employee.role }}
-        </td>
-        <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
-          {% url 'employees:employee_edit' employee.pk as edit_url %}
-          {% url 'employees:employee_delete' employee.pk as delete_url %}
-          {% include 'components/table/row_menu.html' with menu_id=employee.pk edit_url=edit_url delete_url=delete_url delete_title='Deletar funcionário?' name=employee %}
-          
-          </div>
-        </td>
-      </tr>
+      {% for employee in employees %}
+        <tr class="hover:bg-slate-50">
+          <td>
+            <a href="{% url 'employees:employee_edit' employee.pk %}"
+               class="hover:underline">{{ employee.name }}</a>
+          </td>
+          <td>{{ employee.role }}</td>
+          <td class="text-right">
+            <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
+              {% url 'employees:employee_edit' employee.pk as edit_url %}
+              {% url 'employees:employee_delete' employee.pk as delete_url %}
+              {% include "components/table/row_menu.html" with menu_id=employee.pk edit_url=edit_url delete_url=delete_url delete_title="Deletar funcionário?" name=employee %}
+            </div>
+          </td>
+        </tr>
       {% empty %}
-      {% include 'components/table/empty_table.html' with collspan=3 %}
+        {% include "components/table/empty_table.html" with collspan=3 %}
       {% endfor %}
     </tbody>
   </table>
-  </div>
-{% include 'components/table/pagination.html' %}
+</div>
+{% include "components/table/pagination.html" %}

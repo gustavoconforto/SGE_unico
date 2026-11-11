@@ -1,23 +1,21 @@
-<form class="mt-6" method="POST">
+<form class="mt-6" method="post">
   {% csrf_token %}
-  {% include 'components/form/non_field_errors.html' %}
-
+  {% include "components/form/non_field_errors.html" %}
   <section class="form-section">
     <div class="form-section-intro">
       <h2>Curso</h2>
     </div>
     <div class="form-section-body grid grid-cols-1">
-      {% include 'components/form/field.html' with field=form.name %}
+      {% include "components/form/field.html" with field=form.name %}
     </div>
   </section>
-
   <div class="form-actions">
     <p class="text-[13px] text-slate-500">Campos sem “opcional” são obrigatórios.</p>
     <div class="ml-auto flex gap-2">
       <a href="{% url 'programs:program_list' %}">
-        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
+        {% include "components/button/button_cancel.html" with label="Cancelar" %}
       </a>
-      {% include 'components/button/button_submit_form.html' with label=submit_label|default:'Salvar curso' %}
+      {% include "components/button/button_submit_form.html" with label=submit_label|default:"Salvar curso" %}
     </div>
   </div>
 </form>

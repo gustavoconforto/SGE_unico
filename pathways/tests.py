@@ -17,7 +17,6 @@ from incidents.tests import create_enrollment
 from pathways.forms import StudentPathwaysForm
 from pathways.models import (
     AttendanceStatus,
-    ExtraGradeSettings,
     Pathway,
     PathwayAttendance,
     PathwayEnrollment,
@@ -128,12 +127,6 @@ class PathwayModelTests(PathwayFixturesMixin, LoggedInTestCase):
         with self.assertRaisesMessage(ValidationError, "não dá nota extra"):
             grade.full_clean()
 
-    def test_settings_created_with_defaults(self):
-        settings = ExtraGradeSettings.for_school_year(self.school_year)
-        self.assertEqual(settings.q_and_a_min_sessions, 3)
-        self.assertEqual(settings.q_and_a_points, Decimal("0.5"))
-        self.assertEqual(ExtraGradeSettings.for_school_year(self.school_year), settings)
-
 
 class ExtraGradeTests(PathwayFixturesMixin, LoggedInTestCase):
     @classmethod
@@ -193,22 +186,12 @@ class ExtraGradeTests(PathwayFixturesMixin, LoggedInTestCase):
         self.robotics.save()
         self.assertEqual(self.extra_of(self.enrollment), 0)
 
-    def test_q_and_a_points_from_the_minimum_sessions(self):
-        self.q_and_as(2)
-        self.q_and_as(1, day=date(2027, 5, 1))  # outside the bimester
-        self.assertEqual(self.extra_of(self.enrollment), 0)
+    def test_q_and_a_sessions_dont_count(self):
+        self.grade(self.member, "0.4")
+        self.q_and_as(5)
+        self.assertEqual(self.extra_of(self.enrollment), Decimal("0.40"))
 
-        self.q_and_as(1)
-        self.assertEqual(self.extra_of(self.enrollment), Decimal("0.5"))
-
-        settings = ExtraGradeSettings.for_school_year(self.school_year)
-        settings.q_and_a_min_sessions = 4
-        settings.q_and_a_points = Decimal("0.3")
-        settings.save()
-        self.q_and_as(1)
-        self.assertEqual(self.extra_of(self.enrollment), Decimal("0.3"))
-
-    def test_sources_add_up_to_the_exam_maximum(self):
+    def test_pathway_grades_add_up_to_the_exam_maximum(self):
         theater = PathwayEnrollment.objects.create(
             enrollment=self.enrollment,
             offering=PathwayOffering.objects.create(
@@ -220,8 +203,8 @@ class ExtraGradeTests(PathwayFixturesMixin, LoggedInTestCase):
         self.grade(theater, "0.5")
         self.assertEqual(self.extra_of(self.enrollment), Decimal("0.80"))
 
-        self.q_and_as(3)  # 0.50, capped at the exam's 1.00
-        self.assertEqual(self.extra_of(self.enrollment), Decimal(1))
+        self.extra.max_score = Decimal("0.6")
+        self.assertEqual(self.extra_of(self.enrollment), Decimal("0.6"))
 
     def test_bimester_without_dates_is_skipped(self):
         self.assertEqual(extra_grades([self.enrollment], 2, self.extra), {})
@@ -254,52 +237,6 @@ class ExtraGradeTests(PathwayFixturesMixin, LoggedInTestCase):
                 ).values_list("score", flat=True)
             ),
             [0, 0],
-        )
-
-
-class ExtraGradeSettingsViewsTests(LoggedInTestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.school_year = SchoolYear.objects.create(
-            begins=date(2027, 1, 10), ends=date(2027, 12, 15)
-        )
-
-    def test_list_shows_defaults_before_first_edit(self):
-        url = reverse("pathways:extra_grade_settings_list")
-        response = self.client.get(url)
-        self.assertTemplateUsed(
-            response, "extra_grade_settings/extra_grade_settings_list.html"
-        )
-        self.assertContains(response, "0,50")
-        self.assertFalse(ExtraGradeSettings.objects.exists())
-
-        response = self.client.get(url, {"q": "2027"}, **HTMX)
-        self.assertTemplateUsed(
-            response, "extra_grade_settings/partials/extra_grade_settings_table.html"
-        )
-        self.assertContains(response, "2027")
-
-    def test_edit(self):
-        url = reverse("pathways:extra_grade_settings_edit", args=[self.school_year.pk])
-        self.assertEqual(self.client.get(url).status_code, 200)
-
-        response = self.client.post(
-            url,
-            {"q_and_a_min_sessions": "2", "q_and_a_points": "0.25"},
-        )
-        self.assertRedirects(response, reverse("pathways:extra_grade_settings_list"))
-        settings = ExtraGradeSettings.objects.get(school_year=self.school_year)
-        self.assertEqual(settings.q_and_a_min_sessions, 2)
-        self.assertEqual(settings.q_and_a_points, Decimal("0.25"))
-
-    def test_negative_points_are_rejected(self):
-        url = reverse("pathways:extra_grade_settings_edit", args=[self.school_year.pk])
-        response = self.client.post(
-            url, {"q_and_a_min_sessions": "2", "q_and_a_points": "-1"}
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            ExtraGradeSettings.objects.get().q_and_a_points, Decimal("0.5")
         )
 
 
@@ -679,6 +616,12 @@ class ExtraGradeViewsTests(PathwayFixturesMixin, LoggedInTestCase):
             response, "extra_grades/partials/extra_grades_table.html"
         )
         self.assertContains(response, "0,50")
+        self.assertContains(response, "Calcular 1º bimestre para todos os alunos")
+
+    def test_all_page_has_the_bimester_select(self):
+        response = self.client.get(reverse("pathways:extra_grades_all"))
+        self.assertContains(response, 'name="bimester"')
+        self.assertNotContains(response, "para todos os alunos")
 
     def test_missing_exam_type(self):
         self.extra.code = "XX"
@@ -716,7 +659,6 @@ class PathwayPagesRenderTests(PathwayFixturesMixin, LoggedInTestCase):
             ("pathways:pathway_grade_entry", [], {**offering, "bimester": 1}),
             ("pathways:extra_grades_individual", [], {}),
             ("pathways:extra_grades_all", [], {}),
-            ("pathways:extra_grade_settings_list", [], {}),
         ]
         for name, args, params in pages:
             with self.subTest(name):

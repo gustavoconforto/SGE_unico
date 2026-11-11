@@ -1,21 +1,19 @@
-{% extends 'base/base.html' %}
-
+{% extends "base/base.html" %}
 {% block page_title %}Editar matrícula{% endblock page_title %}
-
 {% block content %}
-<div class="page-form">
-  <div class="w-full">
-    {% include 'components/page/breadcrumb.html' with parent_label='Matrículas' parent_url_name='enrollments:enrollment_list' current=object %}
-    <div class="flex flex-wrap items-end justify-between gap-4">
-      {% include 'components/page/heading.html' with title='Editar matrícula' %}
-      <a href="{% url "enrollments:enrollment_preview" object.pk %}" target="_blank" rel="noopener" class="ui-btn ui-btn-secondary">
-        <span class="material-symbols-outlined" aria-hidden="true">print</span>Imprimir
-      </a>
+  <div class="page-form">
+    <div class="w-full">
+      {% include "components/page/breadcrumb.html" with parent_label="Matrículas" parent_url_name="enrollments:enrollment_list" current=object %}
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        {% include "components/page/heading.html" with title="Editar matrícula" %}
+        <a href="{% url "enrollments:enrollment_preview" object.pk %}"
+           target="_blank"
+           rel="noopener"
+           class="ui-btn ui-btn-secondary">
+          <span class="material-symbols-outlined" aria-hidden="true">print</span>Imprimir
+        </a>
+      </div>
+      {% include "enrollments/enrollment_form.html" %}
     </div>
-
-    {% include 'enrollments/enrollment_form.html' %}
-
   </div>
-</div>
 {% endblock content %}
-    

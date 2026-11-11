@@ -486,11 +486,9 @@ Needs: school year, teachers, active enrollments.
        present; mark Pedro absent once (75% attendance).
 5. [ ] **Notas de itinerário** (`/pathways/grades/entry/`): Pedro 8,0 in the
        1st bimester → shows the attendance and the extra points (0,80).
-6. [ ] **Regras da nota extra** (`/pathways/extra_grade_settings/list/`):
-       defaults 75% attendance, 3 Q&A sessions, 0,50 points.
-7. [ ] **Nota extra** (`/pathways/extra_grades/all/`): calculate the 1st
-       bimester. Pedro: 0,80 (pathway) + 0,50 (3 plantões) = **1,30** in every
-       subject's EX column.
+6. [ ] **Nota extra** (`/pathways/extra_grades/all/`): calculate the 1st
+       bimester. Pedro: **0,80** (pathway) in every subject's EX column;
+       plantões don't count.
 
 **Try to break it**
 - [ ] Mark Pedro absent twice (50%) and recalculate → pathway points drop to 0.

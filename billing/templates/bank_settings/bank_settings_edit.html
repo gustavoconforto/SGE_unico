@@ -1,14 +1,11 @@
-{% extends 'base/base.html' %}
-
+{% extends "base/base.html" %}
 {% block page_title %}Editar configuração bancária{% endblock page_title %}
-
-
 {% block content %}
-<div class="page-form">
-  <div class="w-full">
-    {% include 'components/page/breadcrumb.html' with parent_label='Remessas' parent_url_name='billing:remittance_list' current=object %}
-    {% include 'components/page/heading.html' with title='Editar configuração bancária' %}
-  {% include 'bank_settings/bank_settings_form.html' %}
+  <div class="page-form">
+    <div class="w-full">
+      {% include "components/page/breadcrumb.html" with parent_label="Remessas" parent_url_name="billing:remittance_list" current=object %}
+      {% include "components/page/heading.html" with title="Editar configuração bancária" %}
+      {% include "bank_settings/bank_settings_form.html" %}
+    </div>
   </div>
-</div>
 {% endblock content %}

@@ -1,20 +1,14 @@
-{% extends 'base/base.html' %}
-
+{% extends "base/base.html" %}
 {% block page_title %}Descontos{% endblock page_title %}
-
 {% block header %}
   <div class="flex flex-wrap items-end justify-between gap-4 pb-6">
-    {% include 'components/page/heading.html' with section='Configuração de matrícula' title='Descontos' %}
+    {% include "components/page/heading.html" with section="Configuração de matrícula" title="Descontos" %}
     <a href={% url 'enrollments:discount_type_add' %}>
-    {% include 'components/button/button_primary.html' with label='Novo desconto' icon='add' %}
+      {% include "components/button/button_primary.html" with label="Novo desconto" icon="add" %}
     </a>
   </div>
-  {% include 'components/search/search_input.html' with placeholder='Pesquisar desconto...' %}
+  {% include "components/search/search_input.html" with placeholder="Pesquisar desconto..." %}
 {% endblock header %}
-  
 {% block content %}
-  <div id="search-results">
-    {% include 'discount_types/partials/discount_type_table.html' %}
-  </div>
+  <div id="search-results">{% include "discount_types/partials/discount_type_table.html" %}</div>
 {% endblock content %}
-    

@@ -5,10 +5,10 @@
   </td>
   {% for fields, bimester_grade in bimester_cells %}
     {% for field in fields %}
-    <td class="px-1 py-2 text-right {% if forloop.first %}border-l border-slate-200{% endif %}">
-      {{ field }}
-      {% for error in field.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
-    </td>
+      <td class="px-1 py-2 text-right {% if forloop.first %}border-l border-slate-200{% endif %}">
+        {{ field }}
+        {% for error in field.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
+      </td>
     {% endfor %}
     <td class="px-2 py-2 text-right whitespace-nowrap sm:px-3 sm:py-2.5 md:py-3 font-semibold text-slate-800 {% if not fields %}border-l border-slate-200{% endif %}">
       {{ bimester_grade|floatformat:2|default:"-" }}
@@ -37,17 +37,13 @@
       <a href="#"
          hx-get="{% url 'grades:student_grades_row' enrollment.pk row.subject.pk %}"
          hx-target="closest tr"
-         hx-swap="outerHTML">
-        {% include 'components/button/button_cancel.html' with label='Cancelar' %}
-      </a>
+         hx-swap="outerHTML">{% include "components/button/button_cancel.html" with label="Cancelar" %}</a>
       <a href="#"
          hx-post="{% url 'grades:student_grades_edit' enrollment.pk row.subject.pk %}"
          hx-include="closest tr"
          hx-target="closest tr"
-         hx-swap="outerHTML">
-        {% include 'components/button/button_select.html' with label='Salvar' %}
-      </a>
+         hx-swap="outerHTML">{% include "components/button/button_select.html" with label="Salvar" %}</a>
     </div>
   </td>
 </tr>
-{% include 'student_grades/partials/student_grades_messages.html' %}
+{% include "student_grades/partials/student_grades_messages.html" %}

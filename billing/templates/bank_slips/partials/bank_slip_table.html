@@ -1,4 +1,4 @@
-  <div class="table-wrap">
+<div class="table-wrap">
   <table class="data-table">
     <thead>
       <tr>
@@ -14,52 +14,32 @@
       </tr>
     </thead>
     <tbody>
-    {% for slip in slips %}
-      <tr class="hover:bg-slate-50">
-        <td class="whitespace-nowrap">
-            {{ slip }}
-        </td>
-        <td>
-            {{ slip.remittance.number }}
-        </td>
-        <td class="whitespace-nowrap">
-            {{ slip.due_date|date:"d/m/Y" }}
-        </td>
-        <td>
-            {{ slip.installment.account.guardian|default:"-" }}
-        </td>
-        <td>
-            {{ slip.installment.account }} - {{ slip.installment.number }}ª
-        </td>
-        <td class="text-right whitespace-nowrap">
-            R$ {{ slip.amount|floatformat:"2g" }}
-        </td>
-        <td class="text-right whitespace-nowrap">
-            R$ {{ slip.discount|floatformat:"2g" }}
-        </td>
-        <td>
-            <span class="badge badge-sm whitespace-nowrap
-                {% if slip.status == 'L' %}badge-success
-                {% elif slip.status == 'R' %}badge-info badge-outline
-                {% elif slip.status == 'S' %}badge-warning
-                {% elif slip.status == 'J' or slip.status == 'E' %}badge-error
-                {% elif slip.status == 'B' or slip.status == 'X' %}badge-ghost
-                {% else %}badge-neutral badge-outline{% endif %}">
-                {{ slip.get_status_display }}
+      {% for slip in slips %}
+        <tr class="hover:bg-slate-50">
+          <td class="whitespace-nowrap">{{ slip }}</td>
+          <td>{{ slip.remittance.number }}</td>
+          <td class="whitespace-nowrap">{{ slip.due_date|date:"d/m/Y" }}</td>
+          <td>{{ slip.installment.account.guardian|default:"-" }}</td>
+          <td>{{ slip.installment.account }} - {{ slip.installment.number }}ª</td>
+          <td class="text-right whitespace-nowrap">R$ {{ slip.amount|floatformat:"2g" }}</td>
+          <td class="text-right whitespace-nowrap">R$ {{ slip.discount|floatformat:"2g" }}</td>
+          <td>
+            <span class="badge badge-sm whitespace-nowrap {% if slip.status == 'L' %}badge-success {% elif slip.status == 'R' %}badge-info badge-outline {% elif slip.status == 'S' %}badge-warning {% elif slip.status == 'J' or slip.status == 'E' %}badge-error {% elif slip.status == 'B' or slip.status == 'X' %}badge-ghost {% else %}badge-neutral badge-outline{% endif %}">
+              {{ slip.get_status_display }}
             </span>
-        </td>
-        <td class="text-right">
-          <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
-          <a href={% url 'accounts:receivable_edit' slip.installment.account_id %}>
-            {% include 'components/button/button_select.html' with label="Conta"%}
-          </a>
-          </div>
-        </td>
-      </tr>
+          </td>
+          <td class="text-right">
+            <div class="flex flex-col gap-1 sm:flex-row sm:justify-end sm:gap-1.5">
+              <a href={% url 'accounts:receivable_edit' slip.installment.account_id %}>
+                {% include "components/button/button_select.html" with label="Conta" %}
+              </a>
+            </div>
+          </td>
+        </tr>
       {% empty %}
-      {% include 'components/table/empty_table.html' with collspan=9%}
+        {% include "components/table/empty_table.html" with collspan=9 %}
       {% endfor %}
     </tbody>
   </table>
-  </div>
-{% include 'components/table/pagination.html' %}
+</div>
+{% include "components/table/pagination.html" %}

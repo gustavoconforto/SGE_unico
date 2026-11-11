@@ -1,10 +1,10 @@
-"""Extra grade ("nota extra") of a bimester, from pathways and Q&A sessions.
+"""Extra grade ("nota extra") of a bimester, from the pathways.
 
 The pathway teachers' grades of the bimester are added as they are; a pathway
-without a grade adds nothing, and attendance is only shown, never counted. Q&A
-sessions add their fixed points (`q_and_a.services`). The total is capped at
-the extra exam type's maximum and written to every subject of the student's
-series, like the concept grade.
+without a grade adds nothing, and attendance is only shown, never counted. The
+total is capped at the extra exam type's maximum and written to every subject
+of the student's series, like the concept grade. Q&A sessions don't count:
+their grades are entered by hand.
 """
 
 from collections import defaultdict
@@ -16,8 +16,7 @@ from django.db.models import Count, Q, Sum
 from grades.models import ExamType
 from grades.services import save_series_grades
 from incidents.services import bimester_range
-from pathways.models import AttendanceStatus, ExtraGradeSettings, PathwayGrade
-from q_and_a.services import q_and_a_points
+from pathways.models import AttendanceStatus, PathwayGrade
 
 ZERO = Decimal(0)
 EXTRA_CODE = "EX"
@@ -100,11 +99,9 @@ def extra_grades(enrollments, bimester, exam_type):
         date_range = bimester_range(years[year_id], bimester)
         if date_range is None:
             continue
-        settings = ExtraGradeSettings.for_school_year(years[year_id])
         from_pathways = pathways_points(ids, bimester)
-        from_q_and_a = q_and_a_points(ids, date_range, settings)
         for pk in ids:
-            grades[pk] = min(from_pathways[pk] + from_q_and_a[pk], exam_type.max_score)
+            grades[pk] = min(from_pathways[pk], exam_type.max_score)
     return grades
 
 
