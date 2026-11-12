@@ -230,6 +230,19 @@
         });
     }
     enhanceSearchableSelects();
+
+    // Phone inputs show (61) 99854-4554 / (61) 3234-5678; the form saves digits.
+    function maskPhone(input) {
+        const d = input.value.replace(/\D/g, '').slice(0, 11);
+        const split = d.length > 10 ? 7 : 6;
+        input.value = d.length > split ? `(${d.slice(0, 2)}) ${d.slice(2, split)}-${d.slice(split)}`
+            : d.length > 2 ? `(${d.slice(0, 2)}) ${d.slice(2)}`
+            : d;
+    }
+    const maskPhones = (root = document) => root.querySelectorAll('input[data-mask="phone"]').forEach(maskPhone);
+    document.addEventListener('input', e => { if (e.target.matches?.('input[data-mask="phone"]')) maskPhone(e.target); });
+    maskPhones();
+    document.addEventListener('htmx:afterSwap', e => maskPhones(e.target));
         </script>
         {% include "base/sidebar/js/sidebar_js.html" %}
         {% block extra_js %}{% endblock %}

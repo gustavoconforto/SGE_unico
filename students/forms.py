@@ -1,10 +1,28 @@
+import re
+
 from django import forms
 from django.forms.models import BaseInlineFormSet, inlineformset_factory
 
 from students.models import Guardian, GuardianAssociation, Student
 
 
-class GuardianForm(forms.ModelForm):
+class PhoneDigitsMixin:
+    """Stores phone and mobile as digits only (DDD + number); the screen masks them."""
+
+    def _phone_digits(self, field):
+        digits = re.sub(r"\D", "", self.cleaned_data.get(field) or "")
+        if digits and len(digits) not in (10, 11):
+            raise forms.ValidationError("Informe DDD + número (10 ou 11 dígitos).")
+        return digits
+
+    def clean_phone(self):
+        return self._phone_digits("phone")
+
+    def clean_mobile(self):
+        return self._phone_digits("mobile")
+
+
+class GuardianForm(PhoneDigitsMixin, forms.ModelForm):
     TABS = {
         "personal": [
             "name",
@@ -100,11 +118,15 @@ class GuardianForm(forms.ModelForm):
             "phone": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
+                    "inputmode": "tel",
+                    "data-mask": "phone",
                 }
             ),
             "mobile": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
+                    "inputmode": "tel",
+                    "data-mask": "phone",
                 }
             ),
             "email": forms.EmailInput(
@@ -140,7 +162,7 @@ class GuardianForm(forms.ModelForm):
         }
 
 
-class StudentForm(forms.ModelForm):
+class StudentForm(PhoneDigitsMixin, forms.ModelForm):
     TABS = {
         "personal": [
             "name",
@@ -263,11 +285,15 @@ class StudentForm(forms.ModelForm):
             "phone": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
+                    "inputmode": "tel",
+                    "data-mask": "phone",
                 }
             ),
             "mobile": forms.TextInput(
                 attrs={
                     "class": "input input-neutral w-full",
+                    "inputmode": "tel",
+                    "data-mask": "phone",
                 }
             ),
             "email": forms.EmailInput(

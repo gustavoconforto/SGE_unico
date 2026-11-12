@@ -40,6 +40,15 @@ def document(value):
 
 
 @register.filter
+def phone(value):
+    """Formats stored phone digits: (61) 99854-4554 or (61) 3234-5678; else as is."""
+    value = value or ""
+    if len(value) in (10, 11) and value.isdigit():
+        return f"({value[:2]}) {value[2:-4]}-{value[-4:]}"
+    return value
+
+
+@register.filter
 def person_kind(value):
     """'Pessoa física' for a CPF, 'Pessoa jurídica' for a CNPJ, '' otherwise."""
     return {11: "Pessoa física", 14: "Pessoa jurídica"}.get(len(value or ""), "")
