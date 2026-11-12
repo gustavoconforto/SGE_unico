@@ -179,7 +179,7 @@ class RemittanceDeleteView(DeleteView):
 class BankSlipListView(HtmxFilterMixin, ListView):
     model = BankSlip
     queryset = BankSlip.objects.select_related(
-        "remittance", "installment__account__guardian"
+        "remittance", "installment__account__guardian", "installment__account__student"
     )
     template_name = "bank_slips/bank_slip_list.html"
     partial_template_name = "bank_slips/partials/bank_slip_table.html"
@@ -249,7 +249,9 @@ class ReturnFileDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         events = self.object.events.select_related(
-            "bank_slip__installment__account__guardian", "payment"
+            "bank_slip__installment__account__guardian",
+            "bank_slip__installment__account__student",
+            "payment",
         )
         context["events"] = events
         labels = dict(Occurrence.choices)

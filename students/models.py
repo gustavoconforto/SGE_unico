@@ -59,6 +59,9 @@ class Student(Person):
         null=False,
     )
     photo = models.ImageField("Foto", upload_to=student_photo_path, blank=True)
+    is_self_financial = models.BooleanField(
+        "O próprio aluno é o responsável financeiro", default=False
+    )
 
     guardians = models.ManyToManyField(
         Guardian,
@@ -98,6 +101,13 @@ class Student(Person):
         )
         seq = int(last[len(prefix) :]) + 1 if last else 1
         return f"{prefix}{seq:05d}"
+
+    @property
+    def financial_payer(self):
+        """Who signs the contract and pays: the student or a financial guardian."""
+        if self.is_self_financial:
+            return self
+        return self.guardians.filter(student_links__is_financial=True).first()
 
     @property
     def photo_url(self):
@@ -144,6 +154,11 @@ class GuardianAssociation(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["student", "guardian"], name="unique_student_guardian"
+            ),
+            models.UniqueConstraint(
+                fields=["student"],
+                condition=models.Q(is_financial=True),
+                name="one_financial_guardian_per_student",
             ),
         ]
 

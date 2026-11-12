@@ -35,7 +35,7 @@
                      {% if row.problems %}disabled{% else %}checked{% endif %}>
             </td>
             <td class="whitespace-nowrap">{{ installment.due_date|date:"d/m/Y" }}</td>
-            <td>{{ installment.account.guardian|default:"-" }}</td>
+            <td>{{ installment.account.payer|default:"-" }}</td>
             <td>{{ installment.account }}</td>
             <td>{{ installment.number }}ª</td>
             <td class="text-right whitespace-nowrap">R$ {{ installment.outstanding|floatformat:"2g" }}</td>

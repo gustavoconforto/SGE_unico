@@ -42,7 +42,6 @@ from enrollments.models import (
     NeededDocumentType,
     SchoolYear,
 )
-from students.models import Guardian
 from utils.format.number_values import format_zip_code
 
 # SCHOOL YEAR VIEWS
@@ -256,7 +255,7 @@ class EnrollmentUpdateView(UpdateView):
         )
         kwargs["receivables"] = (
             AccountReceivable.objects.filter(student=self.object.student_id)
-            .select_related("category", "guardian")
+            .select_related("category", "guardian", "student")
             .with_installment_summary()
         )
         return super().get_context_data(**kwargs)
@@ -356,10 +355,7 @@ def build_report_context(pk):
     student_zip_code = format_zip_code(enrollment.student.zip_code)
     student_mobile = enrollment.student.mobile
     student_address = f"{enrollment.student.address}, {enrollment.student.neighborhood}, {enrollment.student.city} - {enrollment.student.state}"
-    financial_guardian = Guardian.objects.filter(
-        student_links__student=enrollment.student,
-        student_links__is_financial=True,
-    ).first()
+    financial_guardian = enrollment.student.financial_payer
     if financial_guardian is None:
         return None
     financial_guardian_name = financial_guardian.name

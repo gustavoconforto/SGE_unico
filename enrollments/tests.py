@@ -225,6 +225,19 @@ class EnrollmentContractTests(LoggedInTestCase):
                 )
                 self.assertContains(response, "não possui responsável financeiro")
 
+    def test_self_financial_student_signs_the_contract(self):
+        student = self.enrollment.student
+        GuardianAssociation.objects.filter(student=student).update(is_financial=False)
+        Student.objects.filter(pk=student.pk).update(is_self_financial=True)
+        self.enrollment.refresh_from_db()
+        self.enrollment.clean()
+
+        response = self.client.get(
+            reverse("enrollments:enrollment_preview", args=[self.enrollment.pk])
+        )
+        self.assertEqual(response.context["financial_guardian_name"], "Ana Souza")
+        self.assertEqual(response.context["financial_guardian_cpf"], "123.456.789-01")
+
     def test_edit_page_lists_installments_with_balance(self):
         response = self.client.get(
             reverse("enrollments:enrollment_edit", args=[self.enrollment.pk])

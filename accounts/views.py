@@ -468,7 +468,10 @@ class AccountPayablePdfView(AccountPayableReceiptView):
 class InstallmentListView(HtmxFilterMixin, ListView):
     model = Installment
     queryset = Installment.objects.select_related(
-        "account__guardian", "account__supplier", "account__enrollment__student"
+        "account__guardian",
+        "account__student",
+        "account__supplier",
+        "account__enrollment__student",
     )
     template_name = "installments/installment_list.html"
     context_object_name = "installments"
@@ -544,7 +547,9 @@ class InstallmentCreateView(CreateView):
 class PaymentListView(HtmxFilterMixin, ListView):
     model = Payment
     queryset = Payment.objects.select_related(
-        "installment__account__guardian", "installment__account__supplier"
+        "installment__account__guardian",
+        "installment__account__student",
+        "installment__account__supplier",
     )
     template_name = "payments/payment_list.html"
     context_object_name = "payments"
@@ -572,7 +577,7 @@ class ReceivableInstallmentLookupView(HtmxSearchMixin, ListView):
     queryset = (
         Installment.objects.pending()
         .with_balance()
-        .select_related("account__guardian", "account__supplier")
+        .select_related("account__guardian", "account__student", "account__supplier")
     )
     template_name = "payments/partials/installment_options.html"
     context_object_name = "installments"

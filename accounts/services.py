@@ -74,10 +74,13 @@ def create_enrollment_account(enrollment, category=None):
         category=category or tuition_category(),
         enrollment=enrollment,
         student_id=enrollment.student_id,
+        # None when the student pays for themselves; Account.payer covers that.
         guardian=Guardian.objects.filter(
             student_links__student=enrollment.student_id,
             student_links__is_financial=True,
-        ).first(),
+        ).first()
+        if not enrollment.student.is_self_financial
+        else None,
         issue_date=enrollment.enrolled_at,
         gross_value=enrollment.gross_value,
         discount_value=enrollment.discount_value,

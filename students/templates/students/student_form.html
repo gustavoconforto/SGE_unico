@@ -64,6 +64,7 @@
       <p>Quem responde pelo aluno, quem paga e quem pode buscá-lo.</p>
     </div>
     <div class="form-section-body">
+      {% include "components/form/checkbox.html" with field=form.is_self_financial %}
       {{ formset.management_form }}
       {% if formset.non_form_errors %}
         <div role="alert"

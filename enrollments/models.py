@@ -341,12 +341,10 @@ class Enrollment(TimeStampedModel):
 
     def clean(self):
         errors = {}
-        if (
-            self.student_id
-            and not self.student.guardian_links.filter(is_financial=True).exists()
-        ):
+        if self.student_id and self.student.financial_payer is None:
             errors["student"] = (
-                "O aluno precisa ter ao menos um responsável financeiro cadastrado."
+                "O aluno precisa ter ao menos um responsável financeiro cadastrado "
+                "ou ser marcado como o próprio responsável financeiro."
             )
         if (
             self.enrollment_type_id

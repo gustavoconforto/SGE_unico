@@ -171,7 +171,7 @@
                      class="hover:underline">{{ account.description }}</a>
                   <span class="block text-xs text-slate-500">{{ account.category }}</span>
                 </td>
-                <td>{{ account.guardian|default:"-" }}</td>
+                <td>{{ account.payer|default:"-" }}</td>
                 <td class="text-right whitespace-nowrap">R$ {{ account.net_value|floatformat:"2g" }}</td>
                 <td>
                   {% with situation=account.situation %}

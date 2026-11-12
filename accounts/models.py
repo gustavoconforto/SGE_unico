@@ -172,8 +172,17 @@ class Account(TimeStampedModel):
         return self.gross_value - self.discount_value
 
     @property
+    def payer(self):
+        """Who is billed on a receivable: the guardian, or a self-financial student."""
+        if self.guardian:
+            return self.guardian
+        if self.student and self.student.is_self_financial:
+            return self.student
+        return None
+
+    @property
     def counterpart(self):
-        return self.guardian or self.supplier
+        return self.payer or self.supplier
 
     class Meta:
         verbose_name = "Conta"

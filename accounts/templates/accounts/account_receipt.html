@@ -103,7 +103,7 @@
       {% if object.direction == 'R' %}
         {% if object.enrollment %}<p class="line title">{{ object.enrollment }}</p>
         {% elif object.student %}<p class="line title">Aluno(a): {{ object.student }}</p>{% endif %}
-        {% with person=object.guardian %}
+        {% with person=object.payer %}
         {% if person %}
         <p class="line">Responsável(eis): CPF/CNPJ: {{ person.cpf|document }} {{ person.name }}</p>
         <p class="line">Endereço: {{ person.address }}{% if person.neighborhood %}, {{ person.neighborhood }}{% endif %}{% if person.city %}, {{ person.city }} - {{ person.state }}{% endif %}{% if person.zip_code %} CEP: {{ person.zip_code|slice:":5" }}-{{ person.zip_code|slice:"5:" }}{% endif %}</p>

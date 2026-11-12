@@ -1,5 +1,5 @@
 from django import forms
-from django.forms.models import inlineformset_factory
+from django.forms.models import BaseInlineFormSet, inlineformset_factory
 
 from students.models import Guardian, GuardianAssociation, Student
 
@@ -191,6 +191,7 @@ class StudentForm(forms.ModelForm):
             "city",
             "state",
             "zip_code",
+            "is_self_financial",
         ]
         widgets = {
             "name": forms.TextInput(
@@ -199,6 +200,7 @@ class StudentForm(forms.ModelForm):
                 }
             ),
             "use_social_name": forms.CheckboxInput(attrs={"class": "toggle"}),
+            "is_self_financial": forms.CheckboxInput(attrs={"class": "toggle"}),
             "photo": forms.FileInput(
                 attrs={
                     "class": "file-input file-input-neutral w-full",
@@ -331,10 +333,38 @@ class GuardianAssociationForm(forms.ModelForm):
         }
 
 
+class BaseGuardianFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        financial = sum(
+            1
+            for form in self.forms
+            if form.cleaned_data.get("is_financial")
+            and not form.cleaned_data.get("DELETE")
+        )
+        if financial > 1:
+            raise forms.ValidationError(
+                "Apenas um responsável pode ser o responsável financeiro."
+            )
+        # The student form is posted with the formset, unprefixed.
+        self_financial = bool(self.data.get("is_self_financial"))
+        if financial and self_financial:
+            raise forms.ValidationError(
+                "O aluno é o próprio responsável financeiro; desmarque o "
+                "responsável financeiro na lista ou desmarque essa opção."
+            )
+        if not financial and not self_financial:
+            raise forms.ValidationError(
+                "Marque um responsável financeiro ou indique que o próprio aluno "
+                "é o responsável financeiro."
+            )
+
+
 GuardianFormSet = inlineformset_factory(
     Student,
     GuardianAssociation,
     form=GuardianAssociationForm,
+    formset=BaseGuardianFormSet,
     extra=1,
     can_delete=True,
 )
