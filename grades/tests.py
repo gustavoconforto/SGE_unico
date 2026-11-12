@@ -614,10 +614,28 @@ class ReportCardViewTests(GradeTestData):
         )
         self.assertContains(response, "Em recuperação")
 
-    def test_enrollment_list_links_to_the_report_card(self):
-        response = self.client.get(reverse("enrollments:enrollment_list"))
+    def test_print_shows_each_exam_score_per_bimester(self):
+        self.grade(self.pb, "5").save()
+        url = reverse("grades:report_card_print", args=[self.enrollment.pk])
         self.assertContains(
-            response, reverse("grades:report_card", args=[self.enrollment.pk])
+            self.client.get(reverse("grades:report_card", args=[self.enrollment.pk])),
+            url,
+        )
+        response = self.client.get(url)
+        self.assertTemplateUsed(response, "report_cards/report_card_print.html")
+        [row] = response.context["rows"]
+        pb_column = response.context["exam_types"].index(self.pb)
+        self.assertEqual(row.exam_scores[0][pb_column], Decimal("5.00"))
+        self.assertContains(response, "<th>PB</th>", html=True)
+
+    def test_student_grades_links_to_the_report_card(self):
+        url = reverse("grades:report_card", args=[self.enrollment.pk])
+        response = self.client.get(
+            reverse("grades:grade_entry_specific"), {"enrollment": self.enrollment.pk}
+        )
+        self.assertContains(response, url)
+        self.assertNotContains(
+            self.client.get(reverse("enrollments:enrollment_list")), url
         )
 
 

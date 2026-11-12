@@ -5,7 +5,12 @@
     <p><span class="font-semibold">Curso:</span> {{ enrollment.enrollment_type.program }}</p>
     <p><span class="font-semibold">Turma:</span> {{ enrollment.school_class|default:"Sem turma" }}</p>
   </div>
-  <p class="px-2 pb-3 text-sm text-slate-500">Clique em Editar para alterar as notas de uma matéria. Use vírgula nos decimais (ex.: 2,5) e apague o valor para remover uma nota.</p>
+  <div class="flex flex-wrap items-center justify-between gap-3 px-2 pb-3">
+    <p class="text-sm text-slate-500">Clique em Editar para alterar as notas de uma matéria. Use vírgula nos decimais (ex.: 2,5) e apague o valor para remover uma nota.</p>
+    <a href="{% url 'grades:report_card' enrollment.pk %}" class="ui-btn ui-btn-secondary">
+      <span class="material-symbols-outlined" aria-hidden="true">description</span>Boletim
+    </a>
+  </div>
   <div id="student-grades-messages"></div>
   <div class="overflow-x-auto">
     <div class="table-wrap">

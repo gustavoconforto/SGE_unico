@@ -427,3 +427,17 @@ class ReportCardView(DetailView):
         context["rows"] = report_card(self.object)
         context["bimesters"] = Bimester.choices
         return context
+
+
+class ReportCardPrintView(ReportCardView):
+    """Printable report card (A4 landscape): each exam's score per bimester,
+    the bimester grades, the averages, the recovery and the situation."""
+
+    template_name = "report_cards/report_card_print.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Recovery isn't taken in the bimesters: it has its own column.
+        exam_types = list(ExamType.objects.exclude(kind=ExamKind.RECOVERY))
+        context.update(exam_types=exam_types, rows=report_card(self.object, exam_types))
+        return context

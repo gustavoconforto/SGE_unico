@@ -13,6 +13,7 @@ from grades.views import (
     GradeLevelSubjectListView,
     GradeLevelSubjectTeachersView,
     GradeLevelSubjectUpdateView,
+    ReportCardPrintView,
     ReportCardView,
     StudentGradesEditView,
     StudentGradesRowView,
@@ -82,4 +83,9 @@ urlpatterns = [
     ),
     path("entry/options/", GradeEntryOptionsView.as_view(), name="grade_entry_options"),
     path("report_card/<int:pk>/", ReportCardView.as_view(), name="report_card"),
+    path(
+        "report_card/print/<int:pk>/",
+        ReportCardPrintView.as_view(),
+        name="report_card_print",
+    ),
 ]
