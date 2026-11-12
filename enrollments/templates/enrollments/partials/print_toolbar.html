@@ -1,0 +1,7 @@
+{% if not pdf %}
+  <div class="toolbar">
+    <button type="button" class="secondary" onclick="history.back()">Voltar</button>
+    <button type="button" onclick="window.print()">Imprimir</button>
+    <a href="{% url 'enrollments:enrollment_pdf' doc object_id %}">Baixar PDF</a>
+  </div>
+{% endif %}

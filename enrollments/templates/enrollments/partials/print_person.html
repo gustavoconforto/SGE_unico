@@ -1,0 +1,13 @@
+{% load ui %}
+<section class="person no-break">
+  <h2>{{ label }}: {{ person.name|upper }}</h2>
+  <div class="grid">
+    <div><b>CPF:</b> {{ person.cpf|document }}</div>
+    <div><b>RG - Órgão Expedidor:</b> {{ person.rg }} {{ person.issuing_authority }}</div>
+    <div class="wide">
+      <b>Endereço:</b> {{ person.address }}{% if person.neighborhood %}, {{ person.neighborhood }}{% endif %}{% if person.city %}, {{ person.city }}{% endif %}{% if person.state %} - {{ person.state }}{% endif %}{% if person.zip_code %} CEP: {{ person.zip_code|cep }}{% endif %}
+    </div>
+    <div><b>Contatos:</b> {{ person.mobile|phone }}{% if person.mobile and person.phone %} / {% endif %}{{ person.phone|phone }}</div>
+    <div><b>E-mail:</b> {{ person.email }}</div>
+  </div>
+</section>

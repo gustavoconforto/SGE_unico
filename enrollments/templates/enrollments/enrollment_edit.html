@@ -6,12 +6,22 @@
       {% include "components/page/breadcrumb.html" with parent_label="Matrículas" parent_url_name="enrollments:enrollment_list" current=object %}
       <div class="flex flex-wrap items-end justify-between gap-4">
         {% include "components/page/heading.html" with title="Editar matrícula" %}
-        <a href="{% url "enrollments:enrollment_preview" object.pk %}"
-           target="_blank"
-           rel="noopener"
-           class="ui-btn ui-btn-secondary">
+        <button type="button" class="ui-btn ui-btn-secondary" popovertarget="print-menu">
           <span class="material-symbols-outlined" aria-hidden="true">print</span>Imprimir
-        </a>
+          <span class="material-symbols-outlined" aria-hidden="true">expand_more</span>
+        </button>
+        <div id="print-menu" popover data-row-menu
+             class="m-0 w-56 rounded-lg border border-slate-200 bg-white p-1 text-left text-sm shadow-lg shadow-slate-900/10">
+          <a href="{% url "enrollments:enrollment_preview" "contrato" object.pk %}" target="_blank" rel="noopener" class="nav-link">
+            <span class="material-symbols-outlined" aria-hidden="true">description</span>Contrato
+          </a>
+          <a href="{% url "enrollments:enrollment_preview" "requerimento" object.pk %}" target="_blank" rel="noopener" class="nav-link">
+            <span class="material-symbols-outlined" aria-hidden="true">assignment</span>Requerimento de matrícula
+          </a>
+          <a href="{% url "enrollments:enrollment_preview" "ficha" object.pk %}" target="_blank" rel="noopener" class="nav-link">
+            <span class="material-symbols-outlined" aria-hidden="true">badge</span>Ficha de matrícula
+          </a>
+        </div>
       </div>
       {% include "enrollments/enrollment_form.html" %}
     </div>
