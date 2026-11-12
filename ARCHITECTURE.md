@@ -186,7 +186,7 @@ chosen by their teachers; others never do.
 
 | Model | Key fields and rules |
 |---|---|
-| `Pathway` | catalog: `name` unique, `description`, `extra_points` ("Nota máxima", ≥ 0: the highest grade its teachers can give in a bimester; 0 means it gives no extra grade, `gives_grade`) |
+| `Pathway` | catalog: `name` unique, `description`, `extra_points` ("Nota máxima", ≥ 0: the highest grade its teachers can give in a bimester; 0 means it gives no extra grade, `gives_grade`), `workload_type` (`N` sem carga horária, `F` fixa, `P` por presença) and `workload_hours` (the year's hours, > 0 only when fixed; a `CheckConstraint`, and `clean()` zeroes it for the other types) |
 | `PathwayOffering` | a pathway running in a `SchoolYear`: optional `name` (to tell groups apart), `teachers` (many-to-many to `Employee`), optional `capacity`, `schedule` (free text), `weekdays` (JSON list of `lessons.Weekday` values, 1–6; `clean()` rejects others and sorts them; they build the diary's dates). Unique per (pathway, year, name) |
 | `PathwayEnrollment` | **enrollment** × offering, `joined_at`, `left_at` (leaving sets it instead of deleting). Unique per pair. `clean()` requires the offering to be in the enrollment's school year and a free seat (members without `left_at`) |
 | `PathwaySession` | a lesson (aula): offering, `date` inside the school year, optional `topic` |
@@ -201,6 +201,12 @@ don't count: their grades are entered by hand. The sum is capped at the max scor
 `EX` exam type and `save_extra_grades()` writes it, zero included, to every
 subject of the series through `grades.services.save_series_grades()` (shared
 with `save_concept_grades()`). `EX` is therefore calculated, not typed.
+
+**Workload** (`workload()` / `year_workload()` in `pathways/services.py`,
+computed per request): a fixed pathway gives its hours to everyone who was in
+it at any point of the year, even after leaving; a per-attendance one gives
+45 minutes (`LECTURE_HOURS`) per lesson marked present (`J` earns nothing).
+The student attendance screen shows the year total.
 
 **Screens** (sidebar section "Itinerários", `base/sidebar/menu/itinerarios.html`):
 standard CRUDs for pathways (`pathways/`), offerings (`pathways/offerings/`,
@@ -230,6 +236,13 @@ deleting a member with attendance or grades is blocked.
   offering can't be changed; moving its date removes the attendance of students
   who weren't in the pathway then. The list shows present and absent counts,
   or "Sem chamada".
+- **Student workload** (`pathways/workload/by_student/?enrollment=<pk>`,
+  `StudentWorkloadView`, sidebar "Carga horária do aluno"): pick an active
+  enrollment; lists each of its pathways in the school year with type,
+  presences and hours (`with_workload()`), and the total in the footer. Not
+  paginated, so the total always matches the rows.
+  "Imprimir" opens `pathways/workload/print/<pk>/` (`StudentWorkloadPrintView`),
+  a standalone A4 report with the letterhead, like the diary.
 - **Pathway grades** (`pathways/grades/entry/`): pick offering and bimester;
   only pathways that give an extra grade are listed. `PathwayGradeSheetForm`
   has one optional grade (0 to the pathway's `extra_points`) per student in the

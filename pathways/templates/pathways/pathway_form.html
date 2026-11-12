@@ -9,6 +9,8 @@
     <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
       {% include 'components/form/field.html' with field=form.name %}
       {% include 'components/form/field.html' with field=form.extra_points %}
+      {% include 'components/form/field.html' with field=form.workload_type %}
+      {% include 'components/form/field.html' with field=form.workload_hours %}
       <div class="sm:col-span-full">{% include 'components/form/field.html' with field=form.description %}</div>
     </div>
   </section>

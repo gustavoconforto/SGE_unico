@@ -115,6 +115,7 @@ from pathways.models import (
     PathwayGrade,
     PathwayOffering,
     PathwaySession,
+    WorkloadType,
 )
 from pathways.services import extra_grades
 from programs.models import Program
@@ -343,6 +344,14 @@ PATHWAYS = [
     ("Xadrez", "Aberturas, táticas e torneios internos.", Decimal(0), 1),
     ("UAI", "Inteligência artificial.", Decimal(0), 1),
 ]
+# Pathways left out have no workload.
+PATHWAY_WORKLOADS = {
+    "Robótica": (WorkloadType.ATTENDANCE, Decimal(0)),
+    "Programação": (WorkloadType.ATTENDANCE, Decimal(0)),
+    "Iniciação científica": (WorkloadType.FIXED, Decimal(60)),
+    "Música": (WorkloadType.FIXED, Decimal(40)),
+    "Teatro": (WorkloadType.ATTENDANCE, Decimal(0)),
+}
 # Groups of a pathway with two; students pick the one outside their class shift.
 PATHWAY_TIMES = {"Manhã": "8h às 9h40", "Tarde": "14h às 15h40", "": "17h às 18h40"}
 SHIFT_GROUPS = {Shift.MORNING: "Manhã", Shift.AFTERNOON: "Tarde"}
@@ -944,13 +953,22 @@ class Command(BaseCommand):
 
     def seed_pathways(self):
         """The catalog, {pathway: groups}."""
-        return {
-            Pathway.objects.update_or_create(
+        catalog = {}
+        for name, description, points, groups in PATHWAYS:
+            workload_type, hours = PATHWAY_WORKLOADS.get(
+                name, (WorkloadType.NONE, Decimal(0))
+            )
+            pathway = Pathway.objects.update_or_create(
                 name=name,
-                defaults={"description": description, "extra_points": points},
-            )[0]: groups
-            for name, description, points, groups in PATHWAYS
-        }
+                defaults={
+                    "description": description,
+                    "extra_points": points,
+                    "workload_type": workload_type,
+                    "workload_hours": hours,
+                },
+            )[0]
+            catalog[pathway] = groups
+        return catalog
 
     def seed_bank_settings(self):
         return BankSettings.objects.get_or_create(

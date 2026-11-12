@@ -25,6 +25,8 @@ from pathways.views import (
     PathwaySessionUpdateView,
     PathwayUpdateView,
     StudentAttendanceView,
+    StudentWorkloadPrintView,
+    StudentWorkloadView,
 )
 
 app_name = "pathways"
@@ -113,6 +115,16 @@ urlpatterns = [
         "attendance/by_student/",
         StudentAttendanceView.as_view(),
         name="student_attendance",
+    ),
+    path(
+        "workload/by_student/",
+        StudentWorkloadView.as_view(),
+        name="student_workload",
+    ),
+    path(
+        "workload/print/<int:pk>/",
+        StudentWorkloadPrintView.as_view(),
+        name="student_workload_print",
     ),
     path("grades/entry/", PathwayGradeEntryView.as_view(), name="pathway_grade_entry"),
     path(

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from decimal import Decimal
 
 from django.contrib import messages
 from django.db.models import Count, Q
@@ -17,7 +18,7 @@ from django.views.generic import (
 from accounts.views import ProtectedDeleteMixin, SuccessMessageMixin
 from base.search import HtmxFilterMixin, HtmxSearchMixin, is_htmx_partial
 from classes.views import get_int_param
-from enrollments.models import SchoolYear
+from enrollments.models import Enrollment, SchoolYear
 from grades.models import Bimester
 from incidents.forms import ConceptGradeForm, current_school_year
 from incidents.services import bimester_range
@@ -36,6 +37,7 @@ from pathways.forms import (
     SchoolYearSelectForm,
     StudentPathwaysForm,
     StudentPathwaysSelectForm,
+    StudentWorkloadFilterForm,
     members_between,
 )
 from pathways.models import (
@@ -52,6 +54,8 @@ from pathways.services import (
     lesson_days,
     save_extra_grades,
     with_attendance,
+    with_workload,
+    year_workload,
 )
 
 
@@ -338,7 +342,11 @@ class StudentAttendanceView(TemplateView):
         date_range = bimester_range(
             enrollment.enrollment_type.school_year, form.cleaned_data["bimester"]
         )
-        context.update(enrollment=enrollment, date_range=date_range)
+        context.update(
+            enrollment=enrollment,
+            date_range=date_range,
+            year_workload=year_workload(enrollment),
+        )
         if date_range is None:
             return context
         begins, ends = date_range
@@ -366,6 +374,67 @@ class StudentAttendanceView(TemplateView):
             row.absent_days = days[row.pk][AttendanceStatus.ABSENT]
             row.excused_days = days[row.pk][AttendanceStatus.EXCUSED]
         context["rows"] = rows
+        return context
+
+
+class StudentWorkloadView(HtmxFilterMixin, ListView):
+    """Hours earned in each pathway of the enrollment picked in the filter,
+    with the school year's total."""
+
+    model = PathwayEnrollment
+    template_name = "pathway_workloads/student_workload.html"
+    partial_template_name = "pathway_workloads/partials/student_workload_table.html"
+    context_object_name = "pathway_enrollments"
+    ordering = ("offering__pathway__name", "offering__name")
+    filter_form_class = StudentWorkloadFilterForm
+    # No pagination: a student has a few pathways and the total sums every row.
+
+    def get_enrollment(self):
+        form = self.get_filter_form()
+        return form.cleaned_data["enrollment"] if form.is_valid() else None
+
+    def get_queryset(self):
+        if self.get_enrollment() is None:
+            return PathwayEnrollment.objects.none()
+        return super().get_queryset().select_related("offering__school_year")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        enrollment = self.get_enrollment()
+        if enrollment:
+            rows = with_workload(
+                context["object_list"], enrollment.enrollment_type.school_year
+            )
+            context.update(
+                enrollment=enrollment,
+                pathway_enrollments=rows,
+                total_workload=sum((row.workload for row in rows), Decimal(0)),
+            )
+        return context
+
+
+class StudentWorkloadPrintView(DetailView):
+    """Printable workload report of an enrollment: its pathways in the school
+    year with the hours of each and the total."""
+
+    model = Enrollment
+    template_name = "pathway_workloads/student_workload_print.html"
+    context_object_name = "enrollment"
+    queryset = Enrollment.objects.select_related(
+        "student", "school_class", "enrollment_type__school_year"
+    )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        rows = with_workload(
+            self.object.pathway_enrollments.select_related(
+                "offering__school_year"
+            ).order_by(*StudentWorkloadView.ordering),
+            self.object.enrollment_type.school_year,
+        )
+        context.update(
+            rows=rows, total_workload=sum((row.workload for row in rows), Decimal(0))
+        )
         return context
 
 

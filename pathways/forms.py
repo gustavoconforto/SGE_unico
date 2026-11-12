@@ -8,7 +8,7 @@ from accounts.forms import date_input
 from employees.models import Employee
 from enrollments.models import Enrollment, EnrollmentStatus, SchoolYear
 from grades.models import Bimester
-from incidents.forms import ActiveEnrollmentFormMixin
+from incidents.forms import ActiveEnrollmentFormMixin, active_enrollments
 from incidents.services import bimester_range
 from lessons.models import Weekday
 from pathways.models import (
@@ -37,10 +37,22 @@ def offering_select(css="select select-neutral w-full"):
 class PathwayForm(forms.ModelForm):
     class Meta:
         model = Pathway
-        fields = ["name", "extra_points", "description"]
+        fields = [
+            "name",
+            "extra_points",
+            "workload_type",
+            "workload_hours",
+            "description",
+        ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "input input-neutral w-full"}),
             "extra_points": forms.NumberInput(
+                attrs={"class": "input input-neutral w-full", "min": 0, "step": "0.01"}
+            ),
+            "workload_type": forms.Select(
+                attrs={"class": "select select-neutral w-full"}
+            ),
+            "workload_hours": forms.NumberInput(
                 attrs={"class": "input input-neutral w-full", "min": 0, "step": "0.01"}
             ),
             "description": forms.Textarea(
@@ -155,6 +167,20 @@ class PathwayEnrollmentForm(ActiveEnrollmentFormMixin, forms.ModelForm):
             enrollment.queryset = enrollment.queryset.filter(
                 enrollment_type__school_year=offering.school_year_id
             )
+
+
+class StudentWorkloadFilterForm(forms.Form):
+    enrollment = forms.ModelChoiceField(
+        label="Aluno",
+        required=False,
+        queryset=Enrollment.objects.none(),
+        empty_label="Selecione um aluno",
+        widget=forms.Select(attrs={"class": "select select-neutral w-full"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["enrollment"].queryset = active_enrollments()
 
 
 class PathwayEnrollmentFilterForm(OfferingFilterForm):
