@@ -1,3 +1,4 @@
+{% load ui %}
 <div class="guardian-row border-t border-slate-200 pt-4 first:border-t-0 first:pt-0">
     {{ guardian_form.id }}
     {% if guardian_form.non_field_errors %}
@@ -15,6 +16,14 @@
     </div>
     {% if guardian_form.DELETE %}
         <div class="mt-2 flex items-center justify-end gap-3">
+            {% with guardian=guardian_form.instance.guardian %}
+                {% with wa=guardian.mobile|whatsapp %}
+                    {% if wa and not guardian_form.DELETE.value %}
+                        <a href="whatsapp://send?phone={{ wa }}" class="ui-btn ui-btn-sm ui-btn-secondary mr-auto"
+                           aria-label="Abrir conversa no WhatsApp com {{ guardian.name }}"><span class="material-symbols-outlined" aria-hidden="true">chat</span>WhatsApp ({{ guardian.mobile }})</a>
+                    {% endif %}
+                {% endwith %}
+            {% endwith %}
             <div class="hidden">{{ guardian_form.DELETE }}</div>
             <p class="guardian-removed text-[13px] text-slate-500{% if not guardian_form.DELETE.value %} hidden{% endif %}"
                role="status">Responsável removido ao salvar.</p>

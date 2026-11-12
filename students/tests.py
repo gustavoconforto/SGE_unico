@@ -82,3 +82,53 @@ class FinancialGuardianTests(LoggedInTestCase):
                 relationship=Relationship.FATHER,
                 is_financial=True,
             )
+
+
+class WhatsAppLinkTests(LoggedInTestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.student = Student.objects.create(
+            name="Ana Souza",
+            cpf="12345678901",
+            rg="1234567",
+            issuing_authority="SSP",
+            mobile="(61) 91234-5678",
+        )
+        cls.mother = Guardian.objects.create(
+            name="Maria Souza",
+            cpf="00275010198",
+            rg="7654321",
+            issuing_authority="SSP",
+            mobile="(62) 98765-4321",
+        )
+        cls.father = Guardian.objects.create(
+            name="João Souza", cpf="11122233344", rg="7654322", issuing_authority="SSP"
+        )
+        for guardian in (cls.mother, cls.father):
+            GuardianAssociation.objects.create(
+                student=cls.student,
+                guardian=guardian,
+                relationship=Relationship.MOTHER,
+            )
+
+    def test_filter(self):
+        from base.templatetags.ui import whatsapp
+
+        self.assertEqual(whatsapp("(61) 91234-5678"), "5561912345678")
+        self.assertEqual(whatsapp("(61) 3234-5678"), "556132345678")
+        self.assertEqual(whatsapp("+55 61 91234-5678"), "5561912345678")
+        self.assertEqual(whatsapp("91234-5678"), "")
+        self.assertEqual(whatsapp(""), "")
+        self.assertEqual(whatsapp(None), "")
+
+    def test_edit_page_links_student_and_guardians_with_mobile(self):
+        response = self.client.get(
+            reverse("students:student_edit", args=[self.student.pk])
+        )
+        self.assertContains(response, 'href="whatsapp://send?phone=5561912345678"')
+        self.assertContains(response, 'href="whatsapp://send?phone=5562987654321"')
+        self.assertContains(response, "whatsapp://send", count=2)
+
+    def test_add_page_has_no_links(self):
+        response = self.client.get(reverse("students:student_add"))
+        self.assertNotContains(response, "whatsapp://send")
