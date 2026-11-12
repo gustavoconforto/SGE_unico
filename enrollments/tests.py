@@ -563,3 +563,59 @@ class EnrollmentDiscountTests(LoggedInTestCase):
         form = self.form()
         self.assertFalse(form.fields["student"].disabled)
         self.assertFalse(form.fields["enrollment_type"].disabled)
+
+
+class EnrollmentListFilterTests(LoggedInTestCase):
+    @classmethod
+    def setUpTestData(cls):
+        program = Program.objects.create(name="Ensino Médio")
+        guardian = Guardian.objects.create(
+            name="Maria Souza", cpf="00275010198", rg="7654321"
+        )
+        cls.enrollments = {}
+        for year, (name, cpf, rg) in {
+            2026: ("Ana Souza", "12345678901", "1111111"),
+            2027: ("Bruno Lima", "98765432100", "2222222"),
+        }.items():
+            school_year = SchoolYear.objects.create(
+                begins=date(year, 1, 10), ends=date(year, 12, 15)
+            )
+            student = Student.objects.create(
+                name=name, cpf=cpf, rg=rg, issuing_authority="SSP"
+            )
+            GuardianAssociation.objects.create(
+                student=student,
+                guardian=guardian,
+                relationship=Relationship.MOTHER,
+                is_financial=True,
+            )
+            cls.enrollments[year] = Enrollment.objects.create(
+                student=student,
+                enrollment_type=EnrollmentType.objects.create(
+                    program=program,
+                    school_year=school_year,
+                    level="1",
+                    total_price=Decimal("12000.00"),
+                ),
+                enrolled_at=date(year, 1, 10),
+                due_day=10,
+            )
+
+    def test_filters_by_school_year(self):
+        school_year = self.enrollments[2027].enrollment_type.school_year
+        response = self.client.get(
+            reverse("enrollments:enrollment_list"),
+            {"school_year": school_year.pk},
+            **{"HTTP_HX_REQUEST": "true"},
+        )
+        self.assertTemplateUsed(response, "enrollments/partials/enrollment_table.html")
+        self.assertEqual(
+            list(response.context["enrollments"]), [self.enrollments[2027]]
+        )
+
+    def test_without_filter_lists_every_year(self):
+        response = self.client.get(reverse("enrollments:enrollment_list"))
+        self.assertEqual(
+            set(response.context["enrollments"]), set(self.enrollments.values())
+        )
+        self.assertContains(response, "Ano letivo")

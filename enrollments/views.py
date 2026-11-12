@@ -21,12 +21,13 @@ from weasyprint import HTML
 from accounts.models import Account, AccountReceivable, Installment
 from accounts.services import enrollment_amounts, enrollment_due_dates
 from accounts.views import ProtectedDeleteMixin, SuccessMessageMixin
-from base.search import HtmxSearchMixin
+from base.search import HtmxFilterMixin, HtmxSearchMixin
 from base.templatetags.ui import document
 from enrollments.forms import (
     DISCOUNT_GROUP_PREFIXES,
     DiscountTypeForm,
     EnrollmentCreateForm,
+    EnrollmentFilterForm,
     EnrollmentForm,
     EnrollmentNeededDocumentFormSet,
     EnrollmentTypeForm,
@@ -187,7 +188,7 @@ class DiscountTypeDeleteView(ProtectedDeleteMixin, DeleteView):
 # ENROLLMENT VIEWS
 
 
-class EnrollmentListView(HtmxSearchMixin, ListView):
+class EnrollmentListView(HtmxFilterMixin, ListView):
     model = Enrollment
     queryset = Enrollment.objects.select_related(
         "student",
@@ -207,6 +208,8 @@ class EnrollmentListView(HtmxSearchMixin, ListView):
         "school_class__name",
         "enrollment_type__program__name",
     )
+    filter_form_class = EnrollmentFilterForm
+    filter_lookups = {"school_year": "enrollment_type__school_year"}
 
 
 class EnrollmentCreateView(SuccessMessageMixin, CreateView):
