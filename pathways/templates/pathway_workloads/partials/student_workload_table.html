@@ -1,0 +1,46 @@
+{% if enrollment %}
+  <div class="flex flex-wrap items-center justify-between gap-3 pb-3">
+    <p class="text-sm text-slate-500">
+      Ano letivo {{ enrollment.enrollment_type.school_year }}. Por presença: 45 minutos por aula assistida.
+    </p>
+    <a href="{% url 'pathways:student_workload_print' enrollment.pk %}" target="_blank" rel="noopener" class="ui-btn ui-btn-secondary">
+      <span class="material-symbols-outlined" aria-hidden="true">print</span>Imprimir
+    </a>
+  </div>
+  <div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Itinerário</th>
+        <th>Tipo de carga horária</th>
+        <th>Entrada</th>
+        <th>Saída</th>
+        <th class="text-right">Presenças</th>
+        <th class="text-right">Carga horária</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in pathway_enrollments %}
+      <tr class="hover:bg-slate-50">
+        <td class="whitespace-nowrap">{{ row.offering }}</td>
+        <td>{{ row.offering.pathway.get_workload_type_display }}</td>
+        <td>{{ row.joined_at|date:"d/m/Y" }}</td>
+        <td>{% if row.left_at %}<span class="badge badge-warning">{{ row.left_at|date:"d/m/Y" }}</span>{% else %}-{% endif %}</td>
+        <td class="text-right whitespace-nowrap">{{ row.present }}</td>
+        <td class="text-right whitespace-nowrap">{{ row.workload|floatformat:"2g" }} h</td>
+      </tr>
+    {% empty %}
+      {% include 'components/table/empty_table.html' with collspan=6 %}
+    {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <th colspan="5" class="text-right">Carga horária total</th>
+        <th class="text-right whitespace-nowrap">{{ total_workload|floatformat:"2g" }} h</th>
+      </tr>
+    </tfoot>
+  </table>
+  </div>
+{% else %}
+  <p class="px-2 pb-3 text-sm text-slate-500">Selecione um aluno para ver a carga horária.</p>
+{% endif %}

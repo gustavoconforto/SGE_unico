@@ -1,0 +1,22 @@
+{% extends 'base/base.html' %}
+
+{% block page_title %}Carga horária do aluno{% endblock page_title %}
+
+{% block header %}
+  <div class="pb-6">
+    {% include 'components/page/heading.html' with section='Itinerários' subtitle='Selecione o aluno.' title='Carga horária do aluno' %}
+  </div>
+  <form hx-get="{{ request.path }}"
+        hx-trigger="change"
+        hx-target="#search-results"
+        hx-push-url="true"
+        class="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+    {% include 'components/form/field.html' with field=filter_form.enrollment %}
+  </form>
+{% endblock header %}
+
+{% block content %}
+  <div id="search-results">
+    {% include 'pathway_workloads/partials/student_workload_table.html' %}
+  </div>
+{% endblock content %}

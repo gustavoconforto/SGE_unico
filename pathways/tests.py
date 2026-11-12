@@ -23,8 +23,14 @@ from pathways.models import (
     PathwayGrade,
     PathwayOffering,
     PathwaySession,
+    WorkloadType,
 )
-from pathways.services import extra_grades, lesson_days, save_extra_grades
+from pathways.services import (
+    extra_grades,
+    lesson_days,
+    save_extra_grades,
+    year_workload,
+)
 from q_and_a.models import QandA
 from students.models import Student
 
@@ -126,6 +132,69 @@ class PathwayModelTests(PathwayFixturesMixin, LoggedInTestCase):
         grade = PathwayGrade(pathway_enrollment=self.member, bimester=1, score=0)
         with self.assertRaisesMessage(ValidationError, "não dá nota extra"):
             grade.full_clean()
+
+
+class WorkloadTests(PathwayFixturesMixin, LoggedInTestCase):
+    def roll(self, statuses):
+        for day, status in enumerate(statuses, start=2):
+            session = PathwaySession.objects.create(
+                offering=self.offering, date=date(2027, 3, day)
+            )
+            PathwayAttendance.objects.create(
+                session=session, pathway_enrollment=self.member, status=status
+            )
+
+    def set_workload(self, workload_type, hours=Decimal(0)):
+        self.robotics.workload_type = workload_type
+        self.robotics.workload_hours = hours
+        self.robotics.save()
+
+    def test_no_workload_earns_nothing(self):
+        self.roll([AttendanceStatus.PRESENT])
+        self.assertEqual(year_workload(self.enrollment), 0)
+
+    def test_fixed_workload_ignores_absences(self):
+        self.set_workload(WorkloadType.FIXED, Decimal(40))
+        self.roll([AttendanceStatus.ABSENT, AttendanceStatus.ABSENT])
+        self.assertEqual(year_workload(self.enrollment), Decimal(40))
+
+    def test_attendance_workload_counts_45_minutes_per_presence(self):
+        self.set_workload(WorkloadType.ATTENDANCE)
+        P, F, J = (
+            AttendanceStatus.PRESENT,
+            AttendanceStatus.ABSENT,
+            AttendanceStatus.EXCUSED,
+        )
+        self.roll([P, P, P, F, J])
+        self.assertEqual(year_workload(self.enrollment), Decimal("2.25"))
+
+    def test_total_adds_every_pathway_of_the_year(self):
+        self.set_workload(WorkloadType.ATTENDANCE)
+        self.roll([AttendanceStatus.PRESENT])
+        self.theater.workload_type = WorkloadType.FIXED
+        self.theater.workload_hours = Decimal(20)
+        self.theater.save()
+        PathwayEnrollment.objects.create(
+            enrollment=self.enrollment,
+            offering=PathwayOffering.objects.create(
+                pathway=self.theater, school_year=self.school_year
+            ),
+            joined_at=date(2027, 2, 1),
+            left_at=date(2027, 2, 10),  # left early: fixed hours still count
+        )
+        self.assertEqual(year_workload(self.enrollment), Decimal("20.75"))
+        self.assertEqual(year_workload(self.other), 0)
+
+    def test_fixed_workload_needs_hours(self):
+        self.robotics.workload_type = WorkloadType.FIXED
+        with self.assertRaisesMessage(ValidationError, "Informe as horas"):
+            self.robotics.full_clean()
+
+    def test_other_types_drop_the_hours(self):
+        self.robotics.workload_type = WorkloadType.ATTENDANCE
+        self.robotics.workload_hours = Decimal(10)
+        self.robotics.full_clean()
+        self.assertEqual(self.robotics.workload_hours, 0)
 
 
 class ExtraGradeTests(PathwayFixturesMixin, LoggedInTestCase):
@@ -244,18 +313,31 @@ class PathwayViewsTests(LoggedInTestCase):
     def test_crud(self):
         response = self.client.post(
             reverse("pathways:pathway_add"),
-            {"name": "Robótica", "extra_points": "0.5", "description": ""},
+            {
+                "name": "Robótica",
+                "extra_points": "0.5",
+                "workload_type": "N",
+                "workload_hours": "0",
+                "description": "",
+            },
         )
         self.assertRedirects(response, reverse("pathways:pathway_list"))
         pathway = Pathway.objects.get()
 
         response = self.client.post(
             reverse("pathways:pathway_edit", args=[pathway.pk]),
-            {"name": "Robótica avançada", "extra_points": "1", "description": ""},
+            {
+                "name": "Robótica avançada",
+                "extra_points": "1",
+                "workload_type": "F",
+                "workload_hours": "40",
+                "description": "",
+            },
         )
         self.assertRedirects(response, reverse("pathways:pathway_list"))
         pathway.refresh_from_db()
         self.assertEqual(pathway.extra_points, Decimal(1))
+        self.assertEqual(pathway.workload_hours, Decimal(40))
 
         response = self.client.get(
             reverse("pathways:pathway_list"), {"q": "avançada"}, **HTMX
@@ -945,6 +1027,14 @@ class StudentAttendanceTests(PathwayFixturesMixin, LoggedInTestCase):
         self.assertContains(response, "fev ·</span> 09</div>", html=False)
         self.assertContains(response, "mar ·</span> 02</div>", html=False)
 
+    def test_shows_the_year_workload(self):
+        self.robotics.workload_type = WorkloadType.FIXED
+        self.robotics.workload_hours = Decimal("12.5")
+        self.robotics.save()
+        response = self.client.get(self.url())
+        self.assertEqual(response.context["year_workload"], Decimal("12.5"))
+        self.assertContains(response, "12,50 h")
+
     def test_lists_only_pathways_joined_during_the_bimester(self):
         theater = PathwayOffering.objects.create(
             pathway=self.theater, school_year=self.school_year
@@ -971,3 +1061,83 @@ class StudentAttendanceTests(PathwayFixturesMixin, LoggedInTestCase):
         self.assertTemplateNotUsed(
             response, "pathway_attendance/student_attendance.html"
         )
+
+
+class StudentWorkloadTests(PathwayFixturesMixin, LoggedInTestCase):
+    def url(self, enrollment=None):
+        url = reverse("pathways:student_workload")
+        return f"{url}?enrollment={enrollment.pk}" if enrollment else url
+
+    def test_lists_each_pathway_with_its_hours_and_the_total(self):
+        self.robotics.workload_type = WorkloadType.ATTENDANCE
+        self.robotics.save()
+        for day, status in [
+            (date(2027, 3, 2), AttendanceStatus.PRESENT),
+            (date(2027, 3, 9), AttendanceStatus.PRESENT),
+            (date(2027, 3, 16), AttendanceStatus.ABSENT),
+        ]:
+            PathwayAttendance.objects.create(
+                session=PathwaySession.objects.create(offering=self.offering, date=day),
+                pathway_enrollment=self.member,
+                status=status,
+            )
+        self.theater.workload_type = WorkloadType.FIXED
+        self.theater.workload_hours = Decimal(20)
+        self.theater.save()
+        theater = PathwayEnrollment.objects.create(
+            enrollment=self.enrollment,
+            offering=PathwayOffering.objects.create(
+                pathway=self.theater, school_year=self.school_year
+            ),
+            joined_at=date(2027, 2, 1),
+        )
+        PathwayEnrollment.objects.create(  # another student's pathway
+            enrollment=self.other, offering=self.offering, joined_at=date(2027, 2, 1)
+        )
+
+        response = self.client.get(self.url(self.enrollment))
+        self.assertTemplateUsed(response, "pathway_workloads/student_workload.html")
+        rows = response.context["pathway_enrollments"]
+        self.assertEqual(rows, [self.member, theater])
+        self.assertEqual([row.workload for row in rows], [Decimal("1.5"), 20])
+        self.assertEqual(response.context["total_workload"], Decimal("21.5"))
+        self.assertContains(response, "21,50 h")
+
+    def test_asks_for_a_student_first(self):
+        response = self.client.get(self.url())
+        self.assertContains(response, "Selecione um aluno para ver a carga horária")
+        self.assertNotIn("enrollment", response.context)
+
+    def test_htmx_renders_the_partial(self):
+        response = self.client.get(self.url(self.enrollment), **HTMX)
+        self.assertTemplateUsed(
+            response, "pathway_workloads/partials/student_workload_table.html"
+        )
+        self.assertTemplateNotUsed(response, "pathway_workloads/student_workload.html")
+
+    def test_print_report(self):
+        self.robotics.workload_type = WorkloadType.FIXED
+        self.robotics.workload_hours = Decimal(30)
+        self.robotics.save()
+        self.assertContains(
+            self.client.get(self.url(self.enrollment)),
+            reverse("pathways:student_workload_print", args=[self.enrollment.pk]),
+        )
+
+        response = self.client.get(
+            reverse("pathways:student_workload_print", args=[self.enrollment.pk])
+        )
+        self.assertTemplateUsed(
+            response, "pathway_workloads/student_workload_print.html"
+        )
+        self.assertEqual(response.context["rows"], [self.member])
+        self.assertEqual(response.context["total_workload"], Decimal(30))
+        self.assertContains(response, self.enrollment.student.name)
+        self.assertContains(response, "unico_logo_stamp.png")
+        self.assertContains(response, "30,00 h")
+
+    def test_print_report_without_pathways(self):
+        response = self.client.get(
+            reverse("pathways:student_workload_print", args=[self.other.pk])
+        )
+        self.assertContains(response, "não participou de nenhum itinerário")

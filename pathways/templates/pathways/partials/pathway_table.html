@@ -6,6 +6,7 @@
         <th>Nome</th>
         <th>Descrição</th>
         <th class="text-right">Nota máxima</th>
+        <th>Carga horária</th>
         <th class="text-right"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
@@ -21,6 +22,9 @@
         <td class="text-right whitespace-nowrap">
             {% if pathway.gives_grade %}{{ pathway.extra_points|floatformat:"2g" }}{% else %}<span class="text-slate-500">Sem nota</span>{% endif %}
         </td>
+        <td class="whitespace-nowrap">
+            {% if pathway.workload_type == 'F' %}{{ pathway.workload_hours|floatformat:"-2g" }} h{% else %}{{ pathway.get_workload_type_display }}{% endif %}
+        </td>
         <td class="text-right">
           <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-1.5">
           {% url 'pathways:pathway_edit' pathway.pk as edit_url %}
@@ -31,7 +35,7 @@
         </td>
       </tr>
       {% empty %}
-      {% include 'components/table/empty_table.html' with collspan=4%}
+      {% include 'components/table/empty_table.html' with collspan=5 %}
       {% endfor %}
     </tbody>
   </table>

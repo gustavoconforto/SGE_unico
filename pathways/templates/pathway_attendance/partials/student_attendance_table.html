@@ -37,6 +37,9 @@
   </table>
   </div>
   {% endif %}
+  <p class="pt-3 text-sm text-slate-600">
+    Carga horária no ano letivo: <strong>{{ year_workload|floatformat:"-2g" }} h</strong>
+  </p>
 {% else %}
   <p class="px-2 pb-3 text-sm text-slate-500">Selecione um aluno e um bimestre para ver a frequência.</p>
 {% endif %}

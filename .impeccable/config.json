@@ -11,6 +11,15 @@
         ],
         "createdAt": "2026-11-11T10:47:51.030Z",
         "reason": "Claude triage: line-height 1 is only on single-line toolbar buttons/select (hidden on print), copied from enrollments/preview_enrollment.html; body text uses 1.35"
+      },
+      {
+        "rule": "oversized-h1",
+        "value": "*",
+        "files": [
+          "pathways/templates/pathway_workloads/student_workload_print.html"
+        ],
+        "createdAt": "2026-11-12T10:56:51.703Z",
+        "reason": "Claude triage: print-only A4 report, h1 is 13pt (body-text size), mirrors the existing pathway_offering_diary.html letterhead title"
       }
     ]
   }

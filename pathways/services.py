@@ -16,10 +16,11 @@ from django.db.models import Count, Q, Sum
 from grades.models import ExamType
 from grades.services import save_series_grades
 from incidents.services import bimester_range
-from pathways.models import AttendanceStatus, PathwayGrade
+from pathways.models import AttendanceStatus, PathwayGrade, WorkloadType
 
 ZERO = Decimal(0)
 EXTRA_CODE = "EX"
+LECTURE_HOURS = Decimal(45) / 60  # a lesson lasts 45 minutes
 
 
 def lesson_days(offering, begins, ends):
@@ -61,6 +62,40 @@ def with_attendance(pathway_enrollments, date_range):
         absent=lessons(AttendanceStatus.ABSENT),
         excused=lessons(AttendanceStatus.EXCUSED),
     )
+
+
+def workload(member):
+    """Hours a pathway enrollment annotated by `with_attendance` earns: the
+    pathway's fixed hours, or 45 minutes per lesson attended (excused absences
+    earn nothing)."""
+    pathway = member.offering.pathway
+    if pathway.workload_type == WorkloadType.FIXED:
+        return pathway.workload_hours
+    if pathway.workload_type == WorkloadType.ATTENDANCE:
+        return member.present * LECTURE_HOURS
+    return ZERO
+
+
+def with_workload(pathway_enrollments, school_year):
+    """The pathway enrollments as a list, annotated by `with_attendance` over
+    the school year and each with its `workload` in hours."""
+    members = list(
+        with_attendance(
+            pathway_enrollments.select_related("offering__pathway"),
+            (school_year.begins, school_year.ends),
+        )
+    )
+    for member in members:
+        member.workload = workload(member)
+    return members
+
+
+def year_workload(enrollment):
+    """Total hours of every pathway the enrollment joined in its school year."""
+    members = with_workload(
+        enrollment.pathway_enrollments.all(), enrollment.enrollment_type.school_year
+    )
+    return sum((member.workload for member in members), ZERO)
 
 
 def pathways_points(enrollment_ids, bimester):

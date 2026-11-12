@@ -13,6 +13,12 @@ from grades.models import SCORE, Bimester
 from lessons.models import Weekday
 
 
+class WorkloadType(models.TextChoices):
+    NONE = "N", "Sem carga horária"
+    FIXED = "F", "Fixa"
+    ATTENDANCE = "P", "Por presença"
+
+
 class Pathway(models.Model):
     """An extra-curricular course in the catalog, offered again every year."""
 
@@ -26,6 +32,21 @@ class Pathway(models.Model):
         help_text="Maior nota que o professor pode dar no bimestre; "
         "deixe 0 se o itinerário não dá nota extra",
     )
+    workload_type = models.CharField(
+        "Carga horária",
+        max_length=1,
+        choices=WorkloadType.choices,
+        default=WorkloadType.NONE,
+        help_text="Por presença: cada aula assistida vale 45 minutos",
+    )
+    workload_hours = models.DecimalField(
+        "Horas no ano",
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal(0),
+        validators=[MinValueValidator(0)],
+        help_text="Só para carga horária fixa",
+    )
 
     class Meta:
         verbose_name = "Itinerário"
@@ -36,6 +57,11 @@ class Pathway(models.Model):
                 condition=Q(extra_points__gte=0),
                 name="pathway_extra_points_not_negative",
             ),
+            models.CheckConstraint(
+                condition=Q(workload_type=WorkloadType.FIXED, workload_hours__gt=0)
+                | (~Q(workload_type=WorkloadType.FIXED) & Q(workload_hours=0)),
+                name="pathway_workload_hours_only_when_fixed",
+            ),
         ]
 
     def __str__(self):
@@ -44,6 +70,14 @@ class Pathway(models.Model):
     @property
     def gives_grade(self):
         return self.extra_points > 0
+
+    def clean(self):
+        if self.workload_type != WorkloadType.FIXED:
+            self.workload_hours = Decimal(0)
+        elif not self.workload_hours:
+            raise ValidationError(
+                {"workload_hours": "Informe as horas da carga horária fixa."}
+            )
 
 
 class PathwayOffering(TimeStampedModel):
