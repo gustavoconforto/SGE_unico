@@ -61,6 +61,15 @@
   </section>
   <section class="form-section">
     <div class="form-section-intro">
+      <h2>Informações escolares</h2>
+    </div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
+      <div class="sm:col-span-full">{% include "components/form/field.html" with field=form.school_from %}</div>
+      <div class="sm:col-span-full">{% include "components/form/field.html" with field=form.observations %}</div>
+    </div>
+  </section>
+  <section class="form-section">
+    <div class="form-section-intro">
       <h2>Responsáveis</h2>
       <p>Quem responde pelo aluno, quem paga e quem pode buscá-lo.</p>
     </div>

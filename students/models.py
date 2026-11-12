@@ -73,6 +73,8 @@ class Student(Person):
         "Tipo sanguíneo", max_length=3, choices=BloodType.choices
     )
     photo = models.ImageField("Foto", upload_to=student_photo_path, blank=True)
+    school_from = models.CharField("Escola de origem", max_length=200, blank=True)
+    observations = models.TextField("Observações pedagógicas", blank=True)
     is_self_financial = models.BooleanField(
         "O próprio aluno é o responsável financeiro", default=False
     )

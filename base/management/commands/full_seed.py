@@ -134,6 +134,27 @@ CENT = Decimal("0.01")
 
 HIGH_SCHOOL = "Ensino Médio"
 
+SCHOOLS_FROM = [
+    "CEF 01 de Brasília",
+    "CEF 02 do Guará",
+    "CEF 04 de Taguatinga",
+    "Colégio Militar de Brasília",
+    "Colégio Marista de Brasília",
+    "Colégio La Salle Águas Claras",
+    "Escola Classe 308 Sul",
+    "Colégio Objetivo DF",
+]
+
+PEDAGOGICAL_NOTES = [
+    "Apresenta dificuldade em matemática; recomenda-se acompanhamento.",
+    "Laudo de TDAH; precisa de tempo extra nas avaliações.",
+    "Dislexia diagnosticada; avaliações com leitura em voz alta.",
+    "Aluno com altas habilidades em ciências exatas.",
+    "Timidez acentuada; incentivar participação em grupo.",
+    "Veio de outro estado; adaptação ao currículo em andamento.",
+    "Precisa sentar nas primeiras fileiras (baixa visão).",
+]
+
 # Class names are unique per (year, program), so every series has its own.
 CLASSES = {
     1: [
@@ -1191,6 +1212,12 @@ class Command(BaseCommand):
                         if random.random() < 0.85
                         else "",
                         email=self.fake.free_email() if random.random() < 0.6 else "",
+                        school_from=random.choice(SCHOOLS_FROM)
+                        if random.random() < 0.7
+                        else "",
+                        observations=random.choice(PEDAGOGICAL_NOTES)
+                        if random.random() < 0.15
+                        else "",
                         **home,
                     )
                 )

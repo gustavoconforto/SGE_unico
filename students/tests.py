@@ -74,6 +74,18 @@ class FinancialGuardianTests(LoggedInTestCase):
         )
         self.assertEqual(self.student.financial_payer, self.mother)
 
+    def test_saves_school_from_and_observations(self):
+        data = self.post_data(self.mother)
+        data["school_from"] = "EE Dom Pedro II"
+        data["observations"] = "Precisa de reforço em matemática."
+        response = self.post(data)
+        self.assertRedirects(
+            response, reverse("students:student_edit", args=[self.student.pk])
+        )
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.school_from, "EE Dom Pedro II")
+        self.assertEqual(self.student.observations, "Precisa de reforço em matemática.")
+
     def test_database_allows_only_one_financial_guardian(self):
         GuardianAssociation.objects.create(
             student=self.student,
