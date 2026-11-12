@@ -95,7 +95,7 @@
         {% include "components/form/field.html" with field=form.mobile %}
         {% with wa=form.instance.mobile|whatsapp %}
           {% if wa %}
-            <a href="whatsapp://send?phone={{ wa }}" class="ui-btn ui-btn-sm ui-btn-secondary mt-1"
+            <a href="https://web.whatsapp.com/send?phone={{ wa }}" target="whatsapp" rel="noopener" class="ui-btn ui-btn-sm ui-btn-secondary mt-1"
                aria-label="Abrir conversa no WhatsApp com o aluno"><span class="material-symbols-outlined" aria-hidden="true">chat</span>WhatsApp</a>
           {% endif %}
         {% endwith %}

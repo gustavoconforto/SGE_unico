@@ -125,10 +125,14 @@ class WhatsAppLinkTests(LoggedInTestCase):
         response = self.client.get(
             reverse("students:student_edit", args=[self.student.pk])
         )
-        self.assertContains(response, 'href="whatsapp://send?phone=5561912345678"')
-        self.assertContains(response, 'href="whatsapp://send?phone=5562987654321"')
-        self.assertContains(response, "whatsapp://send", count=2)
+        self.assertContains(
+            response, 'href="https://web.whatsapp.com/send?phone=5561912345678"'
+        )
+        self.assertContains(
+            response, 'href="https://web.whatsapp.com/send?phone=5562987654321"'
+        )
+        self.assertContains(response, "web.whatsapp.com/send", count=2)
 
     def test_add_page_has_no_links(self):
         response = self.client.get(reverse("students:student_add"))
-        self.assertNotContains(response, "whatsapp://send")
+        self.assertNotContains(response, "web.whatsapp.com/send")
