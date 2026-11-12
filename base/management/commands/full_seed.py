@@ -1133,8 +1133,10 @@ class Command(BaseCommand):
                 ["Brasília", "Goiânia", "São Paulo", "Rio de Janeiro"]
             ),
             marital_status=random.choice(MaritalStatus.values),
-            phone=self.phone(mobile=False) if random.random() < 0.3 else "",
-            mobile=self.phone(),
+            phone=self.digits(self.phone(mobile=False))
+            if random.random() < 0.3
+            else "",
+            mobile=self.digits(self.phone()),
             email=self.fake.free_email(),
             **self.address(),
         )
@@ -1183,7 +1185,9 @@ class Command(BaseCommand):
                         place_of_birth=random.choice(
                             ["Brasília", "Brasília", "Brasília", "Goiânia", "São Paulo"]
                         ),
-                        mobile=self.phone() if random.random() < 0.85 else "",
+                        mobile=self.digits(self.phone())
+                        if random.random() < 0.85
+                        else "",
                         email=self.fake.free_email() if random.random() < 0.6 else "",
                         **home,
                     )

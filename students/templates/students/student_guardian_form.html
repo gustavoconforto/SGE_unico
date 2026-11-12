@@ -20,7 +20,7 @@
                 {% with wa=guardian.mobile|whatsapp %}
                     {% if wa and not guardian_form.DELETE.value %}
                         <a href="https://web.whatsapp.com/send?phone={{ wa }}" target="whatsapp" rel="noopener" class="ui-btn ui-btn-sm ui-btn-secondary mr-auto"
-                           aria-label="Abrir conversa no WhatsApp com {{ guardian.name }}"><span class="material-symbols-outlined" aria-hidden="true">chat</span>WhatsApp ({{ guardian.mobile }})</a>
+                           aria-label="Abrir conversa no WhatsApp com {{ guardian.name }}"><span class="material-symbols-outlined" aria-hidden="true">chat</span>WhatsApp ({{ guardian.mobile|phone }})</a>
                     {% endif %}
                 {% endwith %}
             {% endwith %}

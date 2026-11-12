@@ -94,7 +94,7 @@ def student_edit_view(request, pk):
                 form.save()
                 formset.save()
             messages.success(request, "Registro atualizado com sucesso")
-            return redirect("students:student_list")
+            return redirect("students:student_edit", pk=student.pk)
 
     else:
         form = StudentForm(instance=student)

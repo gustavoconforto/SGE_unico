@@ -1,4 +1,4 @@
-{% load static %}
+{% load static ui %}
 <!DOCTYPE html>
 <html lang="pt-BR">
   <head>
@@ -310,7 +310,7 @@
             </tr>
             <tr>
               <th>TELEFONE:</th>
-              <td>{{ student_mobile }}</td>
+              <td>{{ student_mobile|phone }}</td>
             </tr>
             <tr>
               <th colspan="2" class="group">Contratante</th>
@@ -329,7 +329,7 @@
             </tr>
             <tr>
               <th>TELEFONE:</th>
-              <td>{{ financial_guardian_mobile }}</td>
+              <td>{{ financial_guardian_mobile|phone }}</td>
             </tr>
             <tr>
               <th>E-MAIL:</th>
