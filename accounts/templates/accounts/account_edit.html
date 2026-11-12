@@ -7,12 +7,7 @@
 <div class="page-form">
   <div class="w-full">
     {% include 'components/page/breadcrumb.html' with parent_label=title parent_url_name=urls.list current=object %}
-    <div class="flex flex-wrap items-end justify-between gap-4">
-      {% include 'components/page/heading.html' with title='Editar '|add:noun %}
-      <a href="{% url urls.print object.pk %}" target="_blank" rel="noopener" class="ui-btn ui-btn-secondary">
-        <span class="material-symbols-outlined" aria-hidden="true">print</span>Imprimir recibo
-      </a>
-    </div>
+    {% include 'components/page/heading.html' with title='Editar '|add:noun %}
 
     {% include 'accounts/account_form.html' %}
 
@@ -57,7 +52,12 @@
                     <td class="text-right whitespace-nowrap">
                         R$ {{ installment.outstanding|floatformat:"2g" }}
                     </td>
-                    <td class="text-right">
+                    <td class="text-right whitespace-nowrap">
+                        {% if installment.status == 'Q' or installment.status == 'P' %}
+                        <a href="{% url urls.print object.pk %}?installment={{ installment.pk }}" target="_blank" rel="noopener" class="inline-block">
+                            {% include 'components/button/button_select.html' with label="Recibo" %}
+                        </a>
+                        {% endif %}
                         {% if installment.status == 'A' or installment.status == 'P' or installment.status == 'E' %}
                         <a href="{% if object.direction == 'R' %}{% url 'accounts:payment_add' %}{% else %}{% url 'accounts:payable_payment_add' %}{% endif %}?installment={{ installment.pk }}" class="inline-block">
                             {% include 'components/button/button_select.html' with label="Baixar" %}

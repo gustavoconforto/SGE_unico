@@ -244,6 +244,17 @@ class EnrollmentContractTests(LoggedInTestCase):
         )
         self.assertEqual(len(response.context["installments"]), 4)
         self.assertContains(response, "R$ 1.249,92")
+        first = response.context["installments"][0]
+        self.assertContains(
+            response, f"{reverse('accounts:payment_add')}?installment={first.pk}"
+        )
+        receipt = reverse("accounts:receivable_print", args=[first.account_id])
+        self.assertNotContains(response, f"{receipt}?installment=")  # nothing paid yet
+        first.payments.create(amount=Decimal("10.00"), method="PIX")
+        response = self.client.get(
+            reverse("enrollments:enrollment_edit", args=[self.enrollment.pk])
+        )
+        self.assertContains(response, f"{receipt}?installment={first.pk}")
 
 
 class SchoolClassOptionsTests(LoggedInTestCase):
