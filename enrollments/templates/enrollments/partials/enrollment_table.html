@@ -23,9 +23,6 @@
               <a href={% url 'enrollments:enrollment_edit' enrollment.pk %}>
                 {% include "components/button/button_select.html" with label="Ver" %}
               </a>
-              <a href={% url 'grades:report_card' enrollment.pk %}>
-                {% include "components/button/button_select.html" with label="Boletim" %}
-              </a>
             </div>
           </td>
         </tr>

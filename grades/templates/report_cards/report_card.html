@@ -2,11 +2,11 @@
 {% block page_title %}Boletim{% endblock page_title %}
 {% block header %}
   <div class="float-right print:hidden">
-    <button type="button"
-            onclick="window.print()"
-            class="ui-btn ui-btn-secondary">
+    <a href="{% url 'grades:report_card_print' enrollment.pk %}"
+       target="_blank"
+       class="ui-btn ui-btn-secondary">
       <span class="material-symbols-outlined" aria-hidden="true">print</span>Imprimir
-    </button>
+    </a>
   </div>
 {% endblock header %}
 {% block content %}
