@@ -7,7 +7,7 @@
       {% include "components/button/button_primary.html" with label="Nova matrícula" icon="add" %}
     </a>
   </div>
-  {% include "components/search/search_input.html" with placeholder="Pesquisar por aluno, matrícula, turma ou curso..." %}
+  {% include "components/search/filter_form.html" with placeholder="Pesquisar por aluno, matrícula, turma ou curso..." %}
 {% endblock header %}
 {% block content %}
   <div id="search-results">{% include "enrollments/partials/enrollment_table.html" %}</div>

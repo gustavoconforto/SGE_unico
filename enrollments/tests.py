@@ -6,6 +6,7 @@ from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
 
+from accounts.models import Installment, InstallmentStatus
 from base.testing import LoggedInTestCase
 from classes.models import Class
 from enrollments.forms import EnrollmentCreateForm, EnrollmentForm, SchoolYearForm
@@ -225,12 +226,36 @@ class EnrollmentContractTests(LoggedInTestCase):
                 )
                 self.assertContains(response, "não possui responsável financeiro")
 
+    def test_self_financial_student_signs_the_contract(self):
+        student = self.enrollment.student
+        GuardianAssociation.objects.filter(student=student).update(is_financial=False)
+        Student.objects.filter(pk=student.pk).update(is_self_financial=True)
+        self.enrollment.refresh_from_db()
+        self.enrollment.clean()
+
+        response = self.client.get(
+            reverse("enrollments:enrollment_preview", args=[self.enrollment.pk])
+        )
+        self.assertEqual(response.context["financial_guardian_name"], "Ana Souza")
+        self.assertEqual(response.context["financial_guardian_cpf"], "123.456.789-01")
+
     def test_edit_page_lists_installments_with_balance(self):
         response = self.client.get(
             reverse("enrollments:enrollment_edit", args=[self.enrollment.pk])
         )
         self.assertEqual(len(response.context["installments"]), 4)
         self.assertContains(response, "R$ 1.249,92")
+        first = response.context["installments"][0]
+        self.assertContains(
+            response, f"{reverse('accounts:payment_add')}?installment={first.pk}"
+        )
+        receipt = reverse("accounts:receivable_print", args=[first.account_id])
+        self.assertNotContains(response, f"{receipt}?installment=")  # nothing paid yet
+        first.payments.create(amount=Decimal("10.00"), method="PIX")
+        response = self.client.get(
+            reverse("enrollments:enrollment_edit", args=[self.enrollment.pk])
+        )
+        self.assertContains(response, f"{receipt}?installment={first.pk}")
 
 
 class SchoolClassOptionsTests(LoggedInTestCase):
@@ -563,3 +588,137 @@ class EnrollmentDiscountTests(LoggedInTestCase):
         form = self.form()
         self.assertFalse(form.fields["student"].disabled)
         self.assertFalse(form.fields["enrollment_type"].disabled)
+
+
+class EnrollmentListFilterTests(LoggedInTestCase):
+    @classmethod
+    def setUpTestData(cls):
+        program = Program.objects.create(name="Ensino Médio")
+        guardian = Guardian.objects.create(
+            name="Maria Souza", cpf="00275010198", rg="7654321"
+        )
+        cls.enrollments = {}
+        for year, (name, cpf, rg) in {
+            2026: ("Ana Souza", "12345678901", "1111111"),
+            2027: ("Bruno Lima", "98765432100", "2222222"),
+        }.items():
+            school_year = SchoolYear.objects.create(
+                begins=date(year, 1, 10), ends=date(year, 12, 15)
+            )
+            student = Student.objects.create(
+                name=name, cpf=cpf, rg=rg, issuing_authority="SSP"
+            )
+            GuardianAssociation.objects.create(
+                student=student,
+                guardian=guardian,
+                relationship=Relationship.MOTHER,
+                is_financial=True,
+            )
+            cls.enrollments[year] = Enrollment.objects.create(
+                student=student,
+                enrollment_type=EnrollmentType.objects.create(
+                    program=program,
+                    school_year=school_year,
+                    level="1",
+                    total_price=Decimal("12000.00"),
+                ),
+                enrolled_at=date(year, 1, 10),
+                due_day=10,
+            )
+
+    def test_filters_by_school_year(self):
+        school_year = self.enrollments[2027].enrollment_type.school_year
+        response = self.client.get(
+            reverse("enrollments:enrollment_list"),
+            {"school_year": school_year.pk},
+            **{"HTTP_HX_REQUEST": "true"},
+        )
+        self.assertTemplateUsed(response, "enrollments/partials/enrollment_table.html")
+        self.assertEqual(
+            list(response.context["enrollments"]), [self.enrollments[2027]]
+        )
+
+    def test_without_filter_lists_every_year(self):
+        response = self.client.get(reverse("enrollments:enrollment_list"))
+        self.assertEqual(
+            set(response.context["enrollments"]), set(self.enrollments.values())
+        )
+        self.assertContains(response, "Ano letivo")
+
+
+class OverdueDebtBlocksEnrollmentTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        school_year = SchoolYear.objects.create(
+            begins=date(2027, 1, 10),
+            ends=date(2027, 12, 15),
+            bi_1_begins=date(2027, 2, 1),
+            bi_1_ends=date(2027, 4, 17),
+            bi_2_begins=date(2027, 4, 27),
+            bi_2_ends=date(2027, 7, 3),
+            bi_3_begins=date(2027, 7, 27),
+            bi_3_ends=date(2027, 9, 30),
+            bi_4_begins=date(2027, 10, 13),
+            bi_4_ends=date(2027, 12, 15),
+        )
+        program = Program.objects.create(name="Pré ENEM")
+        cls.old_type, cls.new_type = (
+            EnrollmentType.objects.create(
+                program=program,
+                school_year=school_year,
+                total_price=Decimal("1000.00"),
+                description=description,
+            )
+            for description in ("Contrato anual", "Contrato intensivo")
+        )
+        cls.student = Student.objects.create(
+            name="Ana Souza",
+            cpf="12345678901",
+            rg="1234567",
+            issuing_authority="SSP",
+            is_self_financial=True,
+        )
+        cls.old = Enrollment.objects.create(
+            student=cls.student,
+            enrollment_type=cls.old_type,
+            enrolled_at=date(2026, 11, 5),
+        )
+        cls.installment = cls.old.account.installments.order_by("number").first()
+
+    def set_installment(self, status, due_date=date(2020, 1, 10)):
+        Installment.objects.filter(pk=self.installment.pk).update(
+            status=status, due_date=due_date
+        )
+
+    def new_enrollment_errors(self):
+        enrollment = Enrollment(
+            student=self.student,
+            enrollment_type=self.new_type,
+            enrolled_at=date(2026, 11, 5),
+        )
+        try:
+            enrollment.clean()
+        except ValidationError as error:
+            return error.message_dict
+        return {}
+
+    def test_past_due_open_installment_blocks(self):
+        self.set_installment(InstallmentStatus.OPEN)
+        self.assertIn("parcelas vencidas", self.new_enrollment_errors()["student"][0])
+
+    def test_expired_installment_blocks(self):
+        self.set_installment(InstallmentStatus.EXPIRED)
+        self.assertIn("student", self.new_enrollment_errors())
+
+    def test_paid_or_cancelled_past_due_installment_allows(self):
+        for status in (InstallmentStatus.PAID, InstallmentStatus.CANCELLED):
+            with self.subTest(status=status):
+                self.set_installment(status)
+                self.assertEqual(self.new_enrollment_errors(), {})
+
+    def test_installments_not_yet_due_allow(self):
+        self.assertEqual(self.new_enrollment_errors(), {})
+
+    def test_editing_existing_enrollment_is_not_blocked(self):
+        self.set_installment(InstallmentStatus.OPEN)
+        self.old.clean()

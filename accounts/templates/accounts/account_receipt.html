@@ -67,7 +67,7 @@
   {% if not pdf %}
   <div class="toolbar">
     <button type="button" class="secondary" onclick="history.back()">Voltar</button>
-    <a href="{% url urls.pdf object.pk %}">Baixar PDF</a>
+    <a href="{% url urls.pdf object.pk %}{% if installment %}?installment={{ installment.pk }}{% endif %}">Baixar PDF</a>
   </div>
   {% endif %}
 
@@ -96,6 +96,7 @@
             <td>{% for method, amount in by_method.items %}{{ method }}: R$ {{ amount|floatformat:"2g" }}{% if not forloop.last %}<br>{% endif %}{% empty %}-{% endfor %}</td>
           </tr>
           <tr><td>Lançamento Nº:</td><td>{{ object.pk }}</td></tr>
+          {% if installment %}<tr><td>Parcela:</td><td>{{ installment.number }}ª - vencimento {{ installment.due_date|date:"d/m/Y" }}</td></tr>{% endif %}
           <tr><td>Descrição:</td><td>{{ object.description }}</td></tr>
         </table>
       </section>
@@ -103,7 +104,7 @@
       {% if object.direction == 'R' %}
         {% if object.enrollment %}<p class="line title">{{ object.enrollment }}</p>
         {% elif object.student %}<p class="line title">Aluno(a): {{ object.student }}</p>{% endif %}
-        {% with person=object.guardian %}
+        {% with person=object.payer %}
         {% if person %}
         <p class="line">Responsável(eis): CPF/CNPJ: {{ person.cpf|document }} {{ person.name }}</p>
         <p class="line">Endereço: {{ person.address }}{% if person.neighborhood %}, {{ person.neighborhood }}{% endif %}{% if person.city %}, {{ person.city }} - {{ person.state }}{% endif %}{% if person.zip_code %} CEP: {{ person.zip_code|slice:":5" }}-{{ person.zip_code|slice:"5:" }}{% endif %}</p>
@@ -145,7 +146,7 @@
             <td class="center">{{ object.category }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="11" class="empty">Nenhum pagamento registrado para esta conta.</td></tr>
+          <tr><td colspan="11" class="empty">Nenhum pagamento registrado para esta {% if installment %}parcela{% else %}conta{% endif %}.</td></tr>
           {% endfor %}
         </tbody>
       </table>

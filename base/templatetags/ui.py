@@ -1,3 +1,5 @@
+import re
+
 from django import template
 
 from utils.format.number_values import format_cpf
@@ -49,3 +51,14 @@ def active_filter_count(form):
     if not form or not form.is_bound:
         return 0
     return sum(1 for field in form if field.value() not in (None, "", []))
+
+
+@register.filter
+def whatsapp(value):
+    """Brazilian phone as WhatsApp digits (55 + DDD + number); '' if it isn't one."""
+    digits = re.sub(r"\D", "", value or "")
+    if len(digits) in (10, 11):
+        return f"55{digits}"
+    if len(digits) in (12, 13) and digits.startswith("55"):
+        return digits
+    return ""

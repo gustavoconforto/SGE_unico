@@ -1,4 +1,4 @@
-{% load static %}
+{% load static ui %}
 <form class="mt-6" method="post" enctype="multipart/form-data" novalidate>
   {% csrf_token %}
   {% include "components/form/non_field_errors.html" %}
@@ -64,6 +64,7 @@
       <p>Quem responde pelo aluno, quem paga e quem pode buscá-lo.</p>
     </div>
     <div class="form-section-body">
+      {% include "components/form/checkbox.html" with field=form.is_self_financial %}
       {{ formset.management_form }}
       {% if formset.non_form_errors %}
         <div role="alert"
@@ -90,7 +91,15 @@
     </div>
     <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
       {% include "components/form/field.html" with field=form.phone %}
-      {% include "components/form/field.html" with field=form.mobile %}
+      <div>
+        {% include "components/form/field.html" with field=form.mobile %}
+        {% with wa=form.instance.mobile|whatsapp %}
+          {% if wa %}
+            <a href="whatsapp://send?phone={{ wa }}" class="ui-btn ui-btn-sm ui-btn-secondary mt-1"
+               aria-label="Abrir conversa no WhatsApp com o aluno"><span class="material-symbols-outlined" aria-hidden="true">chat</span>WhatsApp</a>
+          {% endif %}
+        {% endwith %}
+      </div>
       <div class="sm:col-span-full">{% include "components/form/field.html" with field=form.email %}</div>
     </div>
   </section>

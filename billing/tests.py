@@ -326,6 +326,36 @@ class RemittanceServiceTests(BillingTestMixin, TestCase):
             delete_remittance(remittance)
 
 
+class SelfFinancialStudentTests(BillingTestMixin, TestCase):
+    def test_student_is_the_payer_on_the_slip(self):
+        student = Student.objects.create(
+            name="Bruno Lima",
+            cpf="98765432100",
+            rg="555666",
+            issuing_authority="SSP",
+            address="Quadra 2 Casa 5",
+            zip_code="71539070",
+            is_self_financial=True,
+        )
+        enrollment = Enrollment.objects.create(
+            student=student,
+            enrollment_type=self.account.enrollment.enrollment_type,
+            enrolled_at=timezone.localdate(),
+            due_day=10,
+        )
+        account = enrollment.account
+        self.assertIsNone(account.guardian)
+        self.assertEqual(account.payer, student)
+
+        installment = account.installments.order_by("number").first()
+        Installment.objects.filter(pk=installment.pk).update(
+            due_date=timezone.localdate() + timedelta(days=10)
+        )
+        line = create_remittance([installment.pk]).content.split("\r\n")[1]
+        self.assertEqual(line[220:234], "00098765432100")
+        self.assertIn("BRUNO LIMA", line[234:274].upper())
+
+
 class ReturnServiceTests(BillingTestMixin, TestCase):
     def setUp(self):
         self.installment = self.installments()[0]

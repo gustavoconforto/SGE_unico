@@ -42,7 +42,11 @@ def remittance_candidates():
             account__direction=Direction.RECEIVABLE, status__in=PENDING_STATUSES
         )
         .exclude(bank_slips__status__in=LIVE_SLIP_STATUSES)
-        .select_related("account__guardian", "account__enrollment__enrollment_type")
+        .select_related(
+            "account__guardian",
+            "account__student",
+            "account__enrollment__enrollment_type",
+        )
         .with_balance()
         .filter(outstanding__gt=0)
     )
@@ -51,7 +55,7 @@ def remittance_candidates():
 def payer_problems(installment, today=None):
     """Reasons that prevent sending the installment to the bank (empty if none)."""
     today = today or timezone.localdate()
-    guardian = installment.account.guardian
+    guardian = installment.account.payer
     if guardian is None:
         return ["Conta sem responsável financeiro"]
     problems = []
@@ -101,7 +105,11 @@ def write_off_candidates():
     """
     slips = list(
         BankSlip.objects.filter(status=SlipStatus.REGISTERED)
-        .select_related("remittance", "installment__account__guardian")
+        .select_related(
+            "remittance",
+            "installment__account__guardian",
+            "installment__account__student",
+        )
         .order_by("due_date", "pk")
     )
     balances = dict(
@@ -118,7 +126,7 @@ def write_off_candidates():
 
 
 def _title(slip, settings, issue_date, movement_code="01"):
-    guardian = slip.installment.account.guardian
+    guardian = slip.installment.account.payer
     if guardian is None:
         raise BillingError(f"Boleto {slip}: conta sem responsável financeiro.")
     return cnab400.Title(

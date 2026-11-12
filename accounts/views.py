@@ -4,8 +4,8 @@ from django.contrib import messages
 from django.contrib.staticfiles import finders
 from django.db import transaction
 from django.db.models import Count, ProtectedError, Q, Sum
-from django.http import HttpResponse
-from django.shortcuts import redirect
+from django.http import Http404, HttpResponse
+from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -287,6 +287,14 @@ class AccountReceiptMixin(AccountContextMixin):
             .select_related("installment")
             .order_by("paid_at", "installment__number", "pk")
         )
+        # ?installment=<pk> narrows the receipt to one installment of this account.
+        installment = None
+        if "installment" in self.request.GET:
+            pk = self.request.GET["installment"]
+            if not pk.isdigit():
+                raise Http404
+            installment = get_object_or_404(self.object.installments, pk=pk)
+            payments = payments.filter(installment=installment)
         total = sum((p.amount for p in payments), ZERO)
         by_method = {}
         paid = {}
@@ -300,6 +308,7 @@ class AccountReceiptMixin(AccountContextMixin):
         context.update(
             {
                 "payments": payments,
+                "installment": installment,
                 "total": total,
                 "total_in_words": amount_in_words(total),
                 "by_method": by_method,
@@ -319,8 +328,9 @@ class AccountReceiptMixin(AccountContextMixin):
             string=html, base_url=self.request.build_absolute_uri("/")
         ).write_pdf()
         response = HttpResponse(pdf, content_type="application/pdf")
+        suffix = f"-{context['installment'].number}" if context["installment"] else ""
         response["Content-Disposition"] = (
-            f'attachment; filename="recibo-{self.object.pk}.pdf"'
+            f'attachment; filename="recibo-{self.object.pk}{suffix}.pdf"'
         )
         return response
 
@@ -468,7 +478,10 @@ class AccountPayablePdfView(AccountPayableReceiptView):
 class InstallmentListView(HtmxFilterMixin, ListView):
     model = Installment
     queryset = Installment.objects.select_related(
-        "account__guardian", "account__supplier", "account__enrollment__student"
+        "account__guardian",
+        "account__student",
+        "account__supplier",
+        "account__enrollment__student",
     )
     template_name = "installments/installment_list.html"
     context_object_name = "installments"
@@ -544,7 +557,9 @@ class InstallmentCreateView(CreateView):
 class PaymentListView(HtmxFilterMixin, ListView):
     model = Payment
     queryset = Payment.objects.select_related(
-        "installment__account__guardian", "installment__account__supplier"
+        "installment__account__guardian",
+        "installment__account__student",
+        "installment__account__supplier",
     )
     template_name = "payments/payment_list.html"
     context_object_name = "payments"
@@ -572,7 +587,7 @@ class ReceivableInstallmentLookupView(HtmxSearchMixin, ListView):
     queryset = (
         Installment.objects.pending()
         .with_balance()
-        .select_related("account__guardian", "account__supplier")
+        .select_related("account__guardian", "account__student", "account__supplier")
     )
     template_name = "payments/partials/installment_options.html"
     context_object_name = "installments"

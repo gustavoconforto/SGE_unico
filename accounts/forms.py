@@ -204,7 +204,7 @@ class AccountReceivableForm(AccountForm):
         student = cleaned_data.get("student")
         if student and not cleaned_data.get("guardian"):
             guardian = financial_guardians(student.pk).first()
-            if guardian is None:
+            if guardian is None and not student.is_self_financial:
                 self.add_error(
                     "student", "O aluno não possui responsável financeiro cadastrado."
                 )
@@ -291,7 +291,7 @@ class AccountChoiceField(forms.ModelChoiceField):
 class InstallmentForm(forms.ModelForm):
     account = AccountChoiceField(
         label="Conta",
-        queryset=Account.objects.select_related("guardian", "supplier"),
+        queryset=Account.objects.select_related("guardian", "student", "supplier"),
         widget=forms.Select(attrs={"class": "select select-neutral w-full"}),
     )
 

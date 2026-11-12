@@ -53,7 +53,7 @@
         <td>
             {% if event.bank_slip %}
             <a class="hover:underline" href={% url 'accounts:receivable_edit' event.bank_slip.installment.account_id %}>
-              {{ event.bank_slip.installment.account.guardian|default:event.bank_slip.installment.account }} - {{ event.bank_slip.installment.number }}ª
+              {{ event.bank_slip.installment.account.payer|default:event.bank_slip.installment.account }} - {{ event.bank_slip.installment.number }}ª
             </a>
             {% else %}-{% endif %}
         </td>

@@ -49,7 +49,7 @@
                   </td>
                   <td class="whitespace-nowrap">{{ slip }}</td>
                   <td class="whitespace-nowrap">{{ slip.due_date|date:"d/m/Y" }}</td>
-                  <td>{{ slip.installment.account.guardian|default:"-" }}</td>
+                  <td>{{ slip.installment.account.payer|default:"-" }}</td>
                   <td>{{ slip.installment.account }} - {{ slip.installment.number }}ª</td>
                   <td class="text-right whitespace-nowrap">R$ {{ slip.amount|floatformat:"2g" }}</td>
                   <td>{{ slip.installment.get_status_display }}</td>

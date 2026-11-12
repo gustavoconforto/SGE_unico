@@ -20,6 +20,16 @@ from enrollments.models import (
 )
 
 
+class EnrollmentFilterForm(forms.Form):
+    school_year = forms.ModelChoiceField(
+        label="Ano letivo",
+        required=False,
+        queryset=SchoolYear.objects.order_by("-begins"),
+        empty_label="Todos",
+        widget=forms.Select(attrs={"class": "select select-neutral select-sm w-full"}),
+    )
+
+
 class SchoolYearForm(forms.ModelForm):
     class Meta:
         model = SchoolYear

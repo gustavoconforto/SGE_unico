@@ -436,6 +436,40 @@ class PaymentViewsTests(LoggedInTestCase):
         balances = [p.balance_after for p in response.context["payments"]]
         self.assertEqual(balances, [Decimal("60.00"), Decimal("0.00")])
 
+    def test_receipt_for_one_installment(self):
+        other = self.account.installments.create(
+            number=self.installment.number + 1,
+            due_date=self.installment.due_date,
+            amount=Decimal("50.00"),
+        )
+        Payment.objects.create(
+            installment=self.installment, amount=Decimal("100.00"), method="PIX"
+        )
+        Payment.objects.create(installment=other, amount=Decimal("50.00"), method="DIN")
+        url = reverse("accounts:receivable_print", args=[self.account.pk])
+        response = self.client.get(url, {"installment": other.pk})
+        self.assertEqual([p.installment for p in response.context["payments"]], [other])
+        self.assertContains(response, "50,00 (cinquenta reais)")
+        self.assertContains(response, f"?installment={other.pk}")  # PDF link
+        response = self.client.get(
+            reverse("accounts:receivable_pdf", args=[self.account.pk]),
+            {"installment": other.pk},
+        )
+        self.assertIn(
+            f"recibo-{self.account.pk}-{other.number}.pdf",
+            response["Content-Disposition"],
+        )
+        edit = self.client.get(
+            reverse("accounts:receivable_edit", args=[self.account.pk])
+        )
+        self.assertContains(edit, f"{url}?installment={other.pk}")
+
+    def test_receipt_rejects_installment_of_another_account(self):
+        url = reverse("accounts:receivable_print", args=[self.account.pk])
+        for value in (self.payable_installment.pk, "abc"):
+            response = self.client.get(url, {"installment": value})
+            self.assertEqual(response.status_code, 404)
+
     def test_receipt_pdf_downloads(self):
         response = self.client.get(
             reverse("accounts:receivable_pdf", args=[self.account.pk])
