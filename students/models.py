@@ -26,6 +26,17 @@ class MaritalStatus(models.TextChoices):
     WIDOWED = "V", "Viúvo(a)"
 
 
+class BloodType(models.TextChoices):
+    A_POS = "A+", "A+"
+    A_NEG = "A-", "A-"
+    B_POS = "B+", "B+"
+    B_NEG = "B-", "B-"
+    AB_POS = "AB+", "AB+"
+    AB_NEG = "AB-", "AB-"
+    O_POS = "O+", "O+"
+    O_NEG = "O-", "O-"
+
+
 class Relationship(models.TextChoices):
     FATHER = "PAI", "Pai"
     MOTHER = "MAE", "Mãe"
@@ -57,6 +68,9 @@ class Student(Person):
         help_text="Gerado automaticamente",
         blank=True,
         null=False,
+    )
+    blood_type = models.CharField(
+        "Tipo sanguíneo", max_length=3, choices=BloodType.choices
     )
     photo = models.ImageField("Foto", upload_to=student_photo_path, blank=True)
     is_self_financial = models.BooleanField(

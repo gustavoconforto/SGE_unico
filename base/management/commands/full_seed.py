@@ -121,6 +121,7 @@ from pathways.services import extra_grades
 from programs.models import Program
 from q_and_a.models import QandA
 from students.models import (
+    BloodType,
     Guardian,
     GuardianAssociation,
     MaritalStatus,
@@ -1181,6 +1182,7 @@ class Command(BaseCommand):
                         cpf=self.digits(self.fake.unique.cpf()),
                         rg=self.rg(),  # unique and required, so every student gets one
                         issuing_authority="SSP/DF",
+                        blood_type=random.choice(BloodType.values),
                         nationality="Brasileira",
                         place_of_birth=random.choice(
                             ["Brasília", "Brasília", "Brasília", "Goiânia", "São Paulo"]

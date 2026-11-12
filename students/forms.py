@@ -177,6 +177,7 @@ class StudentForm(PhoneDigitsMixin, forms.ModelForm):
             "birth_date",
             "nationality",
             "place_of_birth",
+            "blood_type",
             "marital_status",
         ],
         "contact": ["phone", "mobile", "email"],
@@ -205,6 +206,7 @@ class StudentForm(PhoneDigitsMixin, forms.ModelForm):
             "birth_date",
             "nationality",
             "place_of_birth",
+            "blood_type",
             "phone",
             "mobile",
             "email",
@@ -256,6 +258,11 @@ class StudentForm(PhoneDigitsMixin, forms.ModelForm):
                 }
             ),
             "sex": forms.Select(
+                attrs={
+                    "class": "select select-neutral w-full",
+                }
+            ),
+            "blood_type": forms.Select(
                 attrs={
                     "class": "select select-neutral w-full",
                 }

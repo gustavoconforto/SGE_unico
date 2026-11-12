@@ -2,6 +2,7 @@ from django.db import IntegrityError
 from django.urls import reverse
 
 from base.testing import LoggedInTestCase
+from students.forms import StudentForm
 from students.models import Guardian, GuardianAssociation, Relationship, Student
 
 
@@ -24,6 +25,7 @@ class FinancialGuardianTests(LoggedInTestCase):
             "cpf": self.student.cpf,
             "rg": self.student.rg,
             "issuing_authority": self.student.issuing_authority,
+            "blood_type": "O+",
             "guardians-TOTAL_FORMS": "2",
             "guardians-INITIAL_FORMS": "0",
         }
@@ -183,3 +185,9 @@ class PhoneDigitsTests(LoggedInTestCase):
         self.assertContains(response, "Informe DDD + número")
         self.guardian.refresh_from_db()
         self.assertEqual(self.guardian.mobile, "")
+
+
+class StudentBloodTypeTests(LoggedInTestCase):
+    def test_blood_type_is_required(self):
+        form = StudentForm(data={"name": "Ana", "cpf": "12345678901", "rg": "1"})
+        self.assertIn("blood_type", form.errors)
