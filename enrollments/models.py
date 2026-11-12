@@ -339,12 +339,27 @@ class Enrollment(TimeStampedModel):
             for doc_type in missing
         )
 
+    def has_overdue_debt(self):
+        """Whether the student owes a past-due installment on any enrollment."""
+        from accounts.models import Installment  # accounts.models imports Enrollment
+
+        return (
+            Installment.objects.overdue()
+            .filter(account__enrollment__student_id=self.student_id)
+            .exists()
+        )
+
     def clean(self):
         errors = {}
         if self.student_id and self.student.financial_payer is None:
             errors["student"] = (
                 "O aluno precisa ter ao menos um responsável financeiro cadastrado "
                 "ou ser marcado como o próprio responsável financeiro."
+            )
+        elif self._state.adding and self.student_id and self.has_overdue_debt():
+            errors["student"] = (
+                "O aluno possui parcelas vencidas em matrícula anterior. "
+                "Regularize os débitos antes de realizar uma nova matrícula."
             )
         if (
             self.enrollment_type_id

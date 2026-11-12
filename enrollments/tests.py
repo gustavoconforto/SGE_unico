@@ -6,6 +6,7 @@ from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
 
+from accounts.models import Installment, InstallmentStatus
 from base.testing import LoggedInTestCase
 from classes.models import Class
 from enrollments.forms import EnrollmentCreateForm, EnrollmentForm, SchoolYearForm
@@ -643,3 +644,81 @@ class EnrollmentListFilterTests(LoggedInTestCase):
             set(response.context["enrollments"]), set(self.enrollments.values())
         )
         self.assertContains(response, "Ano letivo")
+
+
+class OverdueDebtBlocksEnrollmentTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        school_year = SchoolYear.objects.create(
+            begins=date(2027, 1, 10),
+            ends=date(2027, 12, 15),
+            bi_1_begins=date(2027, 2, 1),
+            bi_1_ends=date(2027, 4, 17),
+            bi_2_begins=date(2027, 4, 27),
+            bi_2_ends=date(2027, 7, 3),
+            bi_3_begins=date(2027, 7, 27),
+            bi_3_ends=date(2027, 9, 30),
+            bi_4_begins=date(2027, 10, 13),
+            bi_4_ends=date(2027, 12, 15),
+        )
+        program = Program.objects.create(name="Pré ENEM")
+        cls.old_type, cls.new_type = (
+            EnrollmentType.objects.create(
+                program=program,
+                school_year=school_year,
+                total_price=Decimal("1000.00"),
+                description=description,
+            )
+            for description in ("Contrato anual", "Contrato intensivo")
+        )
+        cls.student = Student.objects.create(
+            name="Ana Souza",
+            cpf="12345678901",
+            rg="1234567",
+            issuing_authority="SSP",
+            is_self_financial=True,
+        )
+        cls.old = Enrollment.objects.create(
+            student=cls.student,
+            enrollment_type=cls.old_type,
+            enrolled_at=date(2026, 11, 5),
+        )
+        cls.installment = cls.old.account.installments.order_by("number").first()
+
+    def set_installment(self, status, due_date=date(2020, 1, 10)):
+        Installment.objects.filter(pk=self.installment.pk).update(
+            status=status, due_date=due_date
+        )
+
+    def new_enrollment_errors(self):
+        enrollment = Enrollment(
+            student=self.student,
+            enrollment_type=self.new_type,
+            enrolled_at=date(2026, 11, 5),
+        )
+        try:
+            enrollment.clean()
+        except ValidationError as error:
+            return error.message_dict
+        return {}
+
+    def test_past_due_open_installment_blocks(self):
+        self.set_installment(InstallmentStatus.OPEN)
+        self.assertIn("parcelas vencidas", self.new_enrollment_errors()["student"][0])
+
+    def test_expired_installment_blocks(self):
+        self.set_installment(InstallmentStatus.EXPIRED)
+        self.assertIn("student", self.new_enrollment_errors())
+
+    def test_paid_or_cancelled_past_due_installment_allows(self):
+        for status in (InstallmentStatus.PAID, InstallmentStatus.CANCELLED):
+            with self.subTest(status=status):
+                self.set_installment(status)
+                self.assertEqual(self.new_enrollment_errors(), {})
+
+    def test_installments_not_yet_due_allow(self):
+        self.assertEqual(self.new_enrollment_errors(), {})
+
+    def test_editing_existing_enrollment_is_not_blocked(self):
+        self.set_installment(InstallmentStatus.OPEN)
+        self.old.clean()
