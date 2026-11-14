@@ -70,6 +70,39 @@
   </section>
   <section class="form-section">
     <div class="form-section-intro">
+      <h2>Contato</h2>
+    </div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
+      {% include "components/form/field.html" with field=form.phone %}
+      <div>
+        {% include "components/form/field.html" with field=form.mobile %}
+        {% with wa=form.instance.mobile|whatsapp %}
+          {% if wa %}
+            <a href="https://web.whatsapp.com/send?phone={{ wa }}"
+               target="whatsapp"
+               rel="noopener"
+               class="ui-btn ui-btn-sm ui-btn-secondary mt-1"
+               aria-label="Abrir conversa no WhatsApp com o aluno"><span class="material-symbols-outlined" aria-hidden="true">chat</span>WhatsApp ({{ form.instance.mobile|phone }})</a>
+          {% endif %}
+        {% endwith %}
+      </div>
+      <div class="sm:col-span-full">{% include "components/form/field.html" with field=form.email %}</div>
+    </div>
+  </section>
+  <section class="form-section">
+    <div class="form-section-intro">
+      <h2>Endereço</h2>
+    </div>
+    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
+      <div class="sm:col-span-full">{% include "components/form/field.html" with field=form.address %}</div>
+      {% include "components/form/field.html" with field=form.neighborhood %}
+      {% include "components/form/field.html" with field=form.city %}
+      {% include "components/form/field.html" with field=form.state %}
+      {% include "components/form/field.html" with field=form.zip_code %}
+    </div>
+  </section>
+  <section class="form-section">
+    <div class="form-section-intro">
       <h2>Responsáveis</h2>
       <p>Quem responde pelo aluno, quem paga e quem pode buscá-lo.</p>
     </div>
@@ -93,36 +126,6 @@
       <button type="button" id="add-guardian" class="ui-btn ui-btn-secondary my-2">
         <span class="material-symbols-outlined" aria-hidden="true">add</span>Adicionar responsável
       </button>
-    </div>
-  </section>
-  <section class="form-section">
-    <div class="form-section-intro">
-      <h2>Contato</h2>
-    </div>
-    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
-      {% include "components/form/field.html" with field=form.phone %}
-      <div>
-        {% include "components/form/field.html" with field=form.mobile %}
-        {% with wa=form.instance.mobile|whatsapp %}
-          {% if wa %}
-            <a href="https://web.whatsapp.com/send?phone={{ wa }}" target="whatsapp" rel="noopener" class="ui-btn ui-btn-sm ui-btn-secondary mt-1"
-               aria-label="Abrir conversa no WhatsApp com o aluno"><span class="material-symbols-outlined" aria-hidden="true">chat</span>WhatsApp ({{ form.instance.mobile|phone }})</a>
-          {% endif %}
-        {% endwith %}
-      </div>
-      <div class="sm:col-span-full">{% include "components/form/field.html" with field=form.email %}</div>
-    </div>
-  </section>
-  <section class="form-section">
-    <div class="form-section-intro">
-      <h2>Endereço</h2>
-    </div>
-    <div class="form-section-body grid grid-cols-1 gap-x-5 sm:grid-cols-2">
-      <div class="sm:col-span-full">{% include "components/form/field.html" with field=form.address %}</div>
-      {% include "components/form/field.html" with field=form.neighborhood %}
-      {% include "components/form/field.html" with field=form.city %}
-      {% include "components/form/field.html" with field=form.state %}
-      {% include "components/form/field.html" with field=form.zip_code %}
     </div>
   </section>
   <div class="form-actions">
