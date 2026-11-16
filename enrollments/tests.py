@@ -15,6 +15,7 @@ from enrollments.models import (
     DiscountType,
     Enrollment,
     EnrollmentDiscount,
+    EnrollmentNeededDocument,
     EnrollmentStatus,
     EnrollmentType,
     NeededDocumentType,
@@ -198,7 +199,9 @@ class EnrollmentContractTests(LoggedInTestCase):
 
     def test_contract_lists_the_billed_installments(self):
         response = self.client.get(
-            reverse("enrollments:enrollment_preview", args=[self.enrollment.pk])
+            reverse(
+                "enrollments:enrollment_preview", args=["contrato", self.enrollment.pk]
+            )
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "2ª Série - 2027")
@@ -217,7 +220,9 @@ class EnrollmentContractTests(LoggedInTestCase):
         for name in ("enrollment_preview", "enrollment_pdf"):
             with self.subTest(name=name):
                 response = self.client.get(
-                    reverse(f"enrollments:{name}", args=[self.enrollment.pk]),
+                    reverse(
+                        f"enrollments:{name}", args=["contrato", self.enrollment.pk]
+                    ),
                     follow=True,
                 )
                 self.assertRedirects(
@@ -234,7 +239,9 @@ class EnrollmentContractTests(LoggedInTestCase):
         self.enrollment.clean()
 
         response = self.client.get(
-            reverse("enrollments:enrollment_preview", args=[self.enrollment.pk])
+            reverse(
+                "enrollments:enrollment_preview", args=["contrato", self.enrollment.pk]
+            )
         )
         self.assertEqual(response.context["financial_guardian_name"], "Ana Souza")
         self.assertEqual(response.context["financial_guardian_cpf"], "123.456.789-01")
@@ -256,6 +263,116 @@ class EnrollmentContractTests(LoggedInTestCase):
             reverse("enrollments:enrollment_edit", args=[self.enrollment.pk])
         )
         self.assertContains(response, f"{receipt}?installment={first.pk}")
+
+    def test_edit_page_print_menu_links_every_document(self):
+        response = self.client.get(
+            reverse("enrollments:enrollment_edit", args=[self.enrollment.pk])
+        )
+        for doc in ("contrato", "requerimento", "ficha"):
+            self.assertContains(
+                response,
+                reverse(
+                    "enrollments:enrollment_preview", args=[doc, self.enrollment.pk]
+                ),
+            )
+
+    def test_requerimento_shows_guardian_student_and_school_year(self):
+        response = self.client.get(
+            reverse(
+                "enrollments:enrollment_preview",
+                args=["requerimento", self.enrollment.pk],
+            )
+        )
+        self.assertTemplateUsed(response, "enrollments/requerimento_matricula.html")
+        self.assertContains(response, "MARIA SOUZA")
+        self.assertContains(response, "002.750.101-98")
+        self.assertContains(response, "ANA SOUZA")
+        self.assertContains(response, "ano letivo de 2027")
+        self.assertContains(response, "15 de setembro de 2027")
+        self.assertContains(response, "window.print()")
+
+    def test_ficha_requires_father_and_mother(self):
+        url = reverse(
+            "enrollments:enrollment_preview", args=["ficha", self.enrollment.pk]
+        )
+        response = self.client.get(url, follow=True)
+        self.assertRedirects(
+            response, reverse("enrollments:enrollment_edit", args=[self.enrollment.pk])
+        )
+        self.assertContains(response, "Cadastre o pai e a mãe")
+
+        GuardianAssociation.objects.create(
+            student=self.enrollment.student,
+            guardian=Guardian.objects.create(
+                name="João Souza", cpf="11144477735", rg="999888"
+            ),
+            relationship=Relationship.FATHER,
+        )
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Pai: JOÃO SOUZA")
+        self.assertContains(response, "Mãe: MARIA SOUZA")
+        self.assertContains(response, "Financeiro: MARIA SOUZA")
+
+    def test_ficha_splits_delivered_and_pending_documents(self):
+        GuardianAssociation.objects.create(
+            student=self.enrollment.student,
+            guardian=Guardian.objects.create(
+                name="João Souza", cpf="11144477735", rg="999888"
+            ),
+            relationship=Relationship.FATHER,
+        )
+        birth = NeededDocumentType.objects.create(description="Certidão de nascimento")
+        NeededDocumentType.objects.create(description="Histórico escolar")
+        self.enrollment.sync_documents()
+        EnrollmentNeededDocument.objects.filter(
+            enrollment=self.enrollment, type=birth
+        ).update(is_delivered=True)
+
+        response = self.client.get(
+            reverse(
+                "enrollments:enrollment_preview", args=["ficha", self.enrollment.pk]
+            )
+        )
+        self.assertEqual(
+            [str(d) for d in response.context["delivered_documents"]],
+            ["Certidão de nascimento"],
+        )
+        self.assertEqual(
+            [str(d) for d in response.context["pending_documents"]],
+            ["Histórico escolar"],
+        )
+
+    def test_new_documents_download_as_pdf(self):
+        GuardianAssociation.objects.create(
+            student=self.enrollment.student,
+            guardian=Guardian.objects.create(
+                name="João Souza", cpf="11144477735", rg="999888"
+            ),
+            relationship=Relationship.FATHER,
+        )
+        for doc, prefix in (
+            ("requerimento", "requerimento"),
+            ("ficha", "ficha-matricula"),
+        ):
+            with self.subTest(doc=doc):
+                response = self.client.get(
+                    reverse(
+                        "enrollments:enrollment_pdf", args=[doc, self.enrollment.pk]
+                    )
+                )
+                self.assertEqual(response["Content-Type"], "application/pdf")
+                self.assertIn(
+                    f"{prefix}-ana-souza.pdf", response["Content-Disposition"]
+                )
+
+    def test_unknown_document_is_404(self):
+        response = self.client.get(
+            reverse(
+                "enrollments:enrollment_preview", args=["boleto", self.enrollment.pk]
+            )
+        )
+        self.assertEqual(response.status_code, 404)
 
 
 class SchoolClassOptionsTests(LoggedInTestCase):

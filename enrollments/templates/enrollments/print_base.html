@@ -1,0 +1,136 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{% endblock title %}</title>
+    <style>
+    @page {
+      size: A4;
+      margin: 14mm 14mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #e5e7eb;
+      color: #111827;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11pt;
+      line-height: 1.4;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 16px;
+      background: #111827;
+    }
+
+    .toolbar button,
+    .toolbar a {
+      padding: 8px 16px;
+      border: 0;
+      border-radius: 6px;
+      background: #2563eb;
+      color: #fff;
+      font: 600 14px/1 system-ui, sans-serif;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .toolbar button.secondary {
+      background: #4b5563;
+    }
+
+    .page {
+      max-width: 210mm;
+      margin: 24px auto;
+      padding: 16mm 16mm;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, .15);
+    }
+
+    .logo {
+      height: 64px;
+      width: auto;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 16pt;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .signatures {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-top: 64px;
+      text-align: center;
+    }
+
+    .signatures .line {
+      padding-top: 6px;
+      border-top: 1px solid #111827;
+    }
+
+    .no-break {
+      break-inside: avoid;
+    }
+
+    {% block style %}{% endblock style %}
+
+    @media (max-width: 640px) {
+      .page {
+        margin: 0;
+        padding: 20px 16px;
+      }
+
+      .signatures {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .toolbar {
+        display: none;
+      }
+
+      .page {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+      }
+    }
+    </style>
+  </head>
+  <body>
+    {% include "enrollments/partials/print_toolbar.html" %}
+    <main class="page">
+      {% block page %}{% endblock page %}
+      <div class="signatures no-break">
+        <div>
+          <div class="line">{{ financial_guardian_name }}</div>
+          <small>Responsável</small>
+        </div>
+        <div>
+          <div class="line">ÚNICO EDUCACIONAL</div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

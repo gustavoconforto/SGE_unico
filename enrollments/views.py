@@ -3,7 +3,7 @@ from pathlib import Path
 from django.contrib import messages
 from django.contrib.staticfiles import finders
 from django.db import transaction
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.template.response import TemplateResponse
@@ -42,6 +42,7 @@ from enrollments.models import (
     NeededDocumentType,
     SchoolYear,
 )
+from students.models import Relationship
 from utils.format.number_values import format_zip_code
 
 # SCHOOL YEAR VIEWS
@@ -341,21 +342,43 @@ class EnrollmentValuesPreviewView(TemplateView):
 # PRINT REPORT
 
 
+# slug in the URL -> (template, PDF file name prefix)
+PRINT_DOCUMENTS = {
+    "contrato": ("enrollments/preview_enrollment.html", "contrato"),
+    "requerimento": ("enrollments/requerimento_matricula.html", "requerimento"),
+    "ficha": ("enrollments/ficha_matricula.html", "ficha-matricula"),
+}
+
+# Class shift as written in the requerimento ("no período matutino").
+SHIFT_PERIODS = {"M": "matutino", "T": "vespertino", "N": "noturno", "I": "integral"}
+
+
 def build_report_context(pk):
 
-    enrollment = get_object_or_404(Enrollment, pk=pk)
-    student_name = enrollment.student.name
+    enrollment = get_object_or_404(
+        Enrollment.objects.select_related(
+            "student",
+            "school_class",
+            "enrollment_type__school_year",
+            "enrollment_type__program",
+        ),
+        pk=pk,
+    )
+    student = enrollment.student
+    student_name = student.name
     school_year = enrollment.enrollment_type.school_year.begins.year
     grade = (
         enrollment.school_class.grade_level
         if enrollment.school_class
         else enrollment.enrollment_type.level
     )
-    student_cpf = enrollment.student.cpf
-    student_zip_code = format_zip_code(enrollment.student.zip_code)
-    student_mobile = enrollment.student.mobile
-    student_address = f"{enrollment.student.address}, {enrollment.student.neighborhood}, {enrollment.student.city} - {enrollment.student.state}"
-    financial_guardian = enrollment.student.financial_payer
+    student_cpf = student.cpf
+    student_zip_code = format_zip_code(student.zip_code)
+    student_mobile = student.mobile
+    student_address = (
+        f"{student.address}, {student.neighborhood}, {student.city} - {student.state}"
+    )
+    financial_guardian = student.financial_payer
     if financial_guardian is None:
         return None
     financial_guardian_name = financial_guardian.name
@@ -374,7 +397,24 @@ def build_report_context(pk):
     sign_date = enrollment.enrolled_at
     start_date_of_the_contract = enrollment.enrollment_type.start_date
     end_date_of_the_contract = enrollment.enrollment_type.end_date
+    parents = {
+        link.relationship: link.guardian
+        for link in student.guardian_links.select_related("guardian").filter(
+            relationship__in=[Relationship.FATHER, Relationship.MOTHER]
+        )
+    }
+    documents = list(enrollment.documents.select_related("type").order_by("type"))
     context = {
+        "enrollment": enrollment,
+        "period": SHIFT_PERIODS.get(
+            enrollment.school_class.shift if enrollment.school_class else ""
+        ),
+        "student": student,
+        "financial_guardian": financial_guardian,
+        "father": parents.get(Relationship.FATHER),
+        "mother": parents.get(Relationship.MOTHER),
+        "delivered_documents": [d.type for d in documents if d.is_delivered],
+        "pending_documents": [d.type for d in documents if not d.is_delivered],
         "student_name": student_name,
         "school_year": school_year,
         "grade": grade,
@@ -408,26 +448,44 @@ def no_guardian_redirect(request, pk):
     return redirect("enrollments:enrollment_edit", pk=pk)
 
 
-def generate_report_view(request, pk):
+def print_context(request, pk, doc):
+    """Context for a print document, or a redirect when required data is missing."""
+    if doc not in PRINT_DOCUMENTS:
+        raise Http404
     context = build_report_context(pk)
     if context is None:
         return no_guardian_redirect(request, pk)
+    # The enrollment form (ficha) must certify both parents, as the law requires.
+    if doc == "ficha" and not (context["father"] and context["mother"]):
+        messages.error(
+            request,
+            "Cadastre o pai e a mãe do aluno como responsáveis antes de gerar a "
+            "ficha de matrícula.",
+        )
+        return redirect("enrollments:enrollment_edit", pk=pk)
     context["object_id"] = pk
-    return TemplateResponse(request, "enrollments/preview_enrollment.html", context)
+    context["doc"] = doc
+    return context
 
 
-def generate_report_pdf_view(request, pk):
-    context = build_report_context(pk)
-    if context is None:
-        return no_guardian_redirect(request, pk)
+def generate_report_view(request, pk, doc):
+    context = print_context(request, pk, doc)
+    if isinstance(context, HttpResponse):
+        return context
+    return TemplateResponse(request, PRINT_DOCUMENTS[doc][0], context)
+
+
+def generate_report_pdf_view(request, pk, doc):
+    context = print_context(request, pk, doc)
+    if isinstance(context, HttpResponse):
+        return context
+    template, prefix = PRINT_DOCUMENTS[doc]
     context["pdf"] = True
     context["logo_src"] = Path(finders.find("img/unico_logo_stamp.png")).as_uri()
-    html = render_to_string(
-        "enrollments/preview_enrollment.html", context, request=request
-    )
+    html = render_to_string(template, context, request=request)
     pdf = HTML(string=html, base_url=request.build_absolute_uri("/")).write_pdf()
 
-    filename = f"contrato-{slugify(context['student_name'])}.pdf"
+    filename = f"{prefix}-{slugify(context['student_name'])}.pdf"
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response

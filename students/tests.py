@@ -2,6 +2,7 @@ from django.db import IntegrityError
 from django.urls import reverse
 
 from base.testing import LoggedInTestCase
+from students.forms import StudentForm
 from students.models import Guardian, GuardianAssociation, Relationship, Student
 
 
@@ -24,6 +25,7 @@ class FinancialGuardianTests(LoggedInTestCase):
             "cpf": self.student.cpf,
             "rg": self.student.rg,
             "issuing_authority": self.student.issuing_authority,
+            "blood_type": "O+",
             "guardians-TOTAL_FORMS": "2",
             "guardians-INITIAL_FORMS": "0",
         }
@@ -71,6 +73,18 @@ class FinancialGuardianTests(LoggedInTestCase):
             response, reverse("students:student_edit", args=[self.student.pk])
         )
         self.assertEqual(self.student.financial_payer, self.mother)
+
+    def test_saves_school_from_and_observations(self):
+        data = self.post_data(self.mother)
+        data["school_from"] = "EE Dom Pedro II"
+        data["observations"] = "Precisa de reforço em matemática."
+        response = self.post(data)
+        self.assertRedirects(
+            response, reverse("students:student_edit", args=[self.student.pk])
+        )
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.school_from, "EE Dom Pedro II")
+        self.assertEqual(self.student.observations, "Precisa de reforço em matemática.")
 
     def test_database_allows_only_one_financial_guardian(self):
         GuardianAssociation.objects.create(
@@ -183,3 +197,9 @@ class PhoneDigitsTests(LoggedInTestCase):
         self.assertContains(response, "Informe DDD + número")
         self.guardian.refresh_from_db()
         self.assertEqual(self.guardian.mobile, "")
+
+
+class StudentBloodTypeTests(LoggedInTestCase):
+    def test_blood_type_is_required(self):
+        form = StudentForm(data={"name": "Ana", "cpf": "12345678901", "rg": "1"})
+        self.assertIn("blood_type", form.errors)

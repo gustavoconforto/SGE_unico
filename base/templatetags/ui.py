@@ -2,7 +2,7 @@ import re
 
 from django import template
 
-from utils.format.number_values import format_cpf
+from utils.format.number_values import format_cpf, format_zip_code
 
 register = template.Library()
 
@@ -46,6 +46,12 @@ def phone(value):
     if len(value) in (10, 11) and value.isdigit():
         return f"({value[:2]}) {value[2:-4]}-{value[-4:]}"
     return value
+
+
+@register.filter
+def cep(value):
+    """Formats stored CEP digits as 70000-000; empty stays empty."""
+    return format_zip_code(value) if value else ""
 
 
 @register.filter

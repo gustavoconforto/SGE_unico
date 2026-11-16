@@ -1,0 +1,50 @@
+{% extends "enrollments/print_base.html" %}
+{% load static ui %}
+{% block title %}Requerimento de Matrícula{% endblock title %}
+{% block style %}
+    .logo-row {
+      text-align: right;
+    }
+
+    h1 {
+      margin: 32px 0 40px;
+    }
+
+    .date {
+      text-align: right;
+    }
+
+    .salutation {
+      margin: 56px 0 32px;
+    }
+
+    .body p {
+      text-align: justify;
+      line-height: 2;
+    }
+{% endblock style %}
+{% block page %}
+  <div class="logo-row">
+    <img class="logo"
+         src="{% if logo_src %}{{ logo_src }}{% else %}{% static 'img/unico_logo_stamp.png' %}{% endif %}"
+         alt="Único Educacional">
+  </div>
+  <h1>Requerimento de Matrícula</h1>
+  <p class="date">Brasília, {{ sign_date|date:"j \d\e F \d\e Y"|lower }}</p>
+  <p class="salutation">Exmo. Sr. Diretor.</p>
+  <div class="body">
+    <p>
+      Eu, {{ financial_guardian_name|upper }}, CPF: {{ financial_guardian_cpf }},
+      RG {{ financial_guardian.rg }} {{ financial_guardian.issuing_authority }},
+      responsável pelo(a) aluno(a): {{ student_name|upper }}, declaro estar de acordo com o
+      Contrato de Prestação de Serviços Educacionais e com as disposições do Regimento Escolar e
+      solicito a V.Sa. a matrícula da(o) referida(o) aluna(o) na {{ grade }}ª Série do
+      {{ enrollment.enrollment_type.program.name|upper }}{% if period %}, no período {{ period|upper }}{% endif %},
+      no ano letivo de {{ school_year }}.
+    </p>
+    <p>
+      Dessa forma o ÚNICO EDUCACIONAL se obriga a reservar uma vaga para esse (a) aluno (a) e eu
+      me obrigo a cumprir todas as cláusulas contratuais.
+    </p>
+  </div>
+{% endblock page %}

@@ -263,12 +263,7 @@
     </style>
   </head>
   <body>
-    {% if not pdf %}
-      <div class="toolbar">
-        <button type="button" class="secondary" onclick="history.back()">Voltar</button>
-        <a href="{% url 'enrollments:enrollment_pdf' object_id %}">Baixar PDF</a>
-      </div>
-    {% endif %}
+    {% include "enrollments/partials/print_toolbar.html" %}
     <main class="page">
       <header class="letterhead">
         <div class="info">

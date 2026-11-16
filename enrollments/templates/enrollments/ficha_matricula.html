@@ -1,0 +1,117 @@
+{% extends "enrollments/print_base.html" %}
+{% load static ui %}
+{% block title %}Ficha de Matrícula{% endblock title %}
+{% block style %}
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    header h1 {
+      text-align: left;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      margin: 2px 0;
+    }
+
+    h2 {
+      margin: 14px 0 4px;
+      font-size: 11pt;
+      text-transform: uppercase;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px 16px;
+      font-size: 10pt;
+    }
+
+    .person .grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* WeasyPrint mis-places "1 / -1"; explicit spans work in both renderers. */
+    .grid .wide {
+      grid-column: span 3;
+    }
+
+    .person .grid .wide {
+      grid-column: span 2;
+    }
+
+    .documents {
+      margin-top: 16px;
+      padding: 8px 12px;
+      border: 1px solid #111827;
+      font-size: 10pt;
+    }
+
+    .documents h2 {
+      margin-top: 4px;
+    }
+
+    .documents ul {
+      margin: 0 0 8px;
+      padding-left: 18px;
+      text-transform: uppercase;
+    }
+
+    .declaration {
+      margin-top: 16px;
+      font-size: 10pt;
+    }
+{% endblock style %}
+{% block page %}
+  <header>
+    <div>
+      <h1>Ficha de Matrícula</h1>
+      <p><b>Nome:</b> {{ student.name|upper }}</p>
+      {% if student.social_name %}<p><b>Nome social:</b> {{ student.social_name|upper }}</p>{% endif %}
+      <p><b>Matrícula:</b> {{ student.registration }}</p>
+      <p><b>Série:</b> {{ grade }}ª Série{% if enrollment.school_class %} - Turma {{ enrollment.school_class.name|upper }}{% endif %}</p>
+    </div>
+    <img class="logo"
+         src="{% if logo_src %}{{ logo_src }}{% else %}{% static 'img/unico_logo_stamp.png' %}{% endif %}"
+         alt="Único Educacional">
+  </header>
+  <section class="no-break">
+    <h2>Aluno(a)</h2>
+    <div class="grid">
+      <div><b>Período letivo:</b> {{ school_year }}</div>
+      <div><b>Unidade:</b> ÚNICO EDUCACIONAL</div>
+      <div><b>Curso:</b> {{ enrollment.enrollment_type.program.name|upper }}</div>
+      <div><b>CPF:</b> {{ student_cpf }}</div>
+      <div><b>RG - Órgão Expedidor:</b> {{ student.rg }} {{ student.issuing_authority }}</div>
+      <div><b>Naturalidade:</b> {{ student.place_of_birth }}</div>
+      <div><b>Sexo:</b> {{ student.get_sex_display }}</div>
+      <div><b>Data de nascimento:</b> {{ student.birth_date|date:"d/m/Y" }}</div>
+      <div><b>Tipo sanguíneo:</b> {{ student.blood_type }}</div>
+      <div class="wide">
+        <b>Endereço:</b> {{ student.address }}{% if student.neighborhood %}, {{ student.neighborhood }}{% endif %}{% if student.city %}, {{ student.city }}{% endif %}{% if student.state %} - {{ student.state }}{% endif %}{% if student.zip_code %} CEP: {{ student.zip_code|cep }}{% endif %}
+      </div>
+      <div><b>Telefone:</b> {{ student.mobile|phone }}{% if student.mobile and student.phone %} / {% endif %}{{ student.phone|phone }}</div>
+      <div class="wide"><b>E-mail:</b> {{ student.email }}</div>
+    </div>
+  </section>
+  {% include "enrollments/partials/print_person.html" with label="Financeiro" person=financial_guardian %}
+  {% include "enrollments/partials/print_person.html" with label="Pai" person=father %}
+  {% include "enrollments/partials/print_person.html" with label="Mãe" person=mother %}
+  <section class="documents no-break">
+    <h2>Documentos entregues:</h2>
+    <ul>
+      {% for doc_type in delivered_documents %}<li>{{ doc_type }}</li>{% empty %}<li>Nenhum</li>{% endfor %}
+    </ul>
+    <h2>Documentos pendentes:</h2>
+    <ul>
+      {% for doc_type in pending_documents %}<li>{{ doc_type }}</li>{% empty %}<li>Nenhum</li>{% endfor %}
+    </ul>
+  </section>
+  <p class="declaration">Declaro que as informações supracitadas são verdadeiras.</p>
+  <p class="declaration">Brasília, {{ sign_date|date:"j \d\e F \d\e Y"|lower }}.</p>
+{% endblock page %}

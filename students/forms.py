@@ -177,7 +177,10 @@ class StudentForm(PhoneDigitsMixin, forms.ModelForm):
             "birth_date",
             "nationality",
             "place_of_birth",
+            "blood_type",
             "marital_status",
+            "school_from",
+            "observations",
         ],
         "contact": ["phone", "mobile", "email"],
         "address": ["address", "neighborhood", "city", "state", "zip_code"],
@@ -205,6 +208,9 @@ class StudentForm(PhoneDigitsMixin, forms.ModelForm):
             "birth_date",
             "nationality",
             "place_of_birth",
+            "blood_type",
+            "school_from",
+            "observations",
             "phone",
             "mobile",
             "email",
@@ -258,6 +264,22 @@ class StudentForm(PhoneDigitsMixin, forms.ModelForm):
             "sex": forms.Select(
                 attrs={
                     "class": "select select-neutral w-full",
+                }
+            ),
+            "blood_type": forms.Select(
+                attrs={
+                    "class": "select select-neutral w-full",
+                }
+            ),
+            "school_from": forms.TextInput(
+                attrs={
+                    "class": "input input-neutral w-full",
+                }
+            ),
+            "observations": forms.Textarea(
+                attrs={
+                    "class": "textarea textarea-neutral w-full",
+                    "rows": 4,
                 }
             ),
             "marital_status": forms.Select(

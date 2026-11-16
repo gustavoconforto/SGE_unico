@@ -121,6 +121,7 @@ from pathways.services import extra_grades
 from programs.models import Program
 from q_and_a.models import QandA
 from students.models import (
+    BloodType,
     Guardian,
     GuardianAssociation,
     MaritalStatus,
@@ -132,6 +133,27 @@ DEV_PASSWORD = "73823789"
 CENT = Decimal("0.01")
 
 HIGH_SCHOOL = "Ensino Médio"
+
+SCHOOLS_FROM = [
+    "CEF 01 de Brasília",
+    "CEF 02 do Guará",
+    "CEF 04 de Taguatinga",
+    "Colégio Militar de Brasília",
+    "Colégio Marista de Brasília",
+    "Colégio La Salle Águas Claras",
+    "Escola Classe 308 Sul",
+    "Colégio Objetivo DF",
+]
+
+PEDAGOGICAL_NOTES = [
+    "Apresenta dificuldade em matemática; recomenda-se acompanhamento.",
+    "Laudo de TDAH; precisa de tempo extra nas avaliações.",
+    "Dislexia diagnosticada; avaliações com leitura em voz alta.",
+    "Aluno com altas habilidades em ciências exatas.",
+    "Timidez acentuada; incentivar participação em grupo.",
+    "Veio de outro estado; adaptação ao currículo em andamento.",
+    "Precisa sentar nas primeiras fileiras (baixa visão).",
+]
 
 # Class names are unique per (year, program), so every series has its own.
 CLASSES = {
@@ -1181,6 +1203,7 @@ class Command(BaseCommand):
                         cpf=self.digits(self.fake.unique.cpf()),
                         rg=self.rg(),  # unique and required, so every student gets one
                         issuing_authority="SSP/DF",
+                        blood_type=random.choice(BloodType.values),
                         nationality="Brasileira",
                         place_of_birth=random.choice(
                             ["Brasília", "Brasília", "Brasília", "Goiânia", "São Paulo"]
@@ -1189,6 +1212,12 @@ class Command(BaseCommand):
                         if random.random() < 0.85
                         else "",
                         email=self.fake.free_email() if random.random() < 0.6 else "",
+                        school_from=random.choice(SCHOOLS_FROM)
+                        if random.random() < 0.7
+                        else "",
+                        observations=random.choice(PEDAGOGICAL_NOTES)
+                        if random.random() < 0.15
+                        else "",
                         **home,
                     )
                 )

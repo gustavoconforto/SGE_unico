@@ -127,12 +127,12 @@ urlpatterns = [
         name="school_class_options",
     ),
     path(
-        "print/preview/<int:pk>/",
+        "print/<slug:doc>/preview/<int:pk>/",
         generate_report_view,
         name="enrollment_preview",
     ),
     path(
-        "print/pdf/<int:pk>/",
+        "print/<slug:doc>/pdf/<int:pk>/",
         generate_report_pdf_view,
         name="enrollment_pdf",
     ),
